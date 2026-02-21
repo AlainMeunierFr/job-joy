@@ -1,0 +1,99 @@
+/**
+ * File navigation.js.
+ *
+ */
+(function ($) {
+	$(document).ready(function () {
+
+		/**
+		 * Détection de la résolution ou du type de terminal
+		 */
+		var context;
+		var $window = $(window);
+
+		// Détection si on est sur mobile ou desktop pour le type de menu affiché
+		function isTouchDevice() {
+			return 'ontouchstart' in document.documentElement;
+		}
+
+		if (isTouchDevice()) {
+			// On mobile
+			$('body').addClass(' tactile');
+
+		} else {
+			// On Desktop
+			$('body').addClass(' desktop');
+		}
+
+		// run this right away to set context
+		if ($window.width() <= 767) {
+			context = 'small';
+		} else if ($window.width() > 767 && $window.width() < 1024) {
+			context = 'tablet';
+		} else if ($window.width() >= 1024) {
+			context = 'medium';
+		} else if ($window.width() >= 1440) {
+			context = 'wide';
+		}
+
+		// refresh the page only if you're crossing into a context
+		// that isn't already set
+		// + Condition pour ne pas recharge la page en cas de passage en full screen (exemple pour lire une vidéo)
+		$(window).resize(function () {
+			if (($window.width() <= 767) && (context != 'small') && $window.width() !== window.screen.width) {
+				//refresh the page
+				location.reload();
+
+			} else if ($window.width() > 767 && $window.width() < 1024 && (context != 'tablet') && $window.width() !== window.screen.width) {
+				location.reload();
+
+			} else if ($window.width() >= 1024 && (context != 'medium') && $window.width() !== window.screen.width) {
+				location.reload();
+
+			} else if ($window.width() >= 1440 && (context != 'wide') && $window.width() !== window.screen.width) {
+				location.reload();
+
+			}
+		});
+
+		/**
+		 * Smooth scrolling to page anchor on click
+		 **/
+		$("a[href*='#']:not([href='#'])").click(function () {
+
+			var anchor = $(this.hash);
+
+			// Condition pour ne pas appliquer de Smooth scrolling sur une iframe Lity
+			if ($(this).attr('data-lity') === true) {
+				return null;
+			} else if ($(this).attr('data-tabs') === 'tab') {
+
+				// Cas pour le menu sticky des tabs
+				anchor = anchor.length ? anchor : $("[name=" + this.hash.slice(1) + "]");
+				if (anchor.length) {
+
+					// Modifier la valeur après le top en fonction de la hauteur de votre menu sticky
+					$("html, body").animate({scrollTop: anchor.offset().top - 200}, 1500);
+
+
+				}
+			} else {
+
+				if (
+					location.hostname === this.hostname &&
+					this.pathname.replace(/^\//, "") === location.pathname.replace(/^\//, "")
+				) {
+					anchor = anchor.length ? anchor : $("[name=" + this.hash.slice(1) + "]");
+					if (anchor.length) {
+
+						// Modifier la valeur après le top en fonction de la hauteur de votre menu sticky
+						$("html, body").animate({scrollTop: anchor.offset().top - 150}, 1500);
+
+
+					}
+				}
+			}
+		});
+
+	});
+})(jQuery);

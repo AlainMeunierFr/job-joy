@@ -1,0 +1,1 @@
+!function(i){i(window).load((function(){i(".form-upload .gfield_label").click((function(n){n.preventDefault(),i(this).parent().find('input[type="file"]').trigger("click")}))}))}(jQuery);

@@ -1,0 +1,29 @@
+/******************************************************************************
+ * SCRIPT RELATIF AUX OFFRES D'EMPLOI
+ ******************************************************************************/
+
+
+/**
+ * Auto-complétion des villes à l'aide de l'API de géolocalisation de Google
+ */
+function initAutocomplete() {
+	var input = document.getElementById('adresse');
+	autocomplete = new google.maps.places.Autocomplete(input, {
+		types: [
+			"(cities)"
+		],
+	});
+}
+google.maps.event.addDomListener(window, 'load', initAutocomplete);
+
+// Ajout latitude et longitude en GET à la soumission du formulaire
+const form = document.getElementById('form_offres');
+form.addEventListener('submit', event => {
+	var place = autocomplete.getPlace();
+
+	const latInput = document.getElementById('lat');
+	const lngInput = document.getElementById('lng');
+
+	latInput.value = place.geometry.location.lat();
+	lngInput.value = place.geometry.location.lng();
+});

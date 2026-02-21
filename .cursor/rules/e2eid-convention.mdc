@@ -1,0 +1,40 @@
+---
+description: Convention e2eID pour les tests E2E (Playwright)
+alwaysApply: false
+---
+
+# e2eID — Convention pour tests E2E
+
+**Tout élément interactif** (lien, bouton, CTA, carte cliquable) doit avoir un identifiant E2E, sauf exclusion explicite.
+
+## Éléments issus du JSON
+
+Utiliser l'**`e2eID`** fourni par les données. Ne pas inventer ni surcharger.
+- Appliquer `e2eid="e2eid-{id}"` quand `e2eID` est présent
+- Si `e2eID` est `null` ou absent : ne pas poser `e2eid` ou utiliser `e2eid={null}`
+
+## Éléments codés en dur
+
+Donner un **`e2eid`** explicite : `e2eid="e2eid-{id}"` avec un `id` cohérent.
+- S'inspirer des constantes ou fichiers de configuration du projet s'ils existent.
+
+## Exclusion volontaire
+
+Pour éléments non testés en E2E (modals, formulaires internes) :
+- JSX : `e2eid={null}`
+- JSON : `e2eID: null`
+
+## Conventions techniques
+
+| Contexte | Propriété | Format |
+|----------|-----------|--------|
+| JSON | `e2eID` (camelCase) | `string \| null` |
+| JSX | `e2eid` (minuscules) | `"e2eid-{id}"` ou `{null}` |
+
+**Ne pas utiliser** : `data-testid`, `data-e2eid`. Playwright cible l'attribut `e2eid`.
+
+## Après nouvelle route ou nouveau lien
+
+1. Mettre à jour le plan du site si le projet a un script dédié.
+2. Régénérer les scénarios E2E si configuré.
+3. Traiter les éléments sans e2eID détectés.

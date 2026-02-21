@@ -1,0 +1,26 @@
+(function(){ 
+const callback = (tcData, success) => {
+  if(success && (tcData.eventStatus === 'tcloaded' || tcData.eventStatus === 'useractioncomplete')) {
+    var cb = Math.round(new Date().getTime() / 1000);
+	new Image().src="https://tag.goldenbees.fr/saveconsent?cs=" + tcData.tcString + "&domain=" + window.location.hostname + "&gbcmp=0&tcfv="+tcData.tcfPolicyVersion+"&cb=" + cb ;
+  }
+}
+if(typeof window.__tcfapi === "function"){
+  window.__tcfapi('addEventListener', 2, callback);
+}
+var inter=setInterval(function(){ if(document.body){
+clearInterval(inter);
+var ttagid = ''+Math.random()+'';
+var ttag=document.createElement("iframe");
+ttag.name=ttagid;
+ttag.id=ttagid;
+ttag.title="GoldenBees tag";
+ttag.style.width="0";
+ttag.style.height="0";
+ttag.frameBorder="0";
+ttag.style.position="absolute";
+ttag.style.visibility="hidden";
+document.body.insertBefore(ttag,document.body.firstChild);
+var f=window.frames[ttagid];
+f.document.open();
+var template = '<html><head></head><body><scr'+'ipt>new Image().src="https://match.adsrvr.org/track/cmf/generic?ttd_pid=r1x1tbb&ttd_tpi=1";</scr'+'ipt><scr'+'ipt type="text/javascript">setTimeout("document.close();", 2000)</scr'+'ipt></body></html>'; f.document.write(template);}},50); setTimeout(function(){clearInterval(inter)},2000);})();

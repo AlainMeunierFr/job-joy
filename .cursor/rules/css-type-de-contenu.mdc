@@ -1,0 +1,18 @@
+---
+description: CSS et types de contenu — source unique, tokens globaux
+alwaysApply: false
+---
+
+# CSS et types de contenu
+
+## Règle
+
+**Les types de contenu sont stylés dans le CSS global.** Éviter la multiplication de fichiers `.module.css` par composant pour l'affichage des blocs de contenu.
+
+- **Source unique** : `app/content-styles.css` (ou équivalent) — sélecteurs par type/convention.
+- **Tokens** : variables définies dans `app/globals.css` (couleurs, tailles, polices).
+- **Préférer** : un fichier CSS global par type de contenu plutôt que des styles scoped par composant.
+
+## Exceptions
+
+Les pages ou zones spécifiques (Maintenance, Metrics, pages admin) peuvent avoir leur propre CSS dédié.

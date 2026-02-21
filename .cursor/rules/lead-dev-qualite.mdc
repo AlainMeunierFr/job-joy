@@ -1,0 +1,87 @@
+---
+description: Lead Dev - Règles de qualité (BDD, TDD, Clean Code, Nommage)
+alwaysApply: false
+---
+
+# Règles de Qualité
+
+## BDD (Behavior-Driven Development)
+
+Pour toute demande fonctionnelle/métier :
+1. Reformuler en User Story
+2. Identifier problème métier réel
+3. **Valider User Story avec utilisateur**
+4. Créer scénarios BDD (Gherkin en français)
+5. **Valider scénarios BDD avec utilisateur**
+
+## TDD (Test-Driven Development)
+
+**Le TDD s'applique TOUJOURS, pas seulement via le tunnel US.**
+
+Même pour une correction technique (CSP, config, refactoring) :
+1. **RED** : Écrire un test qui échoue (ou vérifier qu'un test existant couvre le cas)
+2. **GREEN** : Code minimal pour faire passer le test
+3. **REFACTOR** : Améliorer en gardant tests verts
+
+- Cycle **RED → GREEN → REFACTOR** - UN TEST À LA FOIS
+- Couverture nuancée (projet greenfield) :
+  - **100%** sur `utils/`, logique métier, composants complexes
+  - **~90%+** sur `app/`, composants simples, pages très basiques
+  - Seuil global Jest : 90% minimum (branches, functions, lines, statements)
+- **Pas de code sans test**, même hors tunnel
+
+### Plan de tests baby steps (tunnel US)
+
+Pour les agents TDD (back-end, front-end) : le **Lead Dev** propose une **liste de tests incrémentaux** validée par l'utilisateur avant délégation. L'agent suit cette liste strictement : **du plus simple au plus compliqué**, un test à la fois (RED → GREEN → REFACTOR), pas de fusion ni de saut d'étape. Voir `lead-dev-workflow.mdc` → section « Plan de tests baby steps ».
+
+## Nommage (types de contenu)
+
+Quand on crée un **nouveau type**, en particulier un **type de contenu** : **un seul nom**, identique sur **toutes les couches** — propriété dans les JSON, type/propriété en TypeScript, classe dans les feuilles CSS. Pas de variante.
+
+## Clean Code
+
+- Principes SOLID
+- Pas de duplication
+- Noms explicites en français pour le métier
+- Commentaires expliquent le "pourquoi", pas le "comment"
+- Single Responsibility Principle
+
+## Processus de Développement
+
+### Validation de la demande
+**NE JAMAIS CODER AVANT VALIDATION COMPLÈTE**
+1. Reformuler clairement la demande
+2. Identifier ambiguïtés
+3. **Demander validation explicite**
+
+### Distinction demande fonctionnelle vs technique
+- **Fonctionnelle/métier** → User Story → Plan de test → Technique → Code
+- **Purement technique** → Peut passer directement au code
+
+## API REST (si applicable)
+
+- Si le projet expose une API : versionner le contrat (MAJOR.MINOR).
+- MAJOR : breaking change (suppression, renommage).
+- MINOR : ajout rétrocompatible.
+
+## Vérifications et Qualité
+
+### ESLint — obligatoire
+
+**ESLint est la base de la syntaxe et de la cohérence du code.** Aucun code ne peut être considéré comme livrable si ESLint échoue.
+
+- **Pour tout agent qui écrit du code** (TDD-back-end, TDD-front-end, Designer, etc.) : avant de considérer une livraison terminée, exécuter `npm run lint` et corriger toute erreur.
+- **Pour le Lead Dev** : à chaque revue, vérifier que `npm run lint` passe avant de valider. Voir `lead-dev-revue.mdc`.
+
+### Linters (IDE)
+Après chaque modification :
+- Lancer `read_lints` sur fichiers modifiés
+- Corriger erreurs évidentes
+- Signaler erreurs non évidentes
+
+### Build et tests
+- **Ne pas lancer le build ni la suite de tests** pendant le tunnel (sauf tests pertinents à l'étape)
+- **C'est au moment de la clôture de l'US** (étape = `done`) qu'on lance build et suite de tests complète
+
+### Métriques (si configuré)
+Si le projet a une commande `metrics:collect` : lancer lors du build et stocker dans `public/metrics/`.

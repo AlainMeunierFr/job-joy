@@ -1,0 +1,43 @@
+document.addEventListener("DOMContentLoaded", function () {
+
+	/**
+	 * Domaine : Options du Filtre Taxo Categorie
+	 */
+	tail.select("select#select_categorie", {
+		locale: "categorie",
+		multiple: true,
+		search: true,
+		multiSelectAll: false,
+		multiContainer: ".tail-move-container-categorie",
+		multiShowCount: false,
+		deselect: true
+	});
+
+	/**
+	 * Localisation : Options du Filtre Taxo Localisation
+	 */
+	tail.select("select#select_localisation", {
+		locale: "localisation",
+		multiple: true,
+		search: true,
+		multiSelectAll: false,
+		multiContainer: ".tail-move-container-localisation",
+		multiShowCount: false,
+		deselect: true
+	});
+
+	/**
+	 * Localisation : Options du Filtre Taxo Thématique
+	 */
+	tail.select("select#select_cat_blog", {
+		locale: "cat_blog",
+		multiple: true,
+		search: true,
+		multiSelectAll: false,
+		multiContainer: ".tail-move-container-cat_blog",
+		multiShowCount: false,
+		deselect: true
+	});
+
+});
+

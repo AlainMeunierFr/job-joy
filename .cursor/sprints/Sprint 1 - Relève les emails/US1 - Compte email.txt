@@ -1,0 +1,19 @@
+En tant qu'utilisateur
+Je souhaite configurer mon compte mail (login et mot de passe) et le dossier de travail
+Afin que l'application puisse compter les emails à analyser
+
+CA1 : une page de paramétrage avec :
+. email adresse
+. mot de passe (champ invisible, avec bouton de visualisation en clair - icône "oeil")
+. une zone de saisie texte vers un répertoire (.\Dossier\Sousdossier)
+
+CA2 : bouton test :
+Etant donné que 
+- le login est "alain@maep.fr'
+- le mot de passe est "MonMotDePasse"
+
+[Login     | Mot de passe ` | dossier    | Message type   | Message
+
+CA3 : mémorisation
+- Les paramètres sont stockés dans ".\data\compte.json"
+- le mot de passe en haché avec une méthode hachage pas trop obsolète

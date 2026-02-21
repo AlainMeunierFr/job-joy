@@ -1,0 +1,1 @@
+Aucune délégation en attente. Pour démarrer une US : **GO US** avec la description de la story. Pour une revue ou la suite d'une US déjà rédigée : indiquer l'étape (BDD, TDD-back-end, TDD-front-end, Designer).

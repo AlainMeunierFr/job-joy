@@ -1,0 +1,38 @@
+/*
+ |  tail.select - The vanilla solution to make your HTML select fields AWESOME!
+ |  @file       ./langs/tail.select-fr.js
+ |  @author     SamBrishes <sam@pytes.net>
+ |  @version    0.5.16 - Beta
+ |
+ |  @website    https://github.com/pytesNET/tail.select
+ |  @license    X11 / MIT License
+ |  @copyright  Copyright © 2014 - 2019 SamBrishes, pytesNET <info@pytes.net>
+ */
+/*
+ |  Translator:     Anthony Rabine - (https://github.com/arabine)
+ |  GitHub:         https://github.com/pytesNET/tail.select/issues/11
+ */
+;(function(factory){
+   if(typeof(define) == "function" && define.amd){
+       define(function(){
+           return function(select){ factory(select); };
+       });
+   } else {
+       if(typeof(window.tail) != "undefined" && window.tail.select){
+           factory(window.tail.select);
+       }
+   }
+}(function(select){
+    select.strings.register("cat_blog", {
+        all: "Tous",
+        none: "Aucun",
+        empty: "Aucune Thématique disponible",
+        emptySearch: "Aucun Thématique trouvé",
+        limit: "Aucun autre Thématique sélectionnable",
+        placeholder: " Thématique(s) ",
+        placeholderMulti: "Choisissez jusqu'à :limit Thématique...",
+        search: "Recherche ?",
+        disabled: "Ce champs est désactivé"
+    });
+    return select;
+}));

@@ -1,0 +1,52 @@
+---
+description: Lead Dev - Revue de code et communication
+alwaysApply: false
+---
+
+# Revue de Code
+
+## Vérifications
+
+- **ESLint** : `npm run lint` doit passer sans erreur. ESLint est la base de la syntaxe et de la cohérence du code — **aucune livraison ne peut être validée si ESLint échoue**.
+- DoD spécifique du profil (architecture hexagonale, responsive, etc.)
+- Principes Clean Code (SOLID, pas de duplication, noms explicites)
+- Tests TDD/BDD avec **couverture 100%**
+- Cycle RED → GREEN → REFACTOR respecté
+- **Plan de tests baby steps** (si applicable) : l'agent TDD a suivi la liste validée, un test à la fois
+- **Scénarios BDD** : avant d'accepter une livraison TDD-front-end ou TDD-back-end, lancer `npm run test:bdd` et vérifier que tous les scénarios de l'US passent. Tous les steps doivent avoir une step definition.
+- Cohérence avec les BDD existants
+- **Nouvelle page / nouveau lien** : plan du site à jour, e2eID présents, scénario E2E régénéré
+
+## Actions
+
+- ✅ **Corriger** écarts mineurs (typographie, structure)
+- ❌ **Retourner** tâches non conformes avec commentaires précis
+- 🚫 **BLOQUER** merges si couverture < 100% **ou si ESLint échoue**
+
+## Stratégie Boy Scout
+
+Lorsqu'on repasse sur du code qui ne respecte pas les consignes, **faire nettoyer en passant** (rappeler à l'agent concerné ou corriger soi-même si mineur).
+
+# Communication
+
+## Journal de bord
+
+**RÈGLE ABSOLUE** : Mettre à jour **immédiatement après chaque prompt** qui modifie le code.
+
+**CHECKLIST OBLIGATOIRE** :
+1. ✅ **Vérifier** : Ai-je modifié du code ou la structure du projet ?
+2. ✅ **Si OUI** : Vérifier existence fichier journal (`journaux/1. Journal de bord/YYYY-MM-DD-NomConversation.md`)
+3. ✅ **Créer** le fichier si nécessaire
+4. ✅ **Ajouter** : `### Sujet` (H3), `#### Prompt` (H4), `##### Résultat` (H5)
+
+⚠️ **ATTENTION** : Pas de H1 (#) ou H2 (##) dans les fichiers journal !
+
+## Alertes
+
+- Signaler immédiatement tout blocage ou risque de retard
+- Documenter décisions techniques et compromis
+
+## Toujours en français
+
+- Explications pédagogiques pour concepts techniques
+- Citations de code avec format `startLine:endLine:filepath`

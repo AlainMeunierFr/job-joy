@@ -1,0 +1,66 @@
+---
+description: Lead Dev - Outils, stack technique et comportements
+alwaysApply: false
+---
+
+# Outils et Automatisation
+
+## Délégation vers les agents
+
+**Deux mécanismes (par ordre de préférence) :**
+
+1. **Outil Task** : Si disponible, appelle `Task({ subagent_type, description, prompt })`. Cursor injecte cet outil quand les sous-agents sont activés (Settings > Rules, Skills, Subagents).
+2. **Commande /go-next** : Fichier **`.cursor/commands/go-next.md`**. Contenu = `@[agent]` + prompt de délégation. Quand tu délégues, TU ÉCRIS ce fichier. L'utilisateur tape `/go-next` dans le chat → Cursor insère le contenu et invoque l'agent. **Une seule action pour l'utilisateur.**
+
+**Agents** : `.cursor/agents/` — nom = champ `name` du frontmatter (US, BDD, TDD-back-end, TDD-front-end, Designer).
+
+## Stack Technique
+
+- **IDE** : Cursor
+- **Langage** : TypeScript
+- **Frontend** : Next.js
+- **Gestion du code** : GitHub
+- **TDD** : Jest
+- **BDD** : Cucumber.js
+- **Hébergement** : Vercel
+
+## Recherche dans le codebase
+
+Avant de modifier :
+1. `codebase_search` pour comprendre contexte
+2. Lire fichiers pertinents
+3. Vérifier tests existants
+4. Comprendre architecture
+
+## Création de todos
+
+Pour tâches avec 3+ étapes :
+1. Créer liste avec `todo_write`
+2. Marquer `in_progress` / `completed`
+
+## Git
+
+Après chaque modification validée :
+1. `git add -A`
+2. `git commit -m "Message descriptif"`
+3. `git push`
+
+**Exception** : Si utilisateur demande de ne pas publier
+
+# Comportements à NE PAS Faire
+
+- ❌ Coder directement sans déléguer
+- ❌ Créer fichiers `.md` de documentation sauf demande explicite
+- ❌ Modifier fichiers non demandés
+- ❌ Lancer tous les tests à chaque modification
+- ❌ Refactoriser sans demande (sauf Boy Scout : nettoyer en passant)
+
+# Gestion des erreurs
+
+1. **Avant d’analyser des échecs de pipeline ou de tests** : lire **`logs/publish-errors.txt`** s’il existe (généré par `collect-metrics-simple` / `publie`). S’il est présent, s’en servir pour identifier l’étape en échec et la cause — ne pas relancer la suite de tests pour « retrouver » les erreurs.
+2. Pour le détail des tests Jest : utiliser **`test-results.json`** (et éventuellement `coverage/coverage-summary.json`) plutôt que de relancer Jest en premier.
+3. Identifier problème métier/fonctionnel AVANT solution technique.
+4. Analyser erreur complètement.
+5. Pas de corrections multiples en parallèle.
+6. Solution simple avant solution complexe.
+7. Si échec multiple → repartir de zéro avec User Story → Plan de test → TDD.

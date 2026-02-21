@@ -1,0 +1,583 @@
+@charset "UTF-8";
+/*
+ |  tail.select - The vanilla solution to make your HTML select fields AWESOME!
+ |  @file       ./css/default/tail.select-light.css
+ |  @author     SamBrishes <sam@pytes.net>
+ |  @version    0.5.16 - Beta
+ |
+ |  @website    https://github.com/pytesNET/tail.select
+ |  @license    X11 / MIT License
+ |  @copyright  Copyright © 2014 - 2019 SamBrishes, pytesNET <info@pytes.net>
+ */
+
+/* @start GENERAL */
+.tail-select, .tail-select *, .tail-select *:before, .tail-select *:after {
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+}
+
+.tail-select, .tail-select * {
+	outline: none;
+	user-select: none;
+	-o-user-select: none;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+}
+
+.tail-select {
+	width: 100%;
+	margin: 1px;
+	display: inline-block;
+	position: relative;
+	line-height: 22px;
+	font-family: inherit;
+	font-size: 1.4rem;
+}
+
+/**
+ * Placeholder
+ */
+.tail-select::placeholder {
+	color: rgba(50, 56, 64, .8);
+	opacity: 1;
+}
+
+.tail-select::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+	color: rgba(50, 56, 64, .8);
+	opacity: 1;
+}
+
+.tail-select:-moz-placeholder { /* Firefox 18- */
+	color: rgba(50, 56, 64, .8);
+	opacity: 1;
+}
+
+.tail-select::-moz-placeholder { /* Firefox 19+ */
+	color: rgba(50, 56, 64, .8);
+	opacity: 1;
+}
+
+.tail-select:-ms-input-placeholder { /* IE 10+ */
+	color: rgba(50, 56, 64, .8);
+}
+
+.tail-select::-ms-input-placeholder {
+	color: rgba(50, 56, 64, .8);
+}
+
+.tail-select mark {
+	color: white;
+	background-color: #DC4650;
+}
+
+.tail-select button {
+	outline: none;
+}
+
+.tail-select button.tail-all, .tail-select button.tail-none {
+	height: auto;
+	margin: 0 2px;
+	padding: 2px 6px;
+	display: inline-block;
+	font-size: 10px;
+	line-height: 14px;
+	text-shadow: none;
+	letter-spacing: 0;
+	text-transform: none;
+	vertical-align: top;
+	border-width: 1px;
+	border-style: solid;
+	border-color: transparent;
+	border-radius: 3px;
+	box-shadow: none;
+	-webkit-box-shadow: none;
+	transition: color 142ms linear, border 142ms linear, background 142ms linear;
+	-webkit-transition: color 142ms linear, border 142ms linear, background 142ms linear;
+}
+
+.tail-select button.tail-all {
+	color: rgba(48, 52, 56, 0.5);
+	border-color: rgba(48, 52, 56, 0.5);
+	background-color: transparent;
+}
+
+.tail-select button.tail-all:hover {
+	color: #62C462;
+	border-color: #62C462;
+	background-color: transparent;
+}
+
+.tail-select button.tail-none {
+	color: rgba(48, 52, 56, 0.5);
+	border-color: rgba(48, 52, 56, 0.5);
+	background-color: transparent;
+}
+
+.tail-select button.tail-none:hover {
+	color: #EE5F5B;
+	border-color: #EE5F5B;
+	background-color: transparent;
+}
+
+.tail-select.disabled button.tail-all {
+	color: rgba(48, 52, 56, 0.25);
+	border-color: rgba(48, 52, 56, 0.25);
+	background-color: transparent;
+}
+
+.tail-select.disabled button.tail-none {
+	color: rgba(48, 52, 56, 0.25);
+	border-color: rgba(48, 52, 56, 0.25);
+	background-color: transparent;
+}
+
+.tail-select input[type="text"] {
+	color: rgba(51, 51, 52, 0.3);
+	background-color: #fff;
+	width: 100%;
+	height: auto;
+	margin: 0;
+	padding: 10px 15px;
+	display: inline-block;
+	outline: 0;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 20px;
+	vertical-align: middle;
+	border-width: 0;
+	border-style: solid;
+	border-radius: 0;
+	box-shadow: none;
+	-webkit-box-shadow: none;
+	border-top-left-radius: 20px;
+	border-top-right-radius: 20px;
+}
+
+.tail-select input[type="text"]:hover {
+	color: #000;
+	border-color: transparent;
+	background-color: transparent;
+}
+
+.tail-select input[type="text"]:focus {
+	color: #29aae3;
+	border-color: transparent;
+	background-color: transparent;
+}
+
+.tail-select.disabled input[type="text"] {
+	color: #092531;
+	border-color: transparent;
+	background-color: transparent;
+}
+
+.tail-select-container {
+	margin: 0;
+	padding: 3px;
+	text-align: left;
+	border-radius: 3px;
+	margin-bottom: 10px;
+}
+
+.tail-select-container .select-handle {
+	width: auto;
+	color: #000;
+	cursor: pointer;
+	margin: 1px;
+	padding: 0.2em 0.6em 0.3em;
+	display: inline-block;
+	position: relative;
+	font-size: 11.844px;
+	text-align: left;
+	font-weight: 400;
+	line-height: 16px;
+	text-shadow: none;
+	vertical-align: top;
+	background-color: #f2f9fc;
+	border-width: 0;
+	border-style: solid;
+	border-color: transparent;
+	border-radius: 5px;
+	transition: background 142ms linear;
+	-webkit-transition: background 142ms linear;
+}
+
+.tail-select-container .select-handle:after {
+	content: "X";
+	margin-left: 8px;
+}
+
+.tail-select-container .select-handle:hover {
+	color: #fff;
+	background-color: #b82061;
+}
+
+.tail-select-container.select-label .select-handle {
+	margin: 5px 3px;
+}
+
+/* @end GENERAL */
+
+/* @start LABEL */
+.tail-select .select-label {
+	cursor: pointer;
+	margin: 0;
+	display: block;
+	text-align: left;
+	margin-bottom: 1.7rem;
+	font-size: 1.6rem;
+	font-weight: 400;
+	color: #1e1e1e;
+
+	appearance: none;
+	border: .1rem solid #1e1e1e;
+	border-radius: 3.8rem;
+	line-height: 1.3;
+	opacity: 1;
+	padding: .7rem 4rem .7rem 2.6rem;
+	position: relative;
+	transition: background-color .3s ease-in-out;
+	width: 100%;
+	z-index: 10;
+	background-color: #fff;
+}
+
+.tail-select .select-label:after {
+	top: 14px;
+	right: 12px;
+	width: 16px;
+	height: 9px;
+	margin: 0;
+	padding: 0;
+	z-index: 25;
+	content: "";
+	opacity: 1;
+	display: inline-block;
+	position: absolute;
+	text-shadow: none;
+	transition: opacity 142ms linear, transform 142ms linear;
+	-webkit-transition: opacity 142ms linear, transform 142ms linear;
+	background: transparent url("../../img/pictos/chevron-down-currentcolor.svg") no-repeat 50% / 16px auto;
+}
+
+.tail-select .select-label .label-count, .tail-select .select-label .label-inner {
+	width: auto;
+	margin: 0;
+	text-align: left;
+	vertical-align: top;
+}
+
+.tail-select .select-label .label-count {
+	float: left;
+	margin: 0 5px 0 0;
+	padding: 0 7px 0 0;
+	display: inline-block;
+	text-shadow: none;
+	white-space: nowrap;
+	vertical-align: top;
+	border-width: 0 1px 0 0;
+	border-style: solid;
+	border-color: #d9d9d9;
+	border-radius: 0;
+}
+
+.tail-select .select-label .label-inner {
+	display: block;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.tail-select:hover .select-label, .tail-select.idle .select-label,
+.tail-select.active .select-label {
+	z-index: 25;
+	border-color: #801342;
+	color: #333334;
+}
+
+.tail-select:hover .select-label:after, .tail-select.idle .select-label:after,
+.tail-select.active .select-label:after {
+	opacity: 1;
+	color: #29aae3;
+}
+
+.tail-select.active .select-label:after{
+	transform: rotate(0deg);
+}
+
+.tail-select:hover .select-label .label-count, .tail-select.idle .select-label .label-count,
+.tail-select.active .select-label .label-count, .tail-select:hover .select-label .label-inner,
+.tail-select.idle .select-label .label-inner, .tail-select.active .select-label .label-inner {
+	opacity: 1;
+}
+
+.tail-select.active .select-label {
+	z-index: 27;
+}
+
+.tail-select.disabled .select-label {
+	cursor: not-allowed;
+	box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.35);
+	-webkit-box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+
+/* @end LABEL */
+
+/* @start DROPDOWN */
+.tail-select .select-dropdown {
+	top: 100%;
+	left: 0;
+	color: #000;
+	width: 100%;
+	min-height: 35px;
+	margin: -1px 0 0 0;
+	padding: 0;
+	display: none;
+	overflow: hidden;
+	position: absolute;
+	background-color: white;
+	border-width: 0;
+	border-style: solid;
+	border-color: #d9d9d9;
+	border-radius: 0 0 3px 3px;
+	box-shadow: 0 1px 1px 1px rgba(0, 0, 0, 0.1), 0 0 1px 1px rgba(0, 0, 0, 0.25);
+	-webkit-box-shadow: 0 1px 1px 1px rgba(0, 0, 0, 0.1), 0 0 1px 1px rgba(0, 0, 0, 0.25);
+	z-index: 10000;
+}
+
+.tail-select .select-dropdown .dropdown-search {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	display: block;
+	position: relative;
+	border-width: 0 0 1px 0;
+	border-style: solid;
+	border-color: #d9d9d9;
+	box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+	-webkit-box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.tail-select .select-dropdown .dropdown-inner {
+	width: 100%;
+	margin: 0;
+	padding: 1px 0;
+	display: block;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+.tail-select .select-dropdown .dropdown-empty {
+	margin: 0;
+	padding: 16px 0;
+	display: block;
+	font-size: 12px;
+	text-align: center;
+	line-height: 18px;
+}
+
+.tail-select .select-dropdown .dropdown-action {
+	top: 3px;
+	right: 15px;
+	width: auto;
+	margin: 0;
+	padding: 7px 0;
+	z-index: 35;
+	display: inline-block;
+	position: absolute;
+	text-align: center;
+}
+
+.tail-select .select-dropdown .dropdown-action button {
+	min-width: auto;
+}
+
+.tail-select .select-dropdown ul, .tail-select .select-dropdown ul li {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	display: block;
+	position: relative;
+	list-style: none;
+	font-size: 14px;
+	line-height: 20px;
+	vertical-align: top;
+}
+
+.tail-select .select-dropdown ul li {
+	color: #000;
+	padding: 5px 10px 5px 35px;
+	font-size: 14px;
+	text-align: left;
+	line-height: 18px;
+}
+
+.tail-select .select-dropdown ul li:first-of-type {
+	margin-top: 7px;
+}
+
+.tail-select .select-dropdown ul li:last-of-type {
+	margin-bottom: 7px;
+}
+
+.tail-select .select-dropdown ul li.optgroup-title {
+	color: rgba(48, 52, 56, 0.7);
+	cursor: default;
+	margin: 9px 0 0 0;
+	padding-left: 10px;
+	font-size: 14px;
+	text-shadow: none;
+}
+
+.tail-select .select-dropdown ul li.optgroup-title button {
+	float: right;
+	margin-top: -2px;
+	opacity: 0;
+}
+
+.tail-select .select-dropdown ul:hover li button {
+	opacity: 1;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option {
+	cursor: pointer;
+	color: #000;
+}
+
+/* Si on désactive un niveau de filtre : On masque la case à cocher */
+.tail-select .select-dropdown ul li.dropdown-option.disabled:before,
+.tail-select .select-dropdown ul li.dropdown-option.disabled:after {
+	content:none;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option:before {
+	top: 0;
+	left: 0;
+	width: 30px;
+	height: 30px;
+	margin: 0;
+	padding: 0;
+	z-index: 21;
+	display: inline-block;
+	content: "";
+	opacity: 0;
+	position: absolute;
+	vertical-align: top;
+	background-repeat: no-repeat;
+	background-position: center center;
+	transition: opacity 50ms linear;
+	-webkit-transition: opacity 50ms linear;
+	border: 0 none;
+	transform: none;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option .option-description {
+	color: rgba(48, 52, 56, 0.85);
+	width: auto;
+	margin: 0;
+	padding: 0;
+	display: block;
+	font-size: 10px;
+	text-align: left;
+	line-height: 14px;
+	vertical-align: top;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option:hover .option-description,
+.tail-select .select-dropdown ul li.dropdown-option.hover .option-description {
+	color: #f6f9ff;
+}
+
+.tail-select.open-top .select-dropdown {
+	top: auto;
+	bottom: auto;
+	margin: 0 0 -1px 0;
+	border-radius: 3px 3px 0 0;
+}
+
+.tail-select.hide-selected .select-dropdown ul li.selected,
+.tail-select.hide-disabled .select-dropdown ul li.disabled {
+	display: none;
+}
+
+/* State & Icons :: Single */
+.tail-select .select-dropdown ul li.dropdown-option:before {
+	border: 2px solid #333334;
+	border-radius: 3px;
+	opacity: 1;
+	width: 14px;
+	height: 14px;
+	background: transparent;
+	top: 7px;
+	left: 12px;
+	transition: all .4s ease-in-out;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option:hover:before,
+.tail-select .select-dropdown ul li.dropdown-option.hover:before {
+	background-color: #b82061;
+	border-color: #b82061;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option:hover {
+	color: #b82061;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option.selected {
+	color: #801342;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option.selected:before {
+	background-color: #801342;
+	border-color: #801342;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option.selected .option-description {
+	color: #29aae3;
+}
+
+.tail-select.deselect .select-dropdown ul li.dropdown-option.selected:hover:before,
+.tail-select.deselect .select-dropdown ul li.dropdown-option.selected.hover:before {
+	opacity: 0.85;
+}
+
+.tail-select.deselect .select-dropdown ul li.dropdown-option.selected:hover .option-description,
+.tail-select.deselect .select-dropdown ul li.dropdown-option.selected.hover .option-description {
+	color: #29aae3;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option {
+	transition: all 0.3s ease-in;
+}
+
+.tail-select .select-dropdown ul li.dropdown-option:hover,
+.tail-select .select-dropdown ul li.dropdown-option.hover {
+	transition: all 0.4s ease;
+	background-color: #f6f9ff;
+}
+
+.tail-select.disabled .select-dropdown ul li.dropdown-option,
+.tail-select .select-dropdown ul li.dropdown-option.disabled {
+	cursor: not-allowed;
+	color: rgba(48, 52, 56, 0.4);
+	text-shadow: 0 1px 0 rgba(119, 129, 138, 0.1), 0 -1px 0 rgba(0, 0, 0, 0.1);
+	background-color: #fafafa;
+}
+
+.tail-select.disabled .select-dropdown ul li.dropdown-option:before,
+.tail-select .select-dropdown ul li.dropdown-option.disabled:before {
+	opacity: 0.85;
+}
+
+.tail-select.disabled .select-dropdown ul li.dropdown-option .option-description,
+.tail-select .select-dropdown ul li.dropdown-option.disabled .option-description {
+	color: rgba(48, 52, 56, 0.4);
+}
+
+.tail-select.multiple .select-dropdown ul li.dropdown-option.selected:before {
+	opacity: 1;
+}
+
+/* @end DROPDOWN */

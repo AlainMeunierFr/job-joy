@@ -1,0 +1,26 @@
+En tant qu'utilisateur
+Je souhaite que les offres contenues dans les emaisl reçus par HelloWork soient ajoutées dans la table "Offres"
+Afin de pouvoir les faire analyser par une IA
+
+CA1 : informer si la source n'est pas active
+- recherche la valeur "HelloWork" dans la colonne "Nom"
+- si "actif" est à "false" informer l'utilisateur
+- si "actif" est à "true" continuer
+
+CA2 : rechercher les emails en fonction de l'expéditeur
+- recherche la valeur "HelloWork" dans la colonne "Nom"
+- récupérer la valeur "emailExpéditeur"
+- utiliser le compte email de l'utilisateur et son dossier pour en lire le contenu filtré avec le critère "from contient 'emailExpéditeur'"
+- s'inspirer du script ".ressources\AnalyseeMailHelloWork.js" pour extraire les URL et toutes les informations utiles pour alimenter la table "offres"
+. Source = HelloWork
+. Id offre
+. URL
+. Texte de l'offre
+. Poste
+. Entreprise	
+. Ville	
+. Département
+. Salaire	
+. DateOffre
+. DateAjout = now
+. Statut = 'A analyser'

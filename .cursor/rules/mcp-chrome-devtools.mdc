@@ -1,0 +1,12 @@
+---
+description: Chrome DevTools MCP — nom du serveur et prérequis
+alwaysApply: false
+---
+
+# Chrome DevTools MCP
+
+Cursor préfixe les serveurs MCP au niveau projet. Pour appeler les outils Chrome DevTools (screenshot, inspection DOM, etc.) :
+
+1. Vérifier le **nom exact du serveur** dans Cursor : Settings > MCP, ou dans le message d'erreur (« Available servers: … ») en cas d'échec.
+2. **Prérequis** : Chrome lancé avec `--remote-debugging-port=9222`  
+   (Windows : `"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222`).
