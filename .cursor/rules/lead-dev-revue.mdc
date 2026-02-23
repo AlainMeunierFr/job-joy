@@ -15,7 +15,7 @@ alwaysApply: false
 - **Plan de tests baby steps** (si applicable) : l'agent TDD a suivi la liste validée, un test à la fois
 - **Scénarios BDD** : avant d'accepter une livraison TDD-front-end ou TDD-back-end, lancer `npm run test:bdd` et vérifier que tous les scénarios de l'US passent. Tous les steps doivent avoir une step definition.
 - Cohérence avec les BDD existants
-- **Nouvelle page / nouveau lien** : plan du site à jour, e2eID présents, scénario E2E régénéré
+- **Nouvelle page / nouveau lien** (si le projet le prévoit) : plan du site à jour, e2eID présents, scénario E2E régénéré
 
 ## Actions
 
@@ -35,7 +35,7 @@ Lorsqu'on repasse sur du code qui ne respecte pas les consignes, **faire nettoye
 
 **CHECKLIST OBLIGATOIRE** :
 1. ✅ **Vérifier** : Ai-je modifié du code ou la structure du projet ?
-2. ✅ **Si OUI** : Vérifier existence fichier journal (`journaux/1. Journal de bord/YYYY-MM-DD-NomConversation.md`)
+2. ✅ **Si OUI** : Vérifier existence du journal de bord (emplacement défini par le projet, ex. `journaux/` ou `docs/journal/` ; format recommandé `YYYY-MM-DD-NomConversation.md`)
 3. ✅ **Créer** le fichier si nécessaire
 4. ✅ **Ajouter** : `### Sujet` (H3), `#### Prompt` (H4), `##### Résultat` (H5)
 

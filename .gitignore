@@ -1,4 +1,13 @@
 node_modules/
+dist/
 .env
 .env.local
+data/parametres.json
+data/compte.json
+data/microsoft-tokens.json
 *.log
+test-results/
+playwright-report/
+playwright/.cache/
+cucumber-report/
+.features-gen/

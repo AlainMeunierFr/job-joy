@@ -1,0 +1,27 @@
+---
+description: BDD — Données en mock / RAM, jamais de données réelles en test
+alwaysApply: false
+---
+
+# BDD : données en mock, pas de données réelles
+
+## Principe
+
+**Les tests BDD ne doivent jamais lire ni écrire des données réelles** (fichiers utilisateur, bases externes, APIs réelles). Sinon les tests écrasent ou polluent les données de dev/production.
+
+## Ce qui a été fait pour le compte email (US-1.1)
+
+- **Store en RAM** : quand le serveur BDD tourne (`BDD_IN_MEMORY_STORE=1`), le compte est stocké en mémoire uniquement (voir `utils/compte-io.ts`).
+- **Steps BDD** : seed et assertions passent par l’API (POST/GET), pas par lecture/écriture de `data/compte.json`.
+- **Effet** : `data/compte.json` n’est jamais touché par les tests ; les paramètres utilisateur restent intacts.
+
+## À faire pour Airtable (et toute donnée externe)
+
+Quand on travaillera sur **Airtable** (ou tout autre service externe) :
+
+1. **En BDD** : utiliser un **mock en RAM** (ou un adaptateur in-memory) pour les données Airtable, comme pour le compte email.
+2. **Serveur de test** : une variable d’environnement (ex. `BDD_IN_MEMORY_STORE=1` ou `BDD_MOCK_AIRTABLE=1`) active ce mode mock.
+3. **Steps** : préparer les données et vérifier les résultats via l’API / le store mock, **jamais** en appelant Airtable réel ni en écrivant dans des fichiers partagés.
+4. **Règle d’or** : les tests ne doivent pas pouvoir écraser ou modifier les données réelles (fichiers projet, bases Airtable, etc.).
+
+Référence d’implémentation : `utils/compte-io.ts` (store RAM + `resetCompteStoreForTest` / `getCompteStoreForTest`), `scripts/run-bdd-server.ts` (env BDD), `tests/bdd/configuration-compte-email.steps.ts` (seed et assertions via API).

@@ -1,0 +1,1169 @@
+/**
+ * Styles de contenu — layout app (header sticky, menu), page paramétrage, tableau de bord.
+ * Utilise uniquement les tokens de globals.css.
+ */
+
+/* --- Layout app (US-1.2) : header sticky + menu horizontal --- */
+body.appLayout {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  min-height: 100vh;
+}
+
+.appHeader {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.appNavList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.appNavLink {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+.appNavLink:hover {
+  color: var(--color-primary-hover);
+  background: var(--color-bg);
+}
+.appNavLinkActive {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+.appNavLinkActive:hover {
+  color: var(--color-on-primary);
+  background: var(--color-primary-hover);
+}
+
+.appMain {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-md);
+}
+
+/* --- Page tableau de bord --- */
+.pageTableauDeBord h1 {
+  margin: 0 0 var(--space-lg);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.pageTableauDeBord .dossierBoiteContainer {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.pageTableauDeBord .dossierBoiteContainer > h2 {
+  margin: 0 0 var(--space-md);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pageTableauDeBord .boutonAuditerDossier,
+.pageTableauDeBord .boutonLancerTraitement,
+.pageTableauDeBord .boutonRafraichirSynthese,
+.pageTableauDeBord .boutonWorkerEnrichissement,
+.pageTableauDeBord .boutonOuvrirAirtable {
+  margin-top: var(--space-md);
+}
+
+.pageTableauDeBord .boutonRafraichirSynthese,
+.pageTableauDeBord .boutonLancerTraitement,
+.pageTableauDeBord .boutonWorkerEnrichissement,
+.pageTableauDeBord .boutonOuvrirAirtable {
+  margin-right: var(--space-sm);
+}
+
+.pageTableauDeBord .auditSynthese {
+  margin-top: var(--space-lg);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  overflow-x: auto;
+}
+
+.pageTableauDeBord .auditSyntheseTable {
+  width: 100%;
+  min-width: 16rem;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.pageTableauDeBord .auditSyntheseTable th,
+.pageTableauDeBord .auditSyntheseTable td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pageTableauDeBord .auditSyntheseTable thead th {
+  color: var(--color-text);
+  font-weight: 600;
+  background: var(--color-bg);
+  white-space: nowrap;
+}
+
+.pageTableauDeBord .auditSyntheseTable tbody tr:hover td {
+  background: var(--color-bg);
+}
+
+.pageTableauDeBord .auditSyntheseTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* --- Synthèse des offres (US-1.7) : tableau croisé expéditeur × statuts --- */
+.pageTableauDeBord .syntheseOffres {
+  margin-top: var(--space-lg);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  overflow-x: auto;
+}
+
+.pageTableauDeBord .syntheseOffres h2,
+.pageTableauDeBord .syntheseOffres #titre-synthese-offres {
+  margin: 0 0 var(--space-md);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.pageTableauDeBord .syntheseOffresInfoBulle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: help;
+}
+
+.pageTableauDeBord .syntheseOffresTable {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.pageTableauDeBord .syntheseOffresTable th,
+.pageTableauDeBord .syntheseOffresTable td {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pageTableauDeBord .syntheseOffresTable thead th {
+  color: var(--color-text);
+  font-weight: 600;
+  background: var(--color-bg);
+  white-space: normal;
+  line-height: 1.1;
+  vertical-align: bottom;
+}
+
+.pageTableauDeBord .syntheseOffresTable th.syntheseOffresStatutCol {
+  min-width: 4rem;
+}
+
+.pageTableauDeBord .syntheseOffresTable th.syntheseOffresStatutCol > span {
+  display: inline-block;
+  max-width: 4.5rem;
+  word-break: break-word;
+}
+
+.pageTableauDeBord .syntheseOffresTable .phaseEtat {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.pageTableauDeBord .syntheseOffresTable .phaseEtat--ok {
+  color: var(--color-success);
+}
+
+.pageTableauDeBord .syntheseOffresTable .phaseEtat--ko {
+  color: var(--color-error);
+}
+
+/* Colonnes statuts (5e à 9e) : alignement à droite pour les nombres */
+.pageTableauDeBord .syntheseOffresTable th:nth-child(n+5),
+.pageTableauDeBord .syntheseOffresTable td:nth-child(n+5) {
+  text-align: right;
+}
+
+.pageTableauDeBord .syntheseOffresTable tbody tr:hover td {
+  background: var(--color-bg);
+}
+
+.pageTableauDeBord .syntheseOffresTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.pageTableauDeBord .syntheseOffresActions {
+  margin-top: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.pageTableauDeBord .syntheseOffresActionsButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.pageTableauDeBord .syntheseOffresProgress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pageTableauDeBord .syntheseOffresProgress .thermometreWorkerEnrichissement {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.pageTableauDeBord .syntheseOffresProgress .resultatWorkerEnrichissement {
+  text-align: center;
+}
+
+.pageTableauDeBord .auditSousTotaux,
+.pageTableauDeBord #audit-sous-totaux {
+  margin-top: var(--space-md);
+  margin-bottom: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.pageTableauDeBord .auditSousTotaux p,
+.pageTableauDeBord #audit-sous-totaux p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.pageTableauDeBord .auditSousTotaux p + p,
+.pageTableauDeBord #audit-sous-totaux p + p {
+  margin-top: var(--space-sm);
+}
+
+.pageTableauDeBord .resultatAudit,
+.pageTableauDeBord .resultatTraitement {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  min-height: 1.5em;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.pageTableauDeBord .resultatAudit--erreur,
+.pageTableauDeBord .resultatTraitement--erreur {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.resultatAudit,
+.resultatTraitement {
+  margin-top: var(--space-md);
+  padding: var(--space-sm);
+  min-height: 1.5em;
+}
+.resultatAudit--erreur,
+.resultatTraitement--erreur {
+  color: var(--color-error);
+}
+.pageTableauDeBord .thermometreAudit,
+.pageTableauDeBord .thermometreTraitement {
+  margin-top: var(--space-md);
+  height: 0.5rem;
+  min-height: 6px;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.pageTableauDeBord .thermometreAuditBar,
+.pageTableauDeBord .thermometreTraitementBar {
+  height: 100%;
+  width: 0;
+  background: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+.thermometreAudit,
+.thermometreTraitement,
+.thermometreWorkerEnrichissement {
+  margin-top: var(--space-md);
+  height: 0.5rem;
+  background: var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.thermometreAuditBar,
+.thermometreTraitementBar,
+.thermometreWorkerEnrichissementBar {
+  height: 100%;
+  width: 0;
+  background: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+.pageTableauDeBord .resultatWorkerEnrichissement,
+.resultatWorkerEnrichissement {
+  margin-top: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+.resultatWorkerEnrichissement--erreur {
+  color: var(--color-error);
+}
+
+/* --- Page Paramètres : titre unique h1 + deux blocs h2 (connexion, Airtable) --- */
+.appMain .pageParametres,
+.appMain .pageParametres[data-layout="page-parametres"] {
+  margin: 0;
+}
+
+.pageParametres .pageParametresTitle,
+.appMain .pageParametres .pageParametresTitle {
+  margin: 0 0 var(--space-lg);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.pageParametres .blocParametrage,
+.appMain .pageParametres .blocParametrage {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+.pageParametres .blocParametrage:first-of-type {
+  margin-top: 0;
+}
+
+.pageParametres .blocParametrage:last-of-type {
+  margin-bottom: 0;
+}
+
+/* Blocs déroulants (details/summary) : padding sur le contenu, pas sur le details */
+.pageParametres .blocParametrage .blocParametrageContent {
+  padding: 0 var(--space-lg) var(--space-lg);
+}
+
+.pageParametres .blocParametrage[open] .blocParametrageContent {
+  padding-top: var(--space-sm);
+}
+
+.pageParametres .blocParametrageSummary,
+.appMain .pageParametres .blocParametrageSummary {
+  margin: 0;
+  padding: var(--space-lg);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  list-style: none;
+  display: block;
+}
+
+.pageParametres .blocParametrageSummary::-webkit-details-marker,
+.appMain .pageParametres .blocParametrageSummary::-webkit-details-marker {
+  display: none;
+}
+
+.pageParametres .blocParametrageSummary::marker {
+  display: none;
+}
+
+.pageParametres .blocParametrageSummary::before,
+.appMain .pageParametres .blocParametrageSummary::before {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: var(--space-sm);
+  border-right: 2px solid var(--color-text);
+  border-bottom: 2px solid var(--color-text);
+  transform: rotate(45deg);
+  transform-origin: center;
+  transition: transform 0.2s;
+  vertical-align: 0.2em;
+}
+
+.pageParametres .blocParametrage[open] .blocParametrageSummary::before,
+.appMain .pageParametres .blocParametrage[open] .blocParametrageSummary::before {
+  transform: rotate(-135deg);
+}
+
+.pageParametres .blocParametrageSummary:hover,
+.appMain .pageParametres .blocParametrageSummary:hover {
+  color: var(--color-primary);
+}
+
+.pageParametres .blocParametrageTitle,
+.appMain .pageParametres .blocParametrageTitle {
+  margin: 0 0 var(--space-md);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Premier bloc : la .formCard est à l'intérieur, on enlève son propre cadre pour éviter le double encadré */
+.pageParametres .blocParametrage-connexion .formCard,
+.appMain .pageParametres .blocParametrage-connexion .formCard {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+/* --- Page paramétrage compte email (US-1.1) — dans .appMain --- */
+.appMain .parametrageCompteEmail[data-layout="parametrage-compte"],
+.appMain .parametrageCompteEmail[data-layout="page-parametres"],
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail[data-layout="parametrage-compte"] {
+  margin: 0;
+}
+
+.appMain .parametrageCompteEmail .formCompte ~ *,
+.appMain .parametrageCompteEmail h1 {
+  margin-top: 0;
+}
+.appMain .pageParametres .blocParametrageTitle {
+  margin-top: 0;
+}
+
+/* --- Mode de connexion : 3 radios + 3 boutons (labels) + 3 containers, visibilité en CSS --- */
+.parametrageCompteEmail .providerChoiceRadios,
+.appMain .parametrageCompteEmail .providerChoiceRadios {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--space-sm);
+}
+
+.parametrageCompteEmail .providerChoiceRadios > legend,
+.appMain .parametrageCompteEmail .providerChoiceRadios > legend {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: var(--space-sm);
+  padding: 0;
+}
+
+.parametrageCompteEmail .providerChoiceRadios .providerRadio,
+.appMain .parametrageCompteEmail .providerChoiceRadios .providerRadio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.parametrageCompteEmail .providerChoiceRadios .providerModeBtn,
+.appMain .parametrageCompteEmail .providerChoiceRadios .providerModeBtn {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  margin-right: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.parametrageCompteEmail .providerChoiceRadios .providerModeBtn:hover,
+.appMain .parametrageCompteEmail .providerChoiceRadios .providerModeBtn:hover {
+  color: var(--color-primary-hover);
+  background: var(--color-border);
+}
+
+.parametrageCompteEmail .providerChoiceRadios #provider-imap:checked ~ .providerModeBtn[for="provider-imap"],
+.parametrageCompteEmail .providerChoiceRadios #provider-microsoft:checked ~ .providerModeBtn[for="provider-microsoft"],
+.parametrageCompteEmail .providerChoiceRadios #provider-gmail:checked ~ .providerModeBtn[for="provider-gmail"],
+.appMain .parametrageCompteEmail .providerChoiceRadios #provider-imap:checked ~ .providerModeBtn[for="provider-imap"],
+.appMain .parametrageCompteEmail .providerChoiceRadios #provider-microsoft:checked ~ .providerModeBtn[for="provider-microsoft"],
+.appMain .parametrageCompteEmail .providerChoiceRadios #provider-gmail:checked ~ .providerModeBtn[for="provider-gmail"] {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.parametrageCompteEmail .providerChoiceRadios .blocProvider,
+.appMain .parametrageCompteEmail .providerChoiceRadios .blocProvider {
+  display: none;
+}
+
+.parametrageCompteEmail .providerChoiceRadios #provider-imap:checked ~ #bloc-imap,
+.parametrageCompteEmail .providerChoiceRadios #provider-microsoft:checked ~ #bloc-microsoft,
+.parametrageCompteEmail .providerChoiceRadios #provider-gmail:checked ~ #bloc-gmail,
+.appMain .parametrageCompteEmail .providerChoiceRadios #provider-imap:checked ~ #bloc-imap,
+.appMain .parametrageCompteEmail .providerChoiceRadios #provider-microsoft:checked ~ #bloc-microsoft,
+.appMain .parametrageCompteEmail .providerChoiceRadios #provider-gmail:checked ~ #bloc-gmail {
+  display: block;
+}
+
+.parametrageCompteEmail .blocProvider,
+.appMain .parametrageCompteEmail .blocProvider {
+  margin-bottom: var(--space-md);
+  min-height: 8.5rem;
+}
+
+.parametrageCompteEmail .blocImapRow,
+.appMain .parametrageCompteEmail .blocImapRow {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.parametrageCompteEmail .blocImapRow .fieldGroup,
+.appMain .parametrageCompteEmail .blocImapRow .fieldGroup {
+  flex: 1;
+  min-width: 8rem;
+  margin-bottom: 0;
+}
+
+.parametrageCompteEmail .blocImapRow .fieldGroup--port,
+.appMain .parametrageCompteEmail .blocImapRow .fieldGroup--port {
+  flex: 0 0 5rem;
+}
+
+.parametrageCompteEmail .blocImapRow .fieldGroup--tls,
+.appMain .parametrageCompteEmail .blocImapRow .fieldGroup--tls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: var(--space-xs);
+}
+
+.parametrageCompteEmail .blocImapRow .labelCheckbox,
+.appMain .parametrageCompteEmail .blocImapRow .labelCheckbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.parametrageCompteEmail .blocImapRow:last-child,
+.appMain .parametrageCompteEmail .blocImapRow:last-child {
+  margin-bottom: 0;
+}
+
+.parametrageCompteEmail .providerHint,
+.appMain .parametrageCompteEmail .providerHint {
+  margin: 0 0 var(--space-sm);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+.parametrageCompteEmail .providerEmailInfo,
+.appMain .parametrageCompteEmail .providerEmailInfo {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.parametrageCompteEmail .providerComing,
+.appMain .parametrageCompteEmail .providerComing {
+  margin: 0;
+  padding: var(--space-md);
+  color: var(--color-text-muted);
+  font-style: italic;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.parametrageCompteEmail .btnPrimary,
+.appMain .parametrageCompteEmail .btnPrimary,
+.pageTableauDeBord .boutonAuditerDossier,
+.pageTableauDeBord .boutonLancerTraitement {
+  display: inline-block;
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.parametrageCompteEmail .btnPrimary:hover,
+.appMain .parametrageCompteEmail .btnPrimary:hover,
+.pageTableauDeBord .boutonAuditerDossier:hover,
+.pageTableauDeBord .boutonLancerTraitement:hover {
+  background: var(--color-primary-hover);
+}
+
+.parametrageCompteEmail .btnPrimary:focus,
+.appMain .parametrageCompteEmail .btnPrimary:focus,
+.pageTableauDeBord .boutonAuditerDossier:focus,
+.pageTableauDeBord .boutonLancerTraitement:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
+}
+
+.pageTableauDeBord .boutonAuditerDossier:disabled,
+.pageTableauDeBord .boutonLancerTraitement:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.parametrageCompteEmail .btnSecondary,
+.appMain .parametrageCompteEmail .btnSecondary,
+.pageTableauDeBord .boutonRafraichirSynthese,
+.pageTableauDeBord .boutonWorkerEnrichissement,
+.pageTableauDeBord .boutonOuvrirAirtable {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.parametrageCompteEmail .btnSecondary:hover,
+.appMain .parametrageCompteEmail .btnSecondary:hover,
+.pageTableauDeBord .boutonRafraichirSynthese:hover,
+.pageTableauDeBord .boutonWorkerEnrichissement:hover,
+.pageTableauDeBord .boutonOuvrirAirtable:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+
+.parametrageCompteEmail .btnSecondary:focus,
+.appMain .parametrageCompteEmail .btnSecondary:focus,
+.pageTableauDeBord .boutonRafraichirSynthese:focus,
+.pageTableauDeBord .boutonWorkerEnrichissement:focus,
+.pageTableauDeBord .boutonOuvrirAirtable:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.3);
+}
+
+.pageTableauDeBord .boutonWorkerEnrichissement[data-running="1"] {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.pageTableauDeBord .boutonOuvrirAirtable:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* --- Carte formulaire : regroupe mode de connexion + dossier + actions --- */
+.parametrageCompteEmail .formCard,
+.appMain .parametrageCompteEmail .formCard {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.parametrageCompteEmail .formDivider,
+.appMain .parametrageCompteEmail .formDivider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-lg) 0;
+}
+
+.parametrageCompteEmail .fieldGroup-dossier,
+.appMain .parametrageCompteEmail .fieldGroup-dossier {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.parametrageCompteEmail .fieldGroup-dossier > legend,
+.appMain .parametrageCompteEmail .fieldGroup-dossier > legend {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: var(--space-sm);
+  padding: 0;
+}
+
+/* --- Formulaire (pas de style propre, il est dans .formCard) --- */
+.parametrageCompteEmail .formCompte,
+.appMain .parametrageCompteEmail .formCompte {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .fieldGroup {
+  margin-bottom: var(--space-md);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .fieldGroup:last-of-type {
+  margin-bottom: 0;
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .fieldGroup label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .fieldGroup input[type="email"],
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .fieldGroup input[type="text"],
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .fieldGroup input[type="password"] {
+  width: 100%;
+  min-height: var(--input-min-height);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .fieldGroup input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+/* Mot de passe + icône œil dans la zone de saisie */
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .passwordWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .passwordWrapper input {
+  flex: 1;
+  min-width: 0;
+  padding-right: var(--touch-min);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .passwordWrapper .togglePasswordBtn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--touch-min);
+  min-width: var(--touch-min);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  cursor: pointer;
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .passwordWrapper .togglePasswordBtn:hover {
+  color: var(--color-primary);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .passwordWrapper .togglePasswordBtn:focus {
+  outline: none;
+  color: var(--color-primary);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .passwordWrapper .togglePasswordBtn .iconEye,
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .passwordWrapper .togglePasswordBtn .iconEyeOff {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .passwordWrapper .togglePasswordBtn [hidden] {
+  display: none !important;
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .passwordWrapper .togglePasswordBtn svg {
+  display: block;
+}
+
+/* Dossier à analyser : bouton Tester connexion */
+body.parametrageCompteEmail .actions-dossier,
+.appMain .parametrageCompteEmail .actions-dossier {
+  margin-top: var(--space-sm);
+  margin-bottom: 0;
+}
+
+/* Boutons du formulaire : Annuler, Enregistrer */
+body.parametrageCompteEmail .actions-formulaire,
+.appMain .parametrageCompteEmail .actions-formulaire {
+  margin-top: var(--space-lg);
+}
+
+/* Actions (Tester connexion, Annuler, Enregistrer) */
+body.parametrageCompteEmail .actions,
+.appMain .parametrageCompteEmail .actions {
+  margin-top: var(--space-lg);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+body.parametrageCompteEmail .actionsLeft,
+.appMain .parametrageCompteEmail .actionsLeft {
+  display: flex;
+  gap: var(--space-md);
+}
+
+body.parametrageCompteEmail .actionsRight,
+.appMain .parametrageCompteEmail .actionsRight {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .actions button {
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .actions button[type="button"] {
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .actions button[type="button"]:hover {
+  background: var(--color-border);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .actions button[type="submit"] {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: none;
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .actions button[type="submit"]:hover {
+  background: var(--color-primary-hover);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .actions button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
+}
+
+/* --- Zone résultat test connexion --- */
+body.parametrageCompteEmail .zoneResultatTest,
+.appMain .parametrageCompteEmail .zoneResultatTest {
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+body.parametrageCompteEmail .resultatTestMessage,
+.appMain .parametrageCompteEmail .resultatTestMessage {
+  display: block;
+  min-height: 2.5rem;
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  margin-bottom: var(--space-sm);
+  box-sizing: border-box;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .resultatTestMessage[data-type="attente"] {
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .resultatTestMessage[data-type="succès"] {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .resultatTestMessage[data-type="erreur"] {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .tableauResultat {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .tableauResultat th,
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .tableauResultat td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .tableauResultat th {
+  background: var(--color-bg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .tableauResultat tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* --- Feedback enregistrement --- */
+body.parametrageCompteEmail,
+.appMain .parametrageCompteEmail .feedbackEnregistrement {
+  padding: var(--space-md);
+  min-height: 1.5em;
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}
+
+/* Feedback enregistrement — erreur (US-1.6 « Il reste à terminer : … »), cohérent avec resultatTestMessage / statutConfigurationAirtable */
+#feedback-enregistrement[data-type="erreur"],
+body.parametrageCompteEmail .feedbackEnregistrement--erreur,
+.appMain .parametrageCompteEmail .feedbackEnregistrement--erreur,
+#feedback-enregistrement.feedbackEnregistrement--erreur {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Configuration Airtable (US-1.3) — même page Paramètres --- */
+.appMain .configurationAirtable[data-layout="configuration-airtable"]:not(.blocParametrage),
+.parametrageCompteEmail .configurationAirtable[data-layout="configuration-airtable"]:not(.blocParametrage) {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin-top: var(--space-xl);
+}
+
+/* Quand Airtable est dans .blocParametrage, le style carte vient déjà de .blocParametrage */
+.pageParametres .blocParametrage-airtable.configurationAirtable {
+  margin-top: 0;
+}
+
+.parametrageCompteEmail .configurationAirtable h2,
+.appMain .parametrageCompteEmail .configurationAirtable h2 {
+  margin: 0 0 var(--space-md);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.parametrageCompteEmail .zoneTutorielAirtable,
+.appMain .parametrageCompteEmail .zoneTutorielAirtable {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.parametrageCompteEmail .zoneTutorielAirtable a,
+.appMain .parametrageCompteEmail .zoneTutorielAirtable a,
+.pageParametres .zoneTutorielAirtable a,
+.appMain .pageParametres .zoneTutorielAirtable a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.parametrageCompteEmail .zoneTutorielAirtable a:hover,
+.appMain .parametrageCompteEmail .zoneTutorielAirtable a:hover,
+.pageParametres .zoneTutorielAirtable a:hover,
+.appMain .pageParametres .zoneTutorielAirtable a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.parametrageCompteEmail .configurationAirtable .fieldGroup,
+.appMain .parametrageCompteEmail .configurationAirtable .fieldGroup {
+  margin-bottom: var(--space-md);
+}
+
+.parametrageCompteEmail .configurationAirtable .fieldGroup:last-of-type,
+.appMain .parametrageCompteEmail .configurationAirtable .fieldGroup:last-of-type {
+  margin-bottom: 0;
+}
+
+.parametrageCompteEmail .actions.actions-configuration-airtable,
+.appMain .parametrageCompteEmail .actions.actions-configuration-airtable {
+  margin-top: var(--space-lg);
+}
+
+.parametrageCompteEmail .actions.actions-configuration-airtable button,
+.appMain .parametrageCompteEmail .actions.actions-configuration-airtable button {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: none;
+  min-height: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.parametrageCompteEmail .actions.actions-configuration-airtable button:hover,
+.appMain .parametrageCompteEmail .actions.actions-configuration-airtable button:hover {
+  background: var(--color-primary-hover);
+}
+
+.parametrageCompteEmail .actions.actions-configuration-airtable button:focus,
+.appMain .parametrageCompteEmail .actions.actions-configuration-airtable button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
+}
+
+.parametrageCompteEmail .statutConfigurationAirtable,
+.appMain .parametrageCompteEmail .statutConfigurationAirtable {
+  display: block;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  min-height: 1.5em;
+  box-sizing: border-box;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.parametrageCompteEmail .statutConfigurationAirtable[data-type="succès"],
+.appMain .parametrageCompteEmail .statutConfigurationAirtable[data-type="succès"] {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.parametrageCompteEmail .statutConfigurationAirtable[data-type="erreur"],
+.appMain .parametrageCompteEmail .statutConfigurationAirtable[data-type="erreur"] {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+/* --- Responsive (mobile-first : base = mobile) --- */
+@media (min-width: 480px) {
+  body.parametrageCompteEmail,
+  .appMain .parametrageCompteEmail {
+    padding: var(--space-xl) var(--space-lg);
+  }
+
+  .pageParametres .pageParametresTitle,
+  body.parametrageCompteEmail h1,
+  .appMain .parametrageCompteEmail h1 {
+    font-size: 1.75rem;
+  }
+
+  .pageTableauDeBord h1 {
+    font-size: 1.75rem;
+  }
+
+  .pageTableauDeBord .boutonLancerTraitement,
+  .pageTableauDeBord .boutonRafraichirSynthese,
+  .pageTableauDeBord .boutonWorkerEnrichissement,
+  .pageTableauDeBord .boutonOuvrirAirtable {
+    display: inline-block;
+  }
+}
+
+@media (min-width: 640px) {
+  .pageTableauDeBord .dossierBoiteContainer > h2 {
+    font-size: 1.25rem;
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "updatedAt": "2026-02-22T12:15:00.000Z",
+  "lanes": [
+    {
+      "laneId": "A",
+      "usId": "US-1.6",
+      "titre": "Redirection parametres tant que configuration incomplete",
+      "etape": "done",
+      "agent": "Lead-dev",
+      "statut": "done",
+      "updatedAt": "2026-02-22T12:05:00.000Z"
+    },
+    {
+      "laneId": "B",
+      "usId": "US-1.8",
+      "titre": "Analyse des emails HelloWork",
+      "etape": "done",
+      "agent": "Lead-dev",
+      "statut": "done",
+      "updatedAt": "2026-02-22T22:15:00.000Z"
+    }
+  ]
+}

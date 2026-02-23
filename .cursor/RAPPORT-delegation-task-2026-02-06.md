@@ -6,13 +6,13 @@ Le workflow Lead Dev repose sur la **délégation automatique** : le Lead Dev la
 
 ## Problème observé
 
-Dans la session du 6 février 2026, **l'outil Task n'est pas disponible** dans le contexte de l'agent Lead Dev. Lors de **GO NEXT** (passage à TDD-front-end pour US-13.1), le Lead Dev ne peut pas lancer le sous-agent. Il ne voit pas l'outil Task dans ses outils disponibles.
+Dans la session du 6 février 2026, **l'outil Task n'est pas disponible** dans le contexte de l'agent Lead Dev. Lors de **GO NEXT** (passage à l'agent suivant, ex. TDD-front-end), le Lead Dev ne peut pas lancer le sous-agent. Il ne voit pas l'outil Task dans ses outils disponibles.
 
 ## Workflow attendu (tel que décrit par l'utilisateur)
 
 1. **GO US** : Lead Dev crée l'US et lance l'agent @US avec un prompt préparé.
 2. Le Lead Dev revient avec les livrables du sous-agent (ex. US écrite). Discussion, corrections si besoin.
-3. **GO NEXT** : Lead Dev prépare le travail pour l'agent suivant et le lance (ex. @BDD, @TDD-back-end, @TDD-front-end).
+3. **GO NEXT** : Lead Dev prépare le travail pour l'agent suivant et le lance (ex. @BDD, @TDD-back-end, @TDD-front-end, @Designer).
 4. Le Lead Dev peut aussi reprendre la main si un sous-agent a un doute et propose des options.
 
 L'utilisateur communique **uniquement avec le Lead Dev** dans le même chat. Il ne voit pas directement ce qui se passe entre le Lead Dev et les sous-agents.
@@ -35,12 +35,11 @@ L'utilisateur communique **uniquement avec le Lead Dev** dans le même chat. Il 
 1. **Redémarrer Cursor** et ouvrir une **nouvelle conversation**.
 2. Invoquer le Lead Dev (ex. @lead-dev ou via les rules) et tester **GO NEXT**.
 3. Si le problème persiste : signaler sur le forum Cursor (Bug Reports) avec ce rapport en pièce jointe.
-4. En attendant : utiliser `/go-next` comme contournement (fichier `.cursor/commands/go-next.md` contient la délégation TDD-front-end pour US-13.1).
+4. En attendant : utiliser `/go-next` comme contournement (fichier `.cursor/commands/go-next.md` contient la délégation vers l'agent suivant).
 
 ## Fichiers créés / modifiés pendant l'incident
 
-- `.cursor/commands/go-next.md` — commande de contournement
-- `.cursor/DELEGATION-TDD-front-end-US-13.1.md` — prompt de délégation
+- `.cursor/commands/go-next.md` — commande de contournement (contenu = @agent + prompt de délégation)
 - Rules : lead-dev-workflow.mdc, lead-dev-outils.mdc, 0. Lead-dev.md — méthode 2 (commande fichier) ajoutée en fallback
 
 Si Task refonctionne, ces fallbacks peuvent être simplifiés ou retirés.
@@ -59,7 +58,7 @@ Si Task refonctionne, ces fallbacks peuvent être simplifiés ou retirés.
 
 Quand tu dis **GO NEXT** et que le Lead Dev ne peut pas lancer le sous-agent (pas d'outil Task), suis ces étapes :
 
-1. **Le Lead Dev** te rappelle l'étape en cours et l'agent à invoquer (ex. @TDD-front-end pour US-13.1).
+1. **Le Lead Dev** te rappelle l'étape en cours et l'agent à invoquer (ex. @TDD-front-end).
 2. **Toi** : dans le chat, tape **`/go-next`** (slash puis sélection de la commande `go-next` dans la liste).
 3. La commande insère le contenu de `.cursor/commands/go-next.md` : mention de l'agent + prompt de délégation. **Envoie le message** (Entrée).
 4. Cursor invoque l'agent cible (ex. TDD-front-end) avec ce prompt. Tu travailles alors avec cet agent dans le même fil.

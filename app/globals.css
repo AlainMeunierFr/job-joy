@@ -1,0 +1,47 @@
+/**
+ * Tokens globaux — source unique pour couleurs, espacements, polices, rayons.
+ * Utilisés par content-styles.css et tout CSS de contenu.
+ */
+
+:root {
+  /* Couleurs — fond et texte */
+  --color-bg: #f5f5f5;
+  --color-bg-hover: #e8e8e8;
+  --color-bg-card: #ffffff;
+  --color-text: #1a1a1a;
+  --color-text-muted: #555555;
+  --color-border: #cccccc;
+  --color-border-focus: #2c5282;
+
+  /* Couleurs sémantiques */
+  --color-primary: #2c5282;
+  --color-primary-hover: #2a4365;
+  --color-on-primary: #ffffff;
+  --color-success: #276749;
+  --color-success-bg: #c6f6d5;
+  --color-error: #c53030;
+  --color-error-bg: #fed7d7;
+
+  /* Champs et inputs */
+  --color-bg-input: #ffffff;
+  --color-input-border: #cbd5e0;
+
+  /* Typo */
+  --font-sans: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+
+  /* Espacements (rem) */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+
+  /* Rayons de bordure */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  /* Accessibilité — zone cliquable minimale (WCAG) */
+  --touch-min: 44px;
+  --input-min-height: 44px;
+}

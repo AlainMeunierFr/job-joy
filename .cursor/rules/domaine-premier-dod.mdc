@@ -1,0 +1,32 @@
+---
+description: Domaine premier — DoD et tunnel (CLI vs web)
+alwaysApply: false
+---
+
+# Domaine premier, clients optionnels
+
+## Principe
+
+- **Le cœur du produit est le domaine** (logique métier dans `utils/`, ports, cas d’usage). Il doit être testable et utilisable **sans interface graphique**.
+- **Le serveur HTTP et le CLI sont deux clients du domaine** (adaptateurs primaires). Aucun n’est « l’application » : ils appellent le même domaine via les mêmes ports.
+- On peut livrer **uniquement domaine + CLI** (application en ligne de commande) et considérer l’US terminée, sans passer par TDD-front-end ni Designer.
+
+## Tunnel selon le livrable
+
+- **Livrable = domaine + CLI**  
+  Tunnel : **US → BDD (optionnel ou scénarios CLI) → TDD-back-end → done.**  
+  Pas de TDD-front-end ni Designer.
+
+- **Livrable = domaine + interface web**  
+  Tunnel : **US → BDD → TDD-back-end → TDD-front-end → Designer → done.**  
+  Le serveur HTTP est alors un client du domaine (comme le CLI).
+
+## Definition of Done (DoD) — rappel
+
+- **Domaine** : logique dans `utils/`, testée en TDD (Jest), utilisable depuis au moins un client (CLI et/ou HTTP).
+- **CLI** : si prévu, un script (ex. `scripts/*-cli.ts`) ou une commande npm permet d’exécuter le cas d’usage en ligne de commande.
+- **Interface web** : si prévue, TDD-front-end livre le DOM, Designer livre le CSS ; le serveur HTTP appelle le domaine via les ports (injection), pas l’inverse.
+
+## Référence
+
+- Règles détaillées : `lead-dev-workflow.mdc`, `lead-dev-qualite.mdc`.

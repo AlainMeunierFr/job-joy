@@ -1,11 +1,7 @@
-## Erreur TypeScript
+## Erreur de build / typage
 
-L'étape **Contrôle de typage** a échoué. Consulte le log ci-dessous.
+L'étape de **build** ou de **contrôle de typage** a échoué. Consulter le log du pipeline.
 
-**Action** : Corriger les erreurs de typage. Puis relancer `npm run publish`.
+**Action** : Corriger les erreurs signalées (typage, build, etc.). Puis relancer le script de build ou de publication du projet (ex. `npm run build`, `npm run publish`, selon le projet).
 
----
-
-**Log** : `logs/publish-typecheck-errors.txt`
-
-Pour analyser : utilise la commande `/analyse-erreurs` ou lis le fichier log.
+Pour analyser : utiliser la commande `/analyse-erreurs` ou lire le fichier log indiqué par le pipeline.

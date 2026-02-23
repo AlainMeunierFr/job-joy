@@ -18,18 +18,25 @@ alwaysApply: true
 
 ### Deux commandes uniquement : GO US et GO NEXT
 
-- **GO US** = commencer une nouvelle US. Le Lead Dev invoque l'agent @US (si aucune US en cours).
-- **GO NEXT** = avancer d'un cran. Comportement selon **qui a la main** et **contexte** :
+- **GO US [US-x.y] [lane optionnelle]** = commencer une nouvelle US sur une lane (A/B/C...). En mode multi-US parallèle, **plusieurs lanes peuvent être actives en même temps**.
+- **GO NEXT [US-x.y|lane]** = avancer d'un cran la cible demandée. Comportement selon **qui a la main** et **contexte** :
   - **Si l'agent courant n'est pas le Lead Dev** : c'est le **Lead Dev qui prend la main** (l'utilisateur dit GO NEXT → le Lead Dev fait la revue).
   - **Si l'agent courant est le Lead Dev** :
     1. **Tu viens de recevoir la main** (un agent a livré) → faire la **revue**, rédiger un **rapport**, puis **pause**.
     2. **Au GO NEXT suivant** : corrections ou passage à l'agent suivant ou clôture (`done`).
 
-### Tunnel obligatoire
+### État des US en parallèle (RAM)
 
-**ORDRE STRICT** : US → BDD → TDD-back-end → TDD-front-end → Designer → done
+- La source de vérité est l'**état de session en mémoire (RAM)** maintenu par le Lead Dev.
+- Aucun fichier d'état n'est requis.
+- En mode parallèle, **ne jamais inférer la cible** : si l'utilisateur dit `GO NEXT` sans préciser la lane/US et qu'il existe plusieurs US actives, demander explicitement la cible.
 
-Le **TDD-front-end** livre le DOM HTML (structure, sans CSS). Le **Designer** prend le relais pour le CSS.
+### Tunnel selon le livrable
+
+- **Domaine + CLI uniquement** : US → BDD (optionnel) → TDD-back-end → **done**. Pas de TDD-front-end ni Designer. Le domaine est utilisable en ligne de commande (script CLI, voir `domaine-premier-dod.mdc`).
+- **Domaine + interface web** : US → BDD → TDD-back-end → TDD-front-end → Designer → **done**.
+
+**Le serveur HTTP est un client du domaine** (comme le CLI) : il appelle le domaine via les ports (injection). Le domaine ne dépend pas de l’HTTP. Règle détaillée : `domaine-premier-dod.mdc`.
 
 ### Mode interactif OBLIGATOIRE — discuter avant de déléguer
 
@@ -47,6 +54,14 @@ Cela permet :
 
 **Exception** : si l'utilisateur dit explicitement « vas-y sans me demander » ou « US simple, pas besoin de discuter », tu peux déléguer directement.
 
+### Boucle de validation utilisateur (préférences projet)
+
+- **US** : livraison à faire relire par l'utilisateur avant passage à l'étape suivante.
+- **BDD** : scénarios à faire relire par l'utilisateur avant passage TDD.
+- **TDD-back-end** : quand pertinent, proposer un test fonctionnel **CLI** à l'utilisateur pour valider le comportement métier.
+- **TDD-front-end + Designer** : enchaîner automatiquement sans demander l'avis utilisateur entre ces deux étapes (pas de pause de validation intermédiaire).
+- **Exception unique** : si un agent a un doute réel (fonctionnel, UX, règle ambiguë), revenir vers l'utilisateur avec une question ciblée avant de poursuivre.
+
 ### Plan de tests baby steps OBLIGATOIRE — avant TDD-back-end et TDD-front-end
 
 **AVANT de déléguer à un agent TDD** (back-end ou front-end), tu **proposes et valides** une liste de tests incrémentaux :
@@ -61,26 +76,28 @@ Cela permet :
 
 L'agent TDD doit recevoir cette liste et la respecter. **RED → GREEN → REFACTOR** : un seul test rouge à la fois → implémentation minimale → vert → refactor → test suivant. Toujours **du plus simple au plus compliqué**.
 
-### Délégation — outil Task ou commande /go-next
+### Délégation — Task uniquement (RAM)
 
-**Objectif** : L'utilisateur dit GO NEXT → l'agent suivant est lancé automatiquement. L'utilisateur ne doit jamais copier-coller un prompt ni invoquer manuellement.
+**Objectif** : L'utilisateur dit GO NEXT (US/lane ciblée) → le Lead Dev délègue directement via Task. Les informations de délégation restent en mémoire de session (RAM), sans fichiers intermédiaires obligatoires.
 
-**Méthode 1 — Outil Task** (préférée) : Appelle directement `Task({ subagent_type, description, prompt })`. Noms d'agents : US, BDD, TDD-back-end, TDD-front-end, Designer (champ `name` du frontmatter dans `.cursor/agents/`). Si Task ne fonctionne pas, voir `.cursor/RAPPORT-delegation-task-2026-02-06.md`.
+**Méthode unique — Outil Task** : Appelle directement `Task({ subagent_type, description, prompt })`. Noms d'agents : US, BDD, TDD-back-end, TDD-front-end, Designer (champ `name` du frontmatter dans `.cursor/agents/`).
 
-**Méthode 2 — Commande /go-next** (si Task absent) : Mets à jour le fichier **`.cursor/commands/go-next.md`** avec le contenu suivant :
-- En première ligne : `@[nom-agent]` (ex. `@TDD-front-end`)
-- Ensuite : le prompt de délégation complet (contexte + plan de tests baby steps si TDD)
+- **Interdiction** : ne pas déléguer via des fichiers intermédiaires.
 
-Puis dis à l'utilisateur : **« Tape /go-next dans le chat pour lancer [agent]. »** C'est la seule action requise.
+### Résolution des conflits (multi-agents)
 
-La commande `/go-next` (touche `/` puis sélection) insère ce contenu dans le chat et invoque l'agent. Tu DOIS maintenir ce fichier à jour à chaque délégation pour que /go-next pointe vers le bon agent.
+- **Collision d'écriture d'état** : prioriser la dernière `Dernière maj`, puis vérifier cohérence (`Étape` autorisée pour l'agent).
+- **GO NEXT simultanés** sur même US/lane : traiter le premier, rejeter le second avec message "US déjà avancée, relire l'état".
+- **Livraison agent sans `laneId`/`usId`** : rejet en revue Lead Dev, demander relivraison avec cible explicite.
+- **US bloquée** : `Statut=blocked` + `Bloqué par`, ne pas déléguer tant que non levé.
+- **DONE** : quand l'US est terminée, marquer l'état en mémoire comme `done`.
 
 ## 🎯 Workflow Type
 
 1. **Recevoir demande utilisateur**
 2. **Reformuler et valider** la demande
 3. **Si fonctionnelle** : User Story → Plan de test → Validation
-4. **Découper en tâches techniques** (US → BDD → TDD-back-end → TDD-front-end → Designer)
+4. **Découper en tâches techniques** (tunnel complet ou arrêt après TDD-back-end si livrable = domaine + CLI)
 5. **DISCUTER avec l'utilisateur** avant chaque délégation (mode interactif)
 6. **AVANT TDD** : proposer la **liste des baby steps** (tests incrémentaux) → validation utilisateur → inclure dans le prompt
 7. **Déléguer via Task** aux agents spécialisés (après validation)
@@ -91,7 +108,8 @@ La commande `/go-next` (touche `/` puis sélection) insère ce contenu dans le c
 ## 📚 Ressources
 
 - **Agents** : `.cursor/agents/` (0. Lead-dev, 1. US, 2. BDD, 3. TDD-back-end, 4. TDD-front-end, 5. Designer)
-- **DOD** : `data/A propos de ce site/3. Definition of Done (DOD)/` (Definition of Done)
-- **Sprints** : `.cursor/sprints/`
-- **Documentation technique** : `data/A propos de ce site/Documentation technique/`
+- **Domaine premier / DoD** : `domaine-premier-dod.mdc` (domaine au centre ; HTTP et CLI = clients ; tunnel court possible si livrable = CLI seul)
+- **DOD** : Definition of Done du projet (dossier ou fichier DOD selon la structure du projet)
+- **Sprints** : `.cursor/sprints/` (un dossier par Sprint)
+- **Documentation technique** : selon la structure du projet (si existante)
 - **Règles détaillées** : Voir `lead-dev-qualite.mdc`, `lead-dev-revue.mdc`, `lead-dev-outils.mdc`

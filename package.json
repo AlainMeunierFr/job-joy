@@ -1,10 +1,44 @@
 {
   "type": "module",
+  "scripts": {
+    "build": "tsc && node dist/scripts/copy-css.js",
+    "start": "node dist/app/server.js",
+    "dev": "nodemon --delay 2500 --watch app --watch utils --watch types --watch scripts --ext ts,css,json --exec \"npm run build && node dist/app/server.js\"",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:all": "npm run test && npm run test:bdd",
+    "test:integration:airtable": "jest --testPathPatterns=configuration-airtable.integration.test.ts",
+    "test:bdd": "npm run build && npx bddgen && npx playwright test",
+    "test:bdd:ui": "npx bddgen && npx playwright test --ui",
+    "cli:test-connexion": "node dist/scripts/test-connexion-cli.js",
+    "cli:auth-microsoft": "node dist/scripts/auth-device-code.js",
+    "cli:configuration-airtable": "node dist/scripts/configuration-airtable-cli.js",
+    "cli:releve-offres": "npm run build && node dist/scripts/releve-offres-linkedin-cli.js",
+    "cli:enrichissement-background": "npm run build && node dist/scripts/enrichissement-background-cli.js",
+    "cli:audit-sources": "npm run build && node dist/scripts/audit-sources-cli.js",
+    "fixtures:linkedin:promote": "node dist/scripts/promote-linkedin-fixtures.js"
+  },
   "dependencies": {
+    "@azure/msal-node": "^5.0.4",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
     "dotenv": "^16.4.5",
+    "imapflow": "^1.2.0",
+    "isomorphic-fetch": "^3.0.0",
+    "playwright": "^1.49.0",
     "puppeteer": "^24.37.5",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.1",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.14",
+    "playwright-bdd": "^8.4.2",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.7.2"
   }
 }

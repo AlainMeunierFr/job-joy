@@ -1,0 +1,379 @@
+import {
+  auditerSourcesDepuisEmails,
+  preparerMigrationSources,
+  traiterEmailsSelonStatutSource,
+  type SourceEmail,
+} from './gouvernance-sources-emails.js';
+
+describe('gouvernance-sources-emails (US-1.6)', () => {
+  it('US-1.8: match expéditeur HelloWork exact en ignorant la casse', async () => {
+    const traitements: string[] = [];
+    const result = await traiterEmailsSelonStatutSource({
+      emails: [{ id: 'm1', from: 'Notification@Emails.HelloWork.com', html: '<html>x</html>' }],
+      sourcesExistantes: [
+        { emailExpéditeur: 'notification@emails.hellowork.com', algo: 'HelloWork', actif: true },
+      ],
+      parseursDisponibles: ['HelloWork'],
+      traiterEmail: async (email) => {
+        traitements.push(email.id);
+        return { ok: true };
+      },
+    });
+
+    expect(result.traitementsExecutés).toBe(1);
+    expect(traitements).toEqual(['m1']);
+  });
+
+  it('US-1.8: un expéditeur partiellement similaire ne match pas HelloWork', async () => {
+    const traitements: string[] = [];
+    const result = await traiterEmailsSelonStatutSource({
+      emails: [{ id: 'm1', from: 'notification@emails.hellowork.com.fake-domain.test', html: '<html>x</html>' }],
+      sourcesExistantes: [
+        { emailExpéditeur: 'notification@emails.hellowork.com', algo: 'HelloWork', actif: true },
+      ],
+      parseursDisponibles: ['HelloWork'],
+      traiterEmail: async (email) => {
+        traitements.push(email.id);
+        return { ok: true };
+      },
+    });
+
+    expect(result.traitementsExecutés).toBe(0);
+    expect(traitements).toEqual([]);
+    expect(result.creees).toEqual([
+      {
+        emailExpéditeur: 'notification@emails.hellowork.com.fake-domain.test',
+        algo: 'Inconnu',
+        actif: false,
+      },
+    ]);
+  });
+
+  it('CA1 schéma: emailExpéditeur + algo(single select Linkedin/Inconnu/HelloWork/Welcome to the Jungle) + actif(checkbox)', () => {
+    const ok = preparerMigrationSources({
+      emailExpéditeur: { type: 'text' },
+      algo: {
+        type: 'singleSelect',
+        options: [
+          'Linkedin',
+          'Inconnu',
+          'HelloWork',
+          'Welcome to the Jungle',
+          'Job That Make Sense',
+          'cadreemploi',
+        ],
+      },
+      actif: { type: 'checkbox' },
+    });
+    expect(ok.ok).toBe(true);
+
+    const koAlgo = preparerMigrationSources({
+      emailExpéditeur: { type: 'text' },
+      algo: {
+        type: 'singleSelect',
+        options: ['Inconnu', 'Autre'],
+      },
+      actif: { type: 'checkbox' },
+    });
+    expect(koAlgo.ok).toBe(false);
+  });
+
+  it('CA2 audit: source existante -> aucune création', () => {
+    const sources: SourceEmail[] = [
+      { emailExpéditeur: 'alertes@unknown-source.test', algo: 'Inconnu', actif: false },
+    ];
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['alertes@unknown-source.test'],
+      sourcesExistantes: sources,
+    });
+    expect(audit.creees).toEqual([]);
+  });
+
+  it('CA2 audit: source absente -> création emailExpéditeur exact normalisé, algo=Inconnu, actif=false', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['Alertes@Unknown-Source.test'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'alertes@unknown-source.test', algo: 'Inconnu', actif: false },
+    ]);
+  });
+
+  it('CA2 audit: from avec nom + email linkedin -> normalise et crée en Linkedin/actif', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['LinkedIn Jobs <jobs-listings@linkedin.com>'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'jobs-listings@linkedin.com', algo: 'Linkedin', actif: true },
+    ]);
+  });
+
+  it('US-1.8 CA1: expéditeur notification@emails.hellowork.com -> création source algo HelloWork, actif true', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['notification@emails.hellowork.com'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'notification@emails.hellowork.com', algo: 'HelloWork', actif: true },
+    ]);
+  });
+
+  it('schéma algo doit contenir toutes les sources connues', () => {
+    const ok = preparerMigrationSources({
+      emailExpéditeur: { type: 'text' },
+      algo: {
+        type: 'singleSelect',
+        options: [
+          'Linkedin',
+          'Inconnu',
+          'HelloWork',
+          'Welcome to the Jungle',
+          'Job That Make Sense',
+          'cadreemploi',
+        ],
+      },
+      actif: { type: 'checkbox' },
+    });
+    expect(ok.ok).toBe(true);
+  });
+
+  it('US-1.10: la valeur algo "Welcome to the Jungle" est acceptée dans le schéma Sources', () => {
+    const ok = preparerMigrationSources({
+      emailExpéditeur: { type: 'text' },
+      algo: {
+        type: 'singleSelect',
+        options: [
+          'Linkedin',
+          'Inconnu',
+          'HelloWork',
+          'Welcome to the Jungle',
+          'Job That Make Sense',
+          'cadreemploi',
+        ],
+      },
+      actif: { type: 'checkbox' },
+    });
+    expect(ok.ok).toBe(true);
+  });
+
+  it('US-1.10: audit expéditeur exact WTTJ -> algo WTTJ actif true', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['alerts@welcometothejungle.com'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'alerts@welcometothejungle.com', algo: 'Welcome to the Jungle', actif: true },
+    ]);
+  });
+
+  it('US-1.10: audit WTTJ ignore la casse sur l’expéditeur', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['Alerts@WelcomeToTheJungle.com'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'alerts@welcometothejungle.com', algo: 'Welcome to the Jungle', actif: true },
+    ]);
+  });
+
+  it('US-1.10: un expéditeur proche alerts+jobs@... n’est pas reconnu WTTJ', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['alerts+jobs@welcometothejungle.com'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'alerts+jobs@welcometothejungle.com', algo: 'Inconnu', actif: false },
+    ]);
+  });
+
+  it('US-1.11: expéditeur JTMS exact (insensible casse) -> algo JTMS actif true', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['Jobs@MakeSense.Org'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'jobs@makesense.org', algo: 'Job That Make Sense', actif: true },
+    ]);
+  });
+
+  it('US-1.11: variante +alias JTMS -> Inconnu/inactif', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['jobs+alias@makesense.org'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'jobs+alias@makesense.org', algo: 'Inconnu', actif: false },
+    ]);
+  });
+
+  it('US-1.12: expéditeur cadreemploi exact (insensible casse) -> algo cadreemploi actif true', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['Offres@Alertes.Cadremploi.Fr'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'offres@alertes.cadremploi.fr', algo: 'cadreemploi', actif: true },
+    ]);
+  });
+
+  it('US-1.12: variante +alias cadreemploi -> Inconnu/inactif', () => {
+    const audit = auditerSourcesDepuisEmails({
+      emailsExpediteurs: ['offres+alias@alertes.cadremploi.fr'],
+      sourcesExistantes: [],
+    });
+    expect(audit.creees).toEqual([
+      { emailExpéditeur: 'offres+alias@alertes.cadremploi.fr', algo: 'Inconnu', actif: false },
+    ]);
+  });
+
+  it('R1 traitement source absente: auto-création Inconnu/inactif, pas de traitement, pas de déplacement', async () => {
+    const traitements: string[] = [];
+    const deplacements: string[] = [];
+    const result = await traiterEmailsSelonStatutSource({
+      emails: [{ id: 'm1', from: 'noreply@nouvelle-source.test', html: '<html>a</html>' }],
+      sourcesExistantes: [],
+      parseursDisponibles: [],
+      traiterEmail: async (email) => {
+        traitements.push(email.id);
+        return { ok: true };
+      },
+      deplacerVersTraite: async (email) => {
+        deplacements.push(email.id);
+      },
+    });
+    expect(result.creees).toEqual([
+      { emailExpéditeur: 'noreply@nouvelle-source.test', algo: 'Inconnu', actif: false },
+    ]);
+    expect(traitements).toEqual([]);
+    expect(deplacements).toEqual([]);
+  });
+
+  it('R1 traitement source absente linkedin: auto-création Linkedin/actif', async () => {
+    const result = await traiterEmailsSelonStatutSource({
+      emails: [{ id: 'm1', from: '"LinkedIn Jobs" <jobs-listings@linkedin.com>', html: '<html>a</html>' }],
+      sourcesExistantes: [],
+      parseursDisponibles: ['Linkedin'],
+      traiterEmail: async () => ({ ok: false }),
+    });
+    expect(result.creees).toEqual([
+      { emailExpéditeur: 'jobs-listings@linkedin.com', algo: 'Linkedin', actif: true },
+    ]);
+  });
+
+  it('R3 capture: algo=Inconnu -> capture HTML max 3 par expéditeur', async () => {
+    const captures: Array<{ sourceKey: string; html: string }> = [];
+    await traiterEmailsSelonStatutSource({
+      emails: [
+        { id: 'm1', from: 'noreply@nouvelle-source.test', html: '<html>1</html>' },
+        { id: 'm2', from: 'noreply@nouvelle-source.test', html: '<html>2</html>' },
+        { id: 'm3', from: 'noreply@nouvelle-source.test', html: '<html>3</html>' },
+        { id: 'm4', from: 'noreply@nouvelle-source.test', html: '<html>4</html>' },
+      ],
+      sourcesExistantes: [
+        { emailExpéditeur: 'noreply@nouvelle-source.test', algo: 'Inconnu', actif: false },
+      ],
+      parseursDisponibles: [],
+      capturerHtmlExemple: async (sourceKey, html) => {
+        captures.push({ sourceKey, html });
+      },
+    });
+    expect(captures).toHaveLength(3);
+    expect(captures.map((c) => c.html)).toEqual(['<html>1</html>', '<html>2</html>', '<html>3</html>']);
+  });
+
+  it('R2 algo=Linkedin & actif=false: pas de traitement, pas de déplacement', async () => {
+    const traitements: string[] = [];
+    const deplacements: string[] = [];
+    await traiterEmailsSelonStatutSource({
+      emails: [{ id: 'm1', from: 'jobs@linkedin.com', html: '<html>x</html>' }],
+      sourcesExistantes: [{ emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin', actif: false }],
+      parseursDisponibles: ['Linkedin'],
+      traiterEmail: async (email) => {
+        traitements.push(email.id);
+        return { ok: true };
+      },
+      deplacerVersTraite: async (email) => {
+        deplacements.push(email.id);
+      },
+    });
+    expect(traitements).toEqual([]);
+    expect(deplacements).toEqual([]);
+  });
+
+  it('R2 algo=Linkedin & actif=true: traitement exécuté puis déplacement Traité si succès', async () => {
+    const sequence: string[] = [];
+    await traiterEmailsSelonStatutSource({
+      emails: [{ id: 'm1', from: 'jobs@linkedin.com', html: '<html>x</html>' }],
+      sourcesExistantes: [{ emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin', actif: true }],
+      parseursDisponibles: ['Linkedin'],
+      traiterEmail: async () => {
+        sequence.push('traitement');
+        return { ok: true };
+      },
+      deplacerVersTraite: async () => {
+        sequence.push('deplacement');
+      },
+    });
+    expect(sequence).toEqual(['traitement', 'deplacement']);
+  });
+
+  it('R2 algo=Inconnu & actif=true: pas de traitement, mais déplacement (archivage sans traitement)', async () => {
+    const traitements: string[] = [];
+    const deplacements: string[] = [];
+    await traiterEmailsSelonStatutSource({
+      emails: [{ id: 'm1', from: 'alertes@unknown-source.test', html: '<html>x</html>' }],
+      sourcesExistantes: [{ emailExpéditeur: 'alertes@unknown-source.test', algo: 'Inconnu', actif: true }],
+      parseursDisponibles: ['Linkedin'],
+      traiterEmail: async (email) => {
+        traitements.push(email.id);
+        return { ok: true };
+      },
+      deplacerVersTraite: async (email) => {
+        deplacements.push(email.id);
+      },
+    });
+    expect(traitements).toEqual([]);
+    expect(deplacements).toEqual(['m1']);
+  });
+
+  it('R2 algo=Inconnu & actif=false: pas de traitement, pas de déplacement', async () => {
+    const traitements: string[] = [];
+    const deplacements: string[] = [];
+    await traiterEmailsSelonStatutSource({
+      emails: [{ id: 'm1', from: 'u1@unknown-a.test', html: '<html>1</html>' }],
+      sourcesExistantes: [
+        { emailExpéditeur: 'u1@unknown-a.test', algo: 'Inconnu', actif: false },
+      ],
+      parseursDisponibles: ['Linkedin'],
+      traiterEmail: async (email) => {
+        traitements.push(email.id);
+        return { ok: true };
+      },
+      deplacerVersTraite: async (email) => {
+        deplacements.push(email.id);
+      },
+    });
+    expect(traitements).toEqual([]);
+    expect(deplacements).toEqual([]);
+  });
+
+  it('auto-correction: algo=Linkedin mais parseur indisponible => algo corrigé Inconnu, pas de traitement, archivage selon actif', async () => {
+    const result = await traiterEmailsSelonStatutSource({
+      emails: [{ id: 'm1', from: 'jobs@linkedin.com', html: '<html>x</html>' }],
+      sourcesExistantes: [{ emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin', actif: true }],
+      parseursDisponibles: [],
+      traiterEmail: async () => ({ ok: true }),
+      deplacerVersTraite: async () => {},
+    });
+    expect(result.corrections).toEqual([
+      {
+        emailExpéditeur: 'jobs@linkedin.com',
+        ancienAlgo: 'Linkedin',
+        nouveauAlgo: 'Inconnu',
+      },
+    ]);
+    expect(result.traitementsExecutés).toBe(0);
+    expect(result.deplacementsEffectués).toBe(1);
+  });
+});

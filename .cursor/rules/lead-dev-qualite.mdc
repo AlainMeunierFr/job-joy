@@ -84,4 +84,4 @@ Après chaque modification :
 - **C'est au moment de la clôture de l'US** (étape = `done`) qu'on lance build et suite de tests complète
 
 ### Métriques (si configuré)
-Si le projet a une commande `metrics:collect` : lancer lors du build et stocker dans `public/metrics/`.
+Si le projet définit une commande de collecte de métriques : lancer lors du build et stocker selon la convention du projet.

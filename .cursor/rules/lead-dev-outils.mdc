@@ -7,22 +7,23 @@ alwaysApply: false
 
 ## Délégation vers les agents
 
-**Deux mécanismes (par ordre de préférence) :**
+**Un mécanisme unique (Task) :**
 
-1. **Outil Task** : Si disponible, appelle `Task({ subagent_type, description, prompt })`. Cursor injecte cet outil quand les sous-agents sont activés (Settings > Rules, Skills, Subagents).
-2. **Commande /go-next** : Fichier **`.cursor/commands/go-next.md`**. Contenu = `@[agent]` + prompt de délégation. Quand tu délégues, TU ÉCRIS ce fichier. L'utilisateur tape `/go-next` dans le chat → Cursor insère le contenu et invoque l'agent. **Une seule action pour l'utilisateur.**
+1. **Outil Task (obligatoire)** : déléguer via `Task({ subagent_type, description, prompt })`. C'est le mode normal (RAM), sans fichier de délégation.
+2. **Interdiction** : ne pas utiliser de commande/fichier intermédiaire pour déléguer.
+3. **État d'avancement** : gérer l'état des US en mémoire de session (RAM), sans fichier d'état.
 
 **Agents** : `.cursor/agents/` — nom = champ `name` du frontmatter (US, BDD, TDD-back-end, TDD-front-end, Designer).
 
-## Stack Technique
+## Stack Technique (à adapter au projet)
 
 - **IDE** : Cursor
-- **Langage** : TypeScript
-- **Frontend** : Next.js
-- **Gestion du code** : GitHub
-- **TDD** : Jest
-- **BDD** : Cucumber.js
-- **Hébergement** : Vercel
+- **Langage** : selon le projet (ex. TypeScript)
+- **Frontend / Backend** : selon le projet (ex. Next.js, React, Node)
+- **Gestion du code** : Git (ex. GitHub)
+- **TDD** : selon le projet (ex. Jest, Vitest)
+- **BDD** : selon le projet (ex. Cucumber.js, Playwright)
+- **Hébergement** : selon le projet
 
 ## Recherche dans le codebase
 
@@ -57,8 +58,8 @@ Après chaque modification validée :
 
 # Gestion des erreurs
 
-1. **Avant d’analyser des échecs de pipeline ou de tests** : lire **`logs/publish-errors.txt`** s’il existe (généré par `collect-metrics-simple` / `publie`). S’il est présent, s’en servir pour identifier l’étape en échec et la cause — ne pas relancer la suite de tests pour « retrouver » les erreurs.
-2. Pour le détail des tests Jest : utiliser **`test-results.json`** (et éventuellement `coverage/coverage-summary.json`) plutôt que de relancer Jest en premier.
+1. **Avant d’analyser des échecs de pipeline ou de tests** : lire **logs du pipeline (ex. `logs/*-errors.txt`)** s'ils existent. S'en servir pour identifier l’étape en échec et la cause — ne pas relancer la suite de tests pour « retrouver » les erreurs.
+2. Pour le détail des tests : utiliser **fichiers de résultats** du projet (ex. `test-results.json`, `coverage/coverage-summary.json`) plutôt que de relancer les tests en premier.
 3. Identifier problème métier/fonctionnel AVANT solution technique.
 4. Analyser erreur complètement.
 5. Pas de corrections multiples en parallèle.

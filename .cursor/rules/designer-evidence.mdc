@@ -1,0 +1,39 @@
+---
+description: Designer — design system et cohérence (types HTML, layout, approche Data first)
+alwaysApply: false
+---
+
+# Design system — cohérence de l’app
+
+Approche **Data first** : le DOM a une structure donnée ; on applique **bêtement** le style défini par le système. Le design est propre parce que la structure et le système sont alignés, pas parce qu’on corrige chaque écran à la main.
+
+## 1. Types HTML de base
+
+Le design system doit définir un rendu **cohérent pour toute l’app** sur :
+
+- **Titres** : h1, h2, h3 — taille, graisse, marges (tokens), de façon identique pour un même niveau partout dans l’app.
+- **Liens** : couleur (token), soulignement ou soulignement au survol, `cursor: pointer`, état focus.
+- **Paragraphes, listes** : espacements, line-height, couleurs (tokens).
+- **Formulaires** : labels, champs (input, select, textarea), boutons — bordures, padding, états focus/erreur, tokens.
+- **Sections / blocs** : conteneurs (cartes, panels, `details`/`summary`) — fond, bordure, rayon, padding interne cohérent.
+
+Une fois ces règles en place dans le CSS (sélecteurs par contexte, ex. `.appMain h1`, `.appMain .fieldGroup`), **tout nouveau DOM qui respecte la structure reçoit le bon rendu sans surcharge**.
+
+## 2. Patterns de mise en page
+
+- **Espacement** : entre blocs/sections de même niveau, espace vertical clair (tokens `--space-lg`, `--space-xl`). Premier bloc sans `margin-top` inutile, dernier sans `margin-bottom` en trop. Padding interne des cartes cohérent (`--space-lg`).
+- **Hiérarchie** : même niveau sémantique (ex. deux h2 dans deux blocs) → même style visuel.
+
+## 3. Tokens
+
+- Couleurs, espacements, polices, rayons : **toujours via les tokens** (globals.css). Aucune valeur en dur si un token existe.
+
+## 4. Checklist avant de livrer
+
+1. Les types de base (titres, liens, champs, boutons) sont-ils stylés de façon cohérente avec le reste de l’app ?
+2. Y a-t-il un espace visible entre chaque bloc / section de même niveau ?
+3. Les cartes/conteneurs ont-ils un padding interne suffisant ?
+4. Les liens sont-ils clairement identifiables (couleur, survol, curseur) ?
+5. Aucune régression : pas de style ad hoc qui casse le système.
+
+**À invoquer** : en début de tâche Designer ou en revue design. Référencée par l’agent Designer (Designer.md).
