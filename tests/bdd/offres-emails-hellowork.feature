@@ -9,24 +9,24 @@ Fonctionnalité: Offres des emails HelloWork
     Et que le compte email et le dossier à analyser sont configurés
     Et que le dossier des emails traités est configuré
 
-  # --- CA1 : Ajouter HelloWork à la liste des algos côté Airtable ---
+  # --- CA1 : Ajouter HelloWork à la liste des plugins côté Airtable ---
   Scénario: Initialiser la source HelloWork dans Airtable
     Étant donné qu'aucun expéditeur d'email "notification@emails.hellowork.com" n'existe dans "Sources"
     Quand l'initialisation des sources est exécutée
     Alors l'expéditeur "notification@emails.hellowork.com" est créé dans la table "Sources"
-    Et son algo est "HelloWork"
+    Et son plugin est "HelloWork"
     Et son champ "actif" vaut true
 
   # --- CA2 : Audit strict par expéditeur + activation ---
   Scénario: Le matching se fait sur l'expéditeur exact en ignorant la casse
-    Étant donné que la source d'expéditeur "notification@emails.hellowork.com" existe avec l'algo "HelloWork" et le champ "actif" à true
+    Étant donné que la source d'expéditeur "notification@emails.hellowork.com" existe avec l'plugin "HelloWork" et le champ "actif" à true
     Et que le dossier à analyser contient un email d'expéditeur "Notification@Emails.HelloWork.com"
     Quand je lance l'audit du dossier email
     Alors cet email est rattaché à la source "HelloWork"
-    Et la source est reportée avec l'expéditeur "notification@emails.hellowork.com", l'algo "HelloWork" et "actif" à true
+    Et la source est reportée avec l'expéditeur "notification@emails.hellowork.com", l'plugin "HelloWork" et "actif" à true
 
   Scénario: Un expéditeur seulement partiellement similaire n'est pas reconnu comme HelloWork
-    Étant donné que la source d'expéditeur "notification@emails.hellowork.com" existe avec l'algo "HelloWork" et le champ "actif" à true
+    Étant donné que la source d'expéditeur "notification@emails.hellowork.com" existe avec l'plugin "HelloWork" et le champ "actif" à true
     Et que le dossier à analyser contient un email d'expéditeur "notification@emails.hellowork.com.fake-domain.test"
     Quand je lance l'audit du dossier email
     Alors cet email n'est pas rattaché à la source "HelloWork"
@@ -34,7 +34,7 @@ Fonctionnalité: Offres des emails HelloWork
 
   # --- CA3 : Étape 1 plugin HelloWork (lecture body + extraction + décodage URL) ---
   Scénario: Extraire une offre HelloWork depuis le body et insérer les champs minimum dans Offres
-    Étant donné que la source d'expéditeur "notification@emails.hellowork.com" existe avec l'algo "HelloWork" et le champ "actif" à true
+    Étant donné que la source d'expéditeur "notification@emails.hellowork.com" existe avec l'plugin "HelloWork" et le champ "actif" à true
     Et qu'un email HelloWork éligible contient dans son body une offre exploitable
     Quand je lance la relève des offres depuis les emails HelloWork
     Alors une ligne est créée dans la table Offres
@@ -48,7 +48,7 @@ Fonctionnalité: Offres des emails HelloWork
     """
 
   Scénario: En cas d'URL encodée base64 non décodable, l'offre est quand même insérée avec l'URL encodée
-    Étant donné que la source d'expéditeur "notification@emails.hellowork.com" existe avec l'algo "HelloWork" et le champ "actif" à true
+    Étant donné que la source d'expéditeur "notification@emails.hellowork.com" existe avec l'plugin "HelloWork" et le champ "actif" à true
     Et qu'un email HelloWork éligible contient une URL encodée en base64 non décodable
     Quand je lance la relève des offres depuis les emails HelloWork
     Alors une ligne est créée dans la table Offres pour cette offre

@@ -3,7 +3,7 @@
 Fonctionnalité: Tableau de synthèse des offres
   En tant qu'utilisateur du tableau de bord
   Je souhaite voir un tableau de synthèse des offres
-  Afin de disposer d'une vue claire et exploitable par expéditeur, algorithmes et statut.
+  Afin de disposer d'une vue claire et exploitable par expéditeur, plugins et statut.
 
   Contexte:
     Étant donné que la configuration Airtable est opérationnelle
@@ -20,32 +20,32 @@ Fonctionnalité: Tableau de synthèse des offres
   # --- CA2 : Structure du tableau ---
   Scénario: Le tableau affiche une ligne par expéditeur avec les colonnes fixes et les colonnes statut
     Étant donné que les sources et offres suivantes existent en base
-    | emailExpéditeur                    | algo étape 1 | algo étape 2 | actif | Annonce à récupérer | À traiter | Traité | Ignoré | À analyser |
-    | jobs@linkedin.com                 | Linkedin     | Linkedin     | Oui   | 2                   | 0         | 0      | 0      | 1         |
-    | notification@emails.hellowork.com | HelloWork    | HelloWork    | Oui   | 1                   | 0         | 0      | 0      | 0         |
+    | emailExpéditeur                    | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À analyser | À traiter | Candidaté | Refusé | Traité | Ignoré | Expiré | Autre |
+    | jobs@linkedin.com                 | Linkedin     | Linkedin     | 2                   | 1         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
+    | notification@emails.hellowork.com | HelloWork    | HelloWork    | 1                   | 0         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
     Quand le tableau de synthèse des offres est chargé
-    Alors le tableau affiche les colonnes fixes dans l'ordre : email expéditeur, algo étape 1, algo étape 2, actif
+    Alors le tableau affiche les colonnes fixes dans l'ordre : email expéditeur, plugin, Phase 1, Phase 2
     Et le tableau affiche une colonne par statut d'offre dans l'ordre de l'énum Airtable
     Et le tableau affiche les lignes suivantes
-    | emailExpéditeur                    | algo étape 1 | algo étape 2 | actif | Annonce à récupérer | À traiter | Traité | Ignoré | À analyser |
-    | jobs@linkedin.com                 | Linkedin     | Linkedin     | Oui   | 2                   | 0         | 0      | 0      | 1         |
-    | notification@emails.hellowork.com | HelloWork    | HelloWork    | Oui   | 1                   | 0         | 0      | 0      | 0         |
+    | emailExpéditeur                    | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À analyser | À traiter | Candidaté | Refusé | Traité | Ignoré | Expiré | Autre |
+    | jobs@linkedin.com                 | ✅          | ✅          | 2                   | 1         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
+    | notification@emails.hellowork.com | ✅          | ✅          | 1                   | 0         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
 
   Scénario: Les colonnes statut utilisent toutes les valeurs de l'énum Airtable dans le même ordre
     Étant donné que le tableau de synthèse des offres est chargé avec au moins une offre
     Quand j'observe les en-têtes de colonnes du tableau de synthèse des offres
-    Alors les colonnes statut sont présentes dans l'ordre : Annonce à récupérer, À traiter, Traité, Ignoré, À analyser
+    Alors les colonnes statut sont présentes dans l'ordre : Annonce à récupérer, À analyser, À traiter, Candidaté, Refusé, Traité, Ignoré, Expiré, Autre
     Et une colonne existe pour chaque valeur de l'énum même si le nombre d'offres est zéro
 
   # --- CA3 : Tri des lignes ---
-  Plan du Scénario: Les lignes sont triées d'abord par algo étape 2 puis par algo étape 1
+  Plan du Scénario: Les lignes sont triées d'abord par plugin étape 2 puis par plugin étape 1
     Étant donné que les sources et offres suivantes existent en base
-    | emailExpéditeur | algo étape 1 | algo étape 2 | nb offres |
+    | emailExpéditeur | plugin étape 1 | plugin étape 2 | nb offres |
     | a@test.com      | HelloWork   | HelloWork   | 1         |
     | b@test.com      | Linkedin   | Linkedin   | 1         |
     | c@test.com      | Inconnu    | Inconnu    | 1         |
     Quand le tableau de synthèse des offres est chargé
-    Alors les lignes sont ordonnées par algo étape 2 puis par algo étape 1
+    Alors les lignes sont ordonnées par plugin étape 2 puis par plugin étape 1
     Et la première ligne affichée correspond à l'expéditeur "<premier expéditeur>"
 
     Exemples:
@@ -75,3 +75,47 @@ Fonctionnalité: Tableau de synthèse des offres
     Et la cellule (unique@test.com × "Traité") affiche "0"
     Et la cellule (unique@test.com × "Ignoré") affiche "0"
     Et la cellule (unique@test.com × "À analyser") affiche "0"
+    Et la cellule (unique@test.com × "Autre") affiche "0"
+
+  # --- US-1.13 : Totaux (colonne et ligne) ---
+  # CA1 : Colonne Totaux à droite des colonnes de statut ; par ligne = total d'offres de cette source
+  @us-1.13
+  Scénario: La colonne Totaux est à droite des colonnes de statut et affiche le total par source
+    Étant donné que les sources et offres suivantes existent en base
+    | emailExpéditeur                    | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À analyser | À traiter | Candidaté | Refusé | Traité | Ignoré | Expiré | Autre |
+    | jobs@linkedin.com                 | Linkedin     | Linkedin     | 2                   | 1         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
+    | notification@emails.hellowork.com | HelloWork    | HelloWork    | 1                   | 0         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
+    Quand le tableau de synthèse des offres est chargé
+    Alors une colonne "Totaux" est affichée à droite des colonnes de statut
+    Et pour la ligne de la source "jobs@linkedin.com" la cellule Totaux affiche "4"
+    Et pour la ligne de la source "notification@emails.hellowork.com" la cellule Totaux affiche "1"
+
+  # CA2 : Ligne Totaux en bas ; par colonne statut = total dans ce statut ; cellule Totaux×Totaux = total général
+  @us-1.13
+  Scénario: La ligne Totaux est en bas du tableau et affiche les totaux par statut et le total général
+    Étant donné que les sources et offres suivantes existent en base
+    | emailExpéditeur                    | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À analyser | À traiter | Candidaté | Refusé | Traité | Ignoré | Expiré | Autre |
+    | jobs@linkedin.com                 | Linkedin     | Linkedin     | 2                   | 1         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
+    | notification@emails.hellowork.com | HelloWork    | HelloWork    | 1                   | 0         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
+    Quand le tableau de synthèse des offres est chargé
+    Alors une ligne "Totaux" est affichée en bas du tableau
+    Et la cellule de la ligne Totaux pour la colonne "Annonce à récupérer" affiche "3"
+    Et la cellule de la ligne Totaux pour la colonne "À traiter" affiche "1"
+    Et la cellule de la ligne Totaux pour la colonne "À analyser" affiche "1"
+    Et la cellule Totaux×Totaux affiche "5"
+
+  # CA3 : Totaux calculés depuis les mêmes données ; rafraîchir met à jour les totaux
+  @us-1.13
+  Scénario: Rafraîchir le tableau met à jour les totaux
+    Étant donné que les sources et offres suivantes existent en base
+    | emailExpéditeur   | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À traiter | Traité | Ignoré | À analyser |
+    | first@source.com  | PluginA        | PluginA        | 1                   | 0         | 0      | 0      | 0         |
+    Quand le tableau de synthèse des offres est chargé
+    Alors pour la ligne de la source "first@source.com" la cellule Totaux affiche "1"
+    Et la cellule Totaux×Totaux affiche "1"
+    Étant donné que les données du tableau de synthèse sont mises à jour en base avec les comptages suivants
+    | emailExpéditeur   | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À traiter | Traité | Ignoré | À analyser |
+    | first@source.com  | PluginA        | PluginA        | 2                   | 1         | 0      | 0      | 0         |
+    Quand je rafraîchis le tableau de synthèse des offres
+    Alors pour la ligne de la source "first@source.com" la cellule Totaux affiche "3"
+    Et la cellule Totaux×Totaux affiche "3"

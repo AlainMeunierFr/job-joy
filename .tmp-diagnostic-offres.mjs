@@ -43,7 +43,7 @@ for (const rec of sourcesRes.records) {
   const f = rec.fields || {};
   sourcesById.set(rec.id, {
     email: String(f['emailExpÃ©diteur'] || '').toLowerCase(),
-    algo: String(f['algo'] || ''),
+    plugin: String(f['plugin'] || ''),
     actif: !!f['actif'],
   });
 }
@@ -77,7 +77,7 @@ for (const o of offers) {
   byStatus[statut] = (byStatus[statut] || 0) + 1;
   const srcLinks = Array.isArray(o.f['email expÃ©diteur']) ? o.f['email expÃ©diteur'] : [];
   const src = srcLinks.length ? sourcesById.get(String(srcLinks[0])) : null;
-  if (src?.algo === 'HelloWork') {
+  if (src?.plugin === 'HelloWork') {
     helloTotal++;
     if (o.f['DateAjout']) helloDateAjoutPresent++;
     if (o.f['DateOffre']) helloDateOffrePresent++;

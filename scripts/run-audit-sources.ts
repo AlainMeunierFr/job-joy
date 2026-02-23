@@ -8,7 +8,7 @@ import { createLecteurEmailsGraph } from '../utils/lecteur-emails-graph.js';
 import { createLecteurEmailsMock } from '../utils/lecteur-emails-mock.js';
 import { normaliserBaseId } from '../utils/airtable-url.js';
 import { getValidAccessToken } from '../utils/auth-microsoft.js';
-import type { AlgoSource, SourceEmail } from '../utils/gouvernance-sources-emails.js';
+import type { PluginSource, SourceEmail } from '../utils/gouvernance-sources-emails.js';
 
 export type ResultatAuditSources =
   | {
@@ -18,7 +18,7 @@ export type ResultatAuditSources =
       nbSourcesExistantes: number;
       synthese: Array<{
         emailExpéditeur: string;
-        algo: AlgoSource;
+        plugin: PluginSource;
         actif: 'Oui' | 'Non';
         nbEmails: number;
       }>;
@@ -37,7 +37,7 @@ interface DriverReleveGouvernance {
   creerSource: (source: SourceEmail) => Promise<SourceRuntime>;
   mettreAJourSource?: (
     sourceId: string,
-    patch: Partial<Pick<SourceEmail, 'algo' | 'actif'>>
+    patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>
   ) => Promise<void>;
 }
 
@@ -91,23 +91,23 @@ function normaliserEmailExpediteur(from: string): string {
   return extraireAdresseEmail(from).toLowerCase();
 }
 
-function algoParExpediteur(emailExpediteur: string): AlgoSource {
+function pluginParExpediteur(emailExpediteur: string): PluginSource {
   const key = emailExpediteur.toLowerCase().trim();
   if (key === 'notification@emails.hellowork.com') return 'HelloWork';
   if (key === 'alerts@welcometothejungle.com') return 'Welcome to the Jungle';
   if (key === 'jobs@makesense.org') return 'Job That Make Sense';
-  if (key === 'offres@alertes.cadremploi.fr') return 'cadreemploi';
+  if (key === 'offres@alertes.cadremploi.fr') return 'Cadre Emploi';
   if (key.includes('linkedin.com')) return 'Linkedin';
   return 'Inconnu';
 }
 
-function actifParDefautPourAlgo(algo: AlgoSource): boolean {
+function actifParDefautPourPlugin(plugin: PluginSource): boolean {
   return (
-    algo === 'Linkedin' ||
-    algo === 'HelloWork' ||
-    algo === 'Welcome to the Jungle' ||
-    algo === 'Job That Make Sense' ||
-    algo === 'cadreemploi'
+    plugin === 'Linkedin' ||
+    plugin === 'HelloWork' ||
+    plugin === 'Welcome to the Jungle' ||
+    plugin === 'Job That Make Sense' ||
+    plugin === 'Cadre Emploi'
   );
 }
 
@@ -173,23 +173,17 @@ export async function runAuditSources(
 
   onProgress?.(`Emails scannés : ${lecture.emails.length}`);
   const sourcesExistantes = await driverReleve.listerSources();
-  // Auto-corrige les sources existantes connues (LinkedIn/HelloWork/WTTJ) même avant l'analyse des emails du dossier.
-  // Cela évite de laisser une source bloquée en "Inconnu" après un changement manuel Airtable.
+  // Auto-corrige uniquement le plugin des sources existantes (ex. Inconnu → Linkedin si plugin reconnu).
+  // On ne touche jamais à actif sur une source existante : seule la création peut définir actif (par défaut).
   if (driverReleve.mettreAJourSource) {
     for (const source of sourcesExistantes) {
       const key = normaliserEmailExpediteur(source.emailExpéditeur);
-      const algoAttendu = algoParExpediteur(key);
-      const actifAttendu = actifParDefautPourAlgo(algoAttendu);
-      if (algoAttendu === 'Inconnu') continue;
-      const doitCorrigerAlgo = source.algo !== algoAttendu;
-      const doitCorrigerActif = source.actif !== actifAttendu;
-      if (!doitCorrigerAlgo && !doitCorrigerActif) continue;
-      await driverReleve.mettreAJourSource(source.sourceId, {
-        ...(doitCorrigerAlgo ? { algo: algoAttendu } : {}),
-        ...(doitCorrigerActif ? { actif: actifAttendu } : {}),
-      });
-      if (doitCorrigerAlgo) source.algo = algoAttendu;
-      if (doitCorrigerActif) source.actif = actifAttendu;
+      const pluginAttendu = pluginParExpediteur(key);
+      if (pluginAttendu === 'Inconnu') continue;
+      const doitCorrigerPlugin = source.plugin !== pluginAttendu;
+      if (!doitCorrigerPlugin) continue;
+      await driverReleve.mettreAJourSource(source.sourceId, { plugin: pluginAttendu });
+      source.plugin = pluginAttendu;
     }
   }
   const indexParEmail = new Map(
@@ -204,7 +198,7 @@ export async function runAuditSources(
 
   const synthese: Array<{
     emailExpéditeur: string;
-    algo: AlgoSource;
+    plugin: PluginSource;
     actif: 'Oui' | 'Non';
     nbEmails: number;
   }> = [];
@@ -214,39 +208,33 @@ export async function runAuditSources(
   for (const [key, nbEmails] of compteParExpediteur.entries()) {
     const sourceExistante = indexParEmail.get(key);
     if (sourceExistante) {
-      const algoAttendu = algoParExpediteur(key);
-      const actifAttendu = actifParDefautPourAlgo(algoAttendu);
-      const doitCorrigerAlgo = algoAttendu !== 'Inconnu' && sourceExistante.algo !== algoAttendu;
-      const doitCorrigerActif = algoAttendu !== 'Inconnu' && sourceExistante.actif !== actifAttendu;
-      if ((doitCorrigerAlgo || doitCorrigerActif) && sourceExistante.sourceId && driverReleve.mettreAJourSource) {
-        await driverReleve.mettreAJourSource(sourceExistante.sourceId, {
-          ...(doitCorrigerAlgo ? { algo: algoAttendu } : {}),
-          ...(doitCorrigerActif ? { actif: actifAttendu } : {}),
-        });
-        if (doitCorrigerAlgo) sourceExistante.algo = algoAttendu;
-        if (doitCorrigerActif) sourceExistante.actif = actifAttendu;
+      const pluginAttendu = pluginParExpediteur(key);
+      const doitCorrigerPlugin = pluginAttendu !== 'Inconnu' && sourceExistante.plugin !== pluginAttendu;
+      if (doitCorrigerPlugin && sourceExistante.sourceId && driverReleve.mettreAJourSource) {
+        await driverReleve.mettreAJourSource(sourceExistante.sourceId, { plugin: pluginAttendu });
+        sourceExistante.plugin = pluginAttendu;
       }
       nbSourcesExistantes += 1;
       synthese.push({
         emailExpéditeur: key,
-        algo: sourceExistante.algo,
+        plugin: sourceExistante.plugin,
         actif: sourceExistante.actif ? 'Oui' : 'Non',
         nbEmails,
       });
       continue;
     }
-    const algo = algoParExpediteur(key);
-    const actifParDefaut = actifParDefautPourAlgo(algo); // algo connu => activer par défaut
+    const plugin = pluginParExpediteur(key);
+    const actifParDefaut = actifParDefautPourPlugin(plugin); // plugin connu => activer par défaut
     const source: SourceEmail = {
       emailExpéditeur: key,
-      algo,
+      plugin,
       actif: actifParDefaut,
     };
     const created = await driverReleve.creerSource(source);
     indexParEmail.set(normaliserEmailExpediteur(created.emailExpéditeur), created);
     synthese.push({
       emailExpéditeur: key,
-      algo: source.algo,
+      plugin: source.plugin,
       actif: actifParDefaut ? 'Oui' : 'Non',
       nbEmails,
     });
@@ -261,11 +249,11 @@ export async function runAuditSources(
       }
       if (
         (
-          ligne.algo === 'Linkedin' ||
-          ligne.algo === 'HelloWork' ||
-          ligne.algo === 'Welcome to the Jungle' ||
-          ligne.algo === 'Job That Make Sense' ||
-          ligne.algo === 'cadreemploi'
+          ligne.plugin === 'Linkedin' ||
+          ligne.plugin === 'HelloWork' ||
+          ligne.plugin === 'Welcome to the Jungle' ||
+          ligne.plugin === 'Job That Make Sense' ||
+          ligne.plugin === 'Cadre Emploi'
         ) &&
         ligne.actif === 'Oui'
       ) {

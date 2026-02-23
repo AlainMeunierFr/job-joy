@@ -46,7 +46,7 @@ describe('createFetcherContenuOffre', () => {
     expect(r.ok).toBe(true);
   });
 
-  it('route vers le plugin cadreemploi via URL cadremploi', async () => {
+  it('route vers le plugin Cadre Emploi via URL cadremploi', async () => {
     globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
       text: async () => '<html><h1>Product Manager</h1><div>ENTREPRISE Acme</div></html>',

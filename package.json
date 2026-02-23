@@ -2,8 +2,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc && node dist/scripts/copy-css.js",
+    "build:dev": "tsc",
     "start": "node dist/app/server.js",
-    "dev": "nodemon --delay 2500 --watch app --watch utils --watch types --watch scripts --ext ts,css,json --exec \"npm run build && node dist/app/server.js\"",
+    "dev": "npm run build:dev && node dist/app/server.js",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:coverage": "jest --coverage",
@@ -17,6 +18,7 @@
     "cli:releve-offres": "npm run build && node dist/scripts/releve-offres-linkedin-cli.js",
     "cli:enrichissement-background": "npm run build && node dist/scripts/enrichissement-background-cli.js",
     "cli:audit-sources": "npm run build && node dist/scripts/audit-sources-cli.js",
+    "poc:enrichissement": "npm run build && node dist/scripts/poc-enrichissement-cli.js",
     "fixtures:linkedin:promote": "node dist/scripts/promote-linkedin-fixtures.js"
   },
   "dependencies": {
@@ -36,7 +38,6 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.1",
     "jest": "^30.2.0",
-    "nodemon": "^3.1.14",
     "playwright-bdd": "^8.4.2",
     "ts-jest": "^29.4.6",
     "typescript": "^5.7.2"

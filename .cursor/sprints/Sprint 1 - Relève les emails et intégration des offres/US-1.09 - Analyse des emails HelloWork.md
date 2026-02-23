@@ -3,10 +3,10 @@ Je souhaite que les offres contenues dans les emails reçus par HelloWork soient
 Afin de pouvoir les faire analyser par une IA
 
 CA1 : init sources AirTable
-- ajouter "HelloWork" à la liste des "Algo" sur AirTable
+- ajouter "HelloWork" à la liste des "Plugin" sur AirTable
 
 CA2 : audit
-- lorsqu'un email avec un expéditeur contient "...HelloWork.com" l'insérer avec l'algo "HelloWork" et l'activer
+- lorsqu'un email avec un expéditeur contient "...HelloWork.com" l'insérer avec l'plugin "HelloWork" et l'activer
 
 CA3 : lancer le traitement : implémenter l'étape 1 pour un plug-in "HelloWork"
 - Lire le Body de l'email pour y récolter un maximum d'information pour alimenter la table "Offres"

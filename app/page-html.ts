@@ -8,6 +8,54 @@ import { join } from 'node:path';
 import { lireCompte, lireAirTable } from '../utils/index.js';
 import { maskEmail } from '../utils/mask-email.js';
 import { getLayoutHtml } from './layout-html.js';
+import type { ParametrageIA, Rehibitoire, ScoreOptionnel, ScoresIncontournables } from '../types/parametres.js';
+
+const N_REHIBITOIRES = 4;
+const N_SCORES_OPTIONNELS = 4;
+const SCORES_INCONTOURNABLES_TITRES = ['Localisation', 'Salaire', 'Culture', 'Qualité d\'offre'] as const;
+
+/** Exemples (placeholders) par zone, dans l’esprit du prompt « Autres ressources » (recherche d’emploi). */
+const PLACEHOLDER_REHIBITOIRE_TITRE = "Ex. Secteur, localisation ou type de contrat";
+const PLACEHOLDER_REHIBITOIRE_DESCRIPTION =
+  "Ex. Rejeter si hors Île-de-France, sans télétravail, ou CDD uniquement. Décrivez ce qui doit faire rejeter l'offre.";
+/** Un placeholder distinct par score incontournable (ordre : localisation, salaire, culture, qualiteOffre). */
+const PLACEHOLDERS_SCORES_INCONTOURNABLES = [
+  "Ex. Île-de-France ou télétravail 2 j/sem. Déplacements occasionnels acceptés.",
+  "Ex. Fourchette 45–55 k€, variable selon poste et responsabilités.",
+  "Ex. Petite structure, valeurs RSE, pas de présentéisme.",
+  "Ex. Fiche de poste claire, processus structuré, retour sous 2 semaines.",
+] as const;
+const PLACEHOLDER_OPTIONNEL_TITRE = "Ex. Langues, outils, secteur";
+const PLACEHOLDER_OPTIONNEL_ATTENTE =
+  "Ex. Anglais C1, expérience Jira ou équivalent, secteur tech ou conseil. Attente ou grille de scoring.";
+
+function normalizeParametrageIA(ia?: ParametrageIA | null): {
+  rehibitoires: Rehibitoire[];
+  scoresIncontournables: ScoresIncontournables;
+  scoresOptionnels: ScoreOptionnel[];
+  autresRessources: string;
+} {
+  const rehibitoires = (ia?.rehibitoires ?? []).slice(0, N_REHIBITOIRES);
+  while (rehibitoires.length < N_REHIBITOIRES) {
+    rehibitoires.push({ titre: '', description: '' });
+  }
+  const scoresIncontournables = ia?.scoresIncontournables ?? {
+    localisation: '',
+    salaire: '',
+    culture: '',
+    qualiteOffre: '',
+  };
+  const scoresOptionnels = (ia?.scoresOptionnels ?? []).slice(0, N_SCORES_OPTIONNELS);
+  while (scoresOptionnels.length < N_SCORES_OPTIONNELS) {
+    scoresOptionnels.push({ titre: '', attente: '' });
+  }
+  return {
+    rehibitoires,
+    scoresIncontournables,
+    scoresOptionnels,
+    autresRessources: ia?.autresRessources ?? '',
+  };
+}
 
 /** Message flash après redirection OAuth (plus de paramètres en clair dans l’URL). */
 export type FlashMicrosoft =
@@ -25,6 +73,16 @@ export interface OptionsParametresContent {
   tokenObtainedAt?: number;
   /** Message flash config incomplète : liste des éléments manquants (US-1.6). */
   flashConfigManque?: string[];
+  /** Section Paramétrage IA (US-2.1) pour préremplir les champs. */
+  parametrageIA?: ParametrageIA | null;
+  /** Indicateur « Déjà enregistrée » pour la section ClaudeCode (US-2.2). */
+  claudecodeHasApiKey?: boolean;
+  /** Partie modifiable du prompt IA pour affichage (ou défaut si vide). US-2.3 */
+  promptIAPartieModifiable?: string;
+  /** Partie fixe du prompt IA (lecture seule). US-2.3 */
+  promptIAPartieFixe?: string;
+  /** True si au moins une offre Airtable a du texte (afficher bouton "Récupérer le texte d'une offre"). US-2.4 */
+  offreTestHasOffre?: boolean;
 }
 
 function getFlashMessageText(flash: FlashMicrosoft): string {
@@ -54,17 +112,36 @@ export async function getParametresContent(
   } catch {
     // Fichier absent : zone tutoriel vide
   }
+  let tutorielClaudeCodeHtml = '';
+  try {
+    tutorielClaudeCodeHtml = await readFile(
+      join(dataDir, 'ressources', 'CréationCompteClaudeCode.html'),
+      'utf-8'
+    );
+    tutorielClaudeCodeHtml = tutorielClaudeCodeHtml.replace(/<!-- INJECT_CHAMP_API_KEY -->/g, '');
+  } catch {
+    tutorielClaudeCodeHtml = '<p class="tutorielAbsent">Fichier tutoriel absent.</p>';
+  }
   const airtable = lireAirTable(dataDir);
   const hasApiKey = !!(airtable?.apiKey?.trim());
   const airtableBase = airtable?.base ?? '';
   const tablesAirtableCreees = !!(airtable?.sources && airtable?.offres);
   const statutAirtableInitial = tablesAirtableCreees ? 'AirTable prêt' : '';
   const compte = lireCompte(dataDir);
-  const compteEmailConfigured =
-    !!(compte && (compte.adresseEmail || compte.cheminDossier || compte.imapHost));
-  const airtableOuvert = !tablesAirtableCreees;
-  const connexionOuvert = compteEmailConfigured;
   const microsoftAvailable = options?.microsoftAvailable ?? false;
+  const dossierAAnalyserConfigure = !!(compte?.cheminDossier?.trim());
+  const modeConnexionOk =
+    compte &&
+    (compte.provider === 'imap'
+      ? !!(compte.adresseEmail?.trim() && compte.imapHost?.trim())
+      : compte.provider === 'microsoft'
+        ? !!(compte.adresseEmail?.trim() && microsoftAvailable)
+        : compte.provider === 'gmail'
+          ? !!(compte.adresseEmail?.trim())
+          : false);
+  const compteEmailConfigured = !!(dossierAAnalyserConfigure && modeConnexionOk);
+  const airtableOuvert = !tablesAirtableCreees;
+  const connexionOuvert = !compteEmailConfigured;
   const flash = options?.flash;
   const baseUrl = (options?.baseUrl ?? '').replace(/\/$/, '');
   const hrefMicrosoft = baseUrl ? `${baseUrl}/api/auth/microsoft` : '/api/auth/microsoft';
@@ -105,13 +182,13 @@ export async function getParametresContent(
           </div>
         </div>
         <div class="blocImapRow blocImapRow--login">
-          <div class="fieldGroup">
-            <label for="adresse-email">Adresse email</label>
+      <div class="fieldGroup">
+        <label for="adresse-email">Adresse email</label>
             <input type="email" id="adresse-email" name="adresseEmail" value="" placeholder="${escapeHtml(adresseDisplay || 'vous@exemple.fr')}" autocomplete="email" e2eid="e2eid-champ-adresse-email" form="form-compte" />
-          </div>
-          <div class="fieldGroup">
-            <label for="mot-de-passe">Mot de passe</label>
-            <div class="passwordWrapper">
+      </div>
+      <div class="fieldGroup">
+        <label for="mot-de-passe">Mot de passe</label>
+        <div class="passwordWrapper">
               <input type="password" id="mot-de-passe" name="motDePasse" autocomplete="off" e2eid="e2eid-champ-mot-de-passe" form="form-compte" />
               <button type="button" id="toggle-password" class="togglePasswordBtn" aria-label="Afficher le mot de passe" title="Afficher le mot de passe" e2eid="e2eid-bouton-afficher-mot-de-passe"><span class="iconEye" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span><span class="iconEyeOff" aria-hidden="true" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></span></button>
             </div>
@@ -158,6 +235,102 @@ export async function getParametresContent(
   tutorielAirtableHtml = tutorielAirtableHtml
     .replace(INJECT_CHAMP_URL_BASE, champUrlBaseHtml)
     .replace(INJECT_CHAMP_API_KEY, champApiKeyHtml);
+
+  const ia = normalizeParametrageIA(options?.parametrageIA);
+  const scoresIncontournablesRemplis =
+    [ia.scoresIncontournables.localisation, ia.scoresIncontournables.salaire, ia.scoresIncontournables.culture, ia.scoresIncontournables.qualiteOffre].every(
+      (v) => (v ?? '').trim() !== ''
+    );
+  const parametrageIAConfigured = scoresIncontournablesRemplis;
+  const parametrageIAOuvert = !parametrageIAConfigured;
+  const zoneRehibitoiresHtml = `
+    <div class="zoneParametrageIA zoneRehibitoires" data-zone="rehibitoires" aria-labelledby="titre-zone-rehibitoires">
+      <h3 id="titre-zone-rehibitoires" class="zoneParametrageIATitle">Rédhibitoires</h3>
+      ${[0, 1, 2, 3].map((i) => `
+      <div class="blocCritere blocRehibitoire" data-layout="bloc-critere" data-bloc-index="${i}">
+        <label for="parametrage-ia-rehibitoires-${i}-titre" class="blocCritereLabel">Titre</label>
+        <input type="text" id="parametrage-ia-rehibitoires-${i}-titre" name="rehibitoires_${i}_titre" value="${escapeHtml(ia.rehibitoires[i].titre)}" maxlength="200" placeholder="${escapeHtml(PLACEHOLDER_REHIBITOIRE_TITRE)}" e2eid="e2eid-parametrage-ia-rehibitoires-${i}-titre" form="form-parametrage-ia" />
+        <label for="parametrage-ia-rehibitoires-${i}-description" class="blocCritereLabel">Description</label>
+        <textarea id="parametrage-ia-rehibitoires-${i}-description" name="rehibitoires_${i}_description" rows="3" placeholder="${escapeHtml(PLACEHOLDER_REHIBITOIRE_DESCRIPTION)}" e2eid="e2eid-parametrage-ia-rehibitoires-${i}-description" form="form-parametrage-ia">${escapeHtml(ia.rehibitoires[i].description)}</textarea>
+      </div>`).join('')}
+    </div>`;
+  const scoresIncontournablesKeys = ['localisation', 'salaire', 'culture', 'qualiteOffre'] as const;
+  const zoneScoresIncontournablesHtml = `
+    <div class="zoneParametrageIA zoneScoresIncontournables" data-zone="scores-incontournables" aria-labelledby="titre-zone-scores-incontournables">
+      <h3 id="titre-zone-scores-incontournables" class="zoneParametrageIATitle">Scores incontournables</h3>
+      ${scoresIncontournablesKeys.map((key, i) => {
+        const titre = SCORES_INCONTOURNABLES_TITRES[i];
+        const value = ia.scoresIncontournables[key];
+        return `
+      <div class="blocCritere blocScoreIncontournable" data-layout="bloc-critere" data-bloc-key="${key}">
+        <span class="blocCritereTitreFixe" id="parametrage-ia-scores-incontournables-${key}-label">${escapeHtml(titre)}</span>
+        <textarea id="parametrage-ia-scores-incontournables-${key}" name="scores_incontournables_${key}" rows="3" placeholder="${escapeHtml(PLACEHOLDERS_SCORES_INCONTOURNABLES[i])}" e2eid="e2eid-parametrage-ia-scores-${key}" form="form-parametrage-ia">${escapeHtml(value)}</textarea>
+      </div>`;
+      }).join('')}
+    </div>`;
+  const zoneScoresOptionnelsHtml = `
+    <div class="zoneParametrageIA zoneScoresOptionnels" data-zone="scores-optionnels" aria-labelledby="titre-zone-scores-optionnels">
+      <h3 id="titre-zone-scores-optionnels" class="zoneParametrageIATitle">Scores optionnels</h3>
+      ${[0, 1, 2, 3].map((i) => `
+      <div class="blocCritere blocScoreOptionnel" data-layout="bloc-critere" data-bloc-index="${i}">
+        <label for="parametrage-ia-scores-optionnels-${i}-titre" class="blocCritereLabel">Titre</label>
+        <input type="text" id="parametrage-ia-scores-optionnels-${i}-titre" name="scores_optionnels_${i}_titre" value="${escapeHtml(ia.scoresOptionnels[i].titre)}" maxlength="200" placeholder="${escapeHtml(PLACEHOLDER_OPTIONNEL_TITRE)}" e2eid="e2eid-parametrage-ia-scores-optionnels-${i}-titre" form="form-parametrage-ia" />
+        <label for="parametrage-ia-scores-optionnels-${i}-attente" class="blocCritereLabel">Attente</label>
+        <textarea id="parametrage-ia-scores-optionnels-${i}-attente" name="scores_optionnels_${i}_attente" rows="3" placeholder="${escapeHtml(PLACEHOLDER_OPTIONNEL_ATTENTE)}" e2eid="e2eid-parametrage-ia-scores-optionnels-${i}-attente" form="form-parametrage-ia">${escapeHtml(ia.scoresOptionnels[i].attente)}</textarea>
+      </div>`).join('')}
+    </div>`;
+  const placeholderAutresRessources =
+    'Confiez CVs, lettres de motivation, portfolio... toutes les ressources à votre disposition à l\'IA de votre choix et demandez-lui de vous rédiger un texte qui résume vos expériences, apprentissages, compétences et appétances dans le cadre d\'une recherche d\'emploi. Collez le résultat ici.';
+  const zoneAutresRessourcesHtml = `
+    <div class="zoneParametrageIA zoneAutresRessources" data-zone="autres-ressources" aria-labelledby="titre-zone-autres-ressources">
+      <h3 id="titre-zone-autres-ressources" class="zoneParametrageIATitle">Autres ressources</h3>
+      <div class="blocCritere blocAutresRessources" data-layout="bloc-critere">
+        <textarea id="parametrage-ia-autres-ressources" name="autres_ressources" rows="12" placeholder="${escapeHtml(placeholderAutresRessources)}" e2eid="e2eid-parametrage-ia-autres-ressources" form="form-parametrage-ia">${escapeHtml(ia.autresRessources)}</textarea>
+      </div>
+    </div>`;
+
+  const promptIAPartieModifiable = options?.promptIAPartieModifiable ?? '';
+  const promptIAPartieFixe = options?.promptIAPartieFixe ?? '';
+  const zonePromptIAHtml = `
+    <div class="zoneParametrageIA zonePromptIA" data-zone="prompt-ia" data-layout="zone-prompt-ia" aria-labelledby="titre-zone-prompt-ia">
+      <h3 id="titre-zone-prompt-ia" class="zoneParametrageIATitle">Prompt IA</h3>
+      <div class="blocPromptIA blocPromptIA-partieFixe" data-layout="bloc-prompt-partie-fixe">
+        <details class="detailsPartieFixePrompt" aria-label="Partie fixe du prompt">
+          <summary class="lienPartieFixePrompt">Voir la partie fixe du prompt</summary>
+          <div class="zonePartieFixeLectureSeule" aria-readonly="true">
+            <pre id="prompt-ia-partie-fixe" class="promptIAPartieFixeTexte" readonly>${escapeHtml(promptIAPartieFixe)}</pre>
+          </div>
+        </details>
+      </div>
+      <div class="blocPromptIA blocPromptIA-partieModifiable" data-layout="bloc-prompt-partie-modifiable">
+        <label for="prompt-ia-partie-modifiable" class="blocCritereLabel">Partie modifiable du prompt</label>
+        <textarea id="prompt-ia-partie-modifiable" name="prompt_ia_partie_modifiable" rows="10" class="zonePromptModifiable" e2eid="e2eid-zone-prompt-modifiable" form="form-parametrage-ia" aria-label="Partie modifiable du prompt IA">${escapeHtml(promptIAPartieModifiable)}</textarea>
+      </div>
+      <div class="actions actionsPromptIA">
+        <button type="button" id="bouton-proposer-prompt" e2eid="e2eid-bouton-proposer-prompt">Proposer un prompt</button>
+      </div>
+    </div>`;
+
+  const parametrageIASectionHtml = `
+    <details id="section-parametrage-ia" class="blocParametrage blocParametrage-ia parametrageIA" data-layout="parametrage-ia" aria-labelledby="titre-parametrage-ia" ${parametrageIAOuvert ? 'open' : ''}>
+      <summary id="titre-parametrage-ia" class="parametrageIATitle blocParametrageSummary">Paramétrage prompt de l'IA</summary>
+      <div class="blocParametrageContent">
+      <form id="form-parametrage-ia" class="formParametrageIA" aria-label="Formulaire Paramétrage prompt de l'IA">
+        ${zoneRehibitoiresHtml}
+        <hr class="formDivider parametrageIADivider" aria-hidden="true" />
+        ${zoneScoresIncontournablesHtml}
+        <hr class="formDivider parametrageIADivider" aria-hidden="true" />
+        ${zoneScoresOptionnelsHtml}
+        <hr class="formDivider parametrageIADivider" aria-hidden="true" />
+        ${zoneAutresRessourcesHtml}
+        <hr class="formDivider parametrageIADivider" aria-hidden="true" />
+        ${zonePromptIAHtml}
+        <div class="actions actionsParametrageIA">
+          <button type="button" id="bouton-enregistrer-parametrage-ia" e2eid="e2eid-bouton-enregistrer-parametrage-ia">Enregistrer</button>
+        </div>
+      </form>
+      </div>
+    </details>`;
 
   return `<div class="pageParametres parametrageCompteEmail" data-layout="page-parametres">
     <h1 class="pageParametresTitle">Paramètres</h1>
@@ -207,8 +380,8 @@ export async function getParametresContent(
         <div class="actions actions-formulaire">
           <button type="button" id="bouton-annuler" class="btnSecondary" e2eid="e2eid-bouton-annuler">Annuler</button>
           <button type="submit" id="bouton-enregistrer" e2eid="e2eid-bouton-enregistrer">Enregistrer</button>
-        </div>
-      </form>
+      </div>
+    </form>
     </div>
     <section id="zone-resultat-test" class="zoneResultatTest" aria-live="polite" role="region" aria-label="Résultat du test de connexion">
       <table id="tableau-resultat" class="tableauResultat" hidden>
@@ -225,6 +398,33 @@ export async function getParametresContent(
       </table>
     </section>
     <div id="feedback-enregistrement" class="feedbackEnregistrement${feedbackErreurClass}" aria-live="polite" data-type="${flashTextConfig ? 'erreur' : 'info'}">${escapeHtml(flashText)}</div>
+      </div>
+    </details>
+    ${parametrageIASectionHtml}
+    <details class="blocParametrage blocParametrage-claudecode" data-layout="configuration-claudecode" aria-labelledby="titre-claudecode">
+      <summary id="titre-claudecode" class="blocParametrageSummary">Configuration ClaudeCode</summary>
+      <div class="blocParametrageContent detailsBlocParametrageClaudecode">
+        <div id="zone-tutoriel-claudecode" class="zoneTutorielClaudecode" aria-label="Tutoriel création compte ClaudeCode et obtention API Key">${tutorielClaudeCodeHtml}</div>
+        <div class="fieldGroup">
+          <label for="claudecode-api-key">API Key ClaudeCode</label>
+          <input type="password" id="claudecode-api-key" name="claudecodeApiKey" value="" placeholder="${escapeHtml(options?.claudecodeHasApiKey ? 'Déjà enregistrée' : 'sk-ant-api03-…')}" autocomplete="off" e2eid="e2eid-champ-api-key-claudecode" />
+          ${options?.claudecodeHasApiKey ? '<span class="indicateurCleEnregistree" aria-live="polite">Déjà enregistrée</span>' : ''}
+        </div>
+        <div class="actions actions-configuration-claudecode">
+          <button type="button" id="bouton-enregistrer-claudecode" e2eid="e2eid-bouton-enregistrer-claudecode">Enregistrer</button>
+        </div>
+        <hr class="formDivider" aria-hidden="true" />
+        <div class="zoneTestClaudecode" data-layout="zone-test-claudecode" aria-labelledby="label-texte-offre-test">
+          <div class="fieldGroup">
+            <label for="texte-offre-test" id="label-texte-offre-test">Texte d'offre à tester</label>
+            <textarea id="texte-offre-test" name="texteOffreTest" rows="6" class="zoneTexteOffreTest" e2eid="e2eid-texte-offre-test" aria-label="Texte d'offre à tester"></textarea>
+          </div>
+          ${options?.offreTestHasOffre === true ? '<div class="actions actions-recuperer-offre"><button type="button" id="bouton-recuperer-texte-offre" e2eid="e2eid-bouton-recuperer-texte-offre">Récupérer le texte d\'une offre</button></div>' : ''}
+          <div class="actions actions-tester-api">
+            <button type="button" id="bouton-tester-api" e2eid="e2eid-bouton-tester-api">Tester API</button>
+          </div>
+          <div id="zone-resultat-test-claudecode" class="zoneResultatTestClaudecode" role="status" aria-live="polite" data-type="" aria-label="Résultat du test API ClaudeCode"></div>
+        </div>
       </div>
     </details>
   </div>
@@ -348,6 +548,57 @@ export async function getParametresContent(
           .finally(function() { if (btnTest) btnTest.disabled = false; });
         return;
       }
+      if (t.id === 'bouton-enregistrer-parametrage-ia' || (t.closest && t.closest('#bouton-enregistrer-parametrage-ia'))) {
+        e.preventDefault();
+        var rehibitoires = [];
+        for (var ri = 0; ri < 4; ri++) {
+          var titreEl = document.getElementById('parametrage-ia-rehibitoires-' + ri + '-titre');
+          var descEl = document.getElementById('parametrage-ia-rehibitoires-' + ri + '-description');
+          rehibitoires.push({ titre: titreEl ? titreEl.value : '', description: descEl ? descEl.value : '' });
+        }
+        var scoresIncontournables = {
+          localisation: (document.getElementById('parametrage-ia-scores-incontournables-localisation') && document.getElementById('parametrage-ia-scores-incontournables-localisation').value) || '',
+          salaire: (document.getElementById('parametrage-ia-scores-incontournables-salaire') && document.getElementById('parametrage-ia-scores-incontournables-salaire').value) || '',
+          culture: (document.getElementById('parametrage-ia-scores-incontournables-culture') && document.getElementById('parametrage-ia-scores-incontournables-culture').value) || '',
+          qualiteOffre: (document.getElementById('parametrage-ia-scores-incontournables-qualiteOffre') && document.getElementById('parametrage-ia-scores-incontournables-qualiteOffre').value) || ''
+        };
+        var scoresOptionnels = [];
+        for (var si = 0; si < 4; si++) {
+          var stEl = document.getElementById('parametrage-ia-scores-optionnels-' + si + '-titre');
+          var saEl = document.getElementById('parametrage-ia-scores-optionnels-' + si + '-attente');
+          scoresOptionnels.push({ titre: stEl ? stEl.value : '', attente: saEl ? saEl.value : '' });
+        }
+        var autresRessourcesEl = document.getElementById('parametrage-ia-autres-ressources');
+        var autresRessources = autresRessourcesEl ? autresRessourcesEl.value : '';
+        var taPrompt = document.getElementById('prompt-ia-partie-modifiable');
+        var partieModifiable = (taPrompt && taPrompt.value) ? taPrompt.value : '';
+        var btnIa = document.getElementById('bouton-enregistrer-parametrage-ia');
+        if (btnIa) btnIa.disabled = true;
+        fetch(origin + '/api/parametrage-ia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rehibitoires: rehibitoires, scoresIncontournables: scoresIncontournables, scoresOptionnels: scoresOptionnels, autresRessources: autresRessources }) })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (!data || !data.ok) return;
+            return fetch(origin + '/api/prompt-ia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ partieModifiable: partieModifiable }) })
+              .then(function(r2) { return r2.json(); })
+              .then(function(data2) { if (data2 && data2.ok) window.location.reload(); });
+          })
+          .finally(function() { if (btnIa) btnIa.disabled = false; });
+        return;
+      }
+      if (t.id === 'bouton-proposer-prompt' || (t.closest && t.closest('#bouton-proposer-prompt'))) {
+        e.preventDefault();
+        var ta = document.getElementById('prompt-ia-partie-modifiable');
+        if (!ta) return;
+        var btnProposer = document.getElementById('bouton-proposer-prompt');
+        if (btnProposer) btnProposer.disabled = true;
+        fetch(origin + '/api/prompt-ia')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && typeof data.partieModifiableDefaut === 'string') ta.value = data.partieModifiableDefaut;
+          })
+          .finally(function() { if (btnProposer) btnProposer.disabled = false; });
+        return;
+      }
       if (t.id === 'bouton-lancer-configuration-airtable' || (t.closest && t.closest('#bouton-lancer-configuration-airtable'))) {
         e.preventDefault();
         var statutEl = document.getElementById('statut-configuration-airtable');
@@ -372,6 +623,92 @@ export async function getParametresContent(
             statutEl.textContent = 'Erreur avec AirTable : ' + (err && err.message ? err.message : 'requête échouée');
           })
           .finally(function() { if (btnConfig) btnConfig.disabled = false; });
+      }
+      if (t.id === 'bouton-enregistrer-claudecode' || (t.closest && t.closest('#bouton-enregistrer-claudecode'))) {
+        e.preventDefault();
+        var claudecodeInput = document.getElementById('claudecode-api-key');
+        var value = (claudecodeInput && claudecodeInput.value) ? claudecodeInput.value.trim() : '';
+        var body = value ? { apiKey: value } : {};
+        var btnClaude = document.getElementById('bouton-enregistrer-claudecode');
+        if (btnClaude) btnClaude.disabled = true;
+        fetch(origin + '/api/claudecode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+          .then(function(r) { return r.json(); })
+          .then(function(data) { if (data && data.ok) { window.location.reload(); } })
+          .finally(function() { if (btnClaude) btnClaude.disabled = false; });
+      }
+      if (t.id === 'bouton-recuperer-texte-offre' || (t.closest && t.closest('#bouton-recuperer-texte-offre'))) {
+        e.preventDefault();
+        var ta = document.getElementById('texte-offre-test');
+        var btnRecup = document.getElementById('bouton-recuperer-texte-offre');
+        if (!ta) return;
+        if (btnRecup) btnRecup.disabled = true;
+        fetch(origin + '/api/offre-test')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && typeof data.texte === 'string') ta.value = data.texte;
+          })
+          .finally(function() { if (btnRecup) btnRecup.disabled = false; });
+      }
+      if (t.id === 'bouton-tester-api' || (t.closest && t.closest('#bouton-tester-api'))) {
+        e.preventDefault();
+        var taTest = document.getElementById('texte-offre-test');
+        var zoneResultat = document.getElementById('zone-resultat-test-claudecode');
+        var btnTester = document.getElementById('bouton-tester-api');
+        if (!zoneResultat) return;
+        var texteOffre = (taTest && taTest.value) ? taTest.value : '';
+        if (btnTester) btnTester.disabled = true;
+        zoneResultat.setAttribute('data-type', '');
+        zoneResultat.classList.remove('zoneResultatTestClaudecode--erreur');
+        zoneResultat.removeAttribute('role');
+        zoneResultat.textContent = 'Test en cours…';
+        zoneResultat.setAttribute('aria-label', 'Résultat du test API ClaudeCode');
+        fetch(origin + '/api/test-claudecode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texteOffre: texteOffre })
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            zoneResultat.setAttribute('role', 'status');
+            if (data && data.ok === true) {
+              zoneResultat.setAttribute('data-type', 'succes');
+              zoneResultat.setAttribute('aria-label', 'Résultat du test API ClaudeCode');
+              var txt = (typeof data.texte === 'string') ? data.texte : '';
+              var html = '<pre class="resultatTestClaudecodeTexte">' + escapeHtml(txt) + '</pre>';
+              var jv = data.jsonValidation;
+              if (jv && typeof jv === 'object') {
+                if (jv.valid === true) {
+                  html += '<p class="resultatTestClaudecodeValidation resultatTestClaudecodeValidation--ok">JSON valide.</p>';
+                  if (jv.conform === true) {
+                    html += '<p class="resultatTestClaudecodeValidation resultatTestClaudecodeValidation--ok">Conforme au schéma attendu.</p>';
+                  } else if (jv.conform === false && Array.isArray(jv.validationErrors) && jv.validationErrors.length) {
+                    html += '<p class="resultatTestClaudecodeValidation resultatTestClaudecodeValidation--erreur">Non conforme au schéma :</p><ul class="resultatTestClaudecodeValidationListe">';
+                    jv.validationErrors.forEach(function(e) {
+                      html += '<li>' + escapeHtml(String(e)) + '</li>';
+                    });
+                    html += '</ul>';
+                  }
+                } else if (jv.valid === false && typeof jv.error === 'string') {
+                  html += '<p class="resultatTestClaudecodeValidation resultatTestClaudecodeValidation--erreur">JSON invalide : ' + escapeHtml(jv.error) + '</p>';
+                }
+              }
+              zoneResultat.innerHTML = html;
+            } else {
+              zoneResultat.setAttribute('data-type', 'erreur');
+              zoneResultat.classList.add('zoneResultatTestClaudecode--erreur');
+              zoneResultat.setAttribute('aria-label', 'Erreur du test API ClaudeCode');
+              var code = (data && data.code) ? String(data.code) : '';
+              var msg = (data && data.message) ? String(data.message) : '';
+              zoneResultat.textContent = code ? (msg ? code + ' : ' + msg : code) : (msg || 'Erreur inconnue');
+            }
+          })
+          .catch(function(err) {
+            zoneResultat.setAttribute('role', 'status');
+            zoneResultat.setAttribute('data-type', 'erreur');
+            zoneResultat.classList.add('zoneResultatTestClaudecode--erreur');
+            zoneResultat.textContent = 'Erreur : ' + (err && err.message ? err.message : 'requête échouée');
+          })
+          .finally(function() { if (btnTester) btnTester.disabled = false; });
       }
     });
     function runParametres() {
@@ -463,6 +800,16 @@ export interface OptionsPageParametres {
   configComplète?: boolean;
   /** Message flash config incomplète après POST /parametres (manque). */
   flashConfigManque?: string[];
+  /** Section Paramétrage IA (US-2.1) pour préremplir les champs. */
+  parametrageIA?: ParametrageIA | null;
+  /** Indicateur « Déjà enregistrée » pour la section ClaudeCode (US-2.2). */
+  claudecodeHasApiKey?: boolean;
+  /** Partie modifiable du prompt IA (affichage). US-2.3 */
+  promptIAPartieModifiable?: string;
+  /** Partie fixe du prompt IA (lecture seule). US-2.3 */
+  promptIAPartieFixe?: string;
+  /** True si au moins une offre Airtable a du texte (bouton Récupérer). US-2.4 */
+  offreTestHasOffre?: boolean;
 }
 
 export async function getPageParametres(

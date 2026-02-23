@@ -26,10 +26,10 @@ let expectedPresenceSource = '';
 
 function statutVersModeleActuel(statut: string, nomSource: string): SourceEmail {
   const normalise = (statut || '').trim().toLowerCase();
-  const algo = nomSource.includes('linkedin') ? 'Linkedin' : 'Inconnu';
-  if (normalise === 'actif') return { emailExpéditeur: nomSource, algo, actif: true };
-  if (normalise === 'inactif') return { emailExpéditeur: nomSource, algo, actif: false };
-  return { emailExpéditeur: nomSource, algo: 'Inconnu', actif: false };
+  const plugin = nomSource.includes('linkedin') ? 'Linkedin' : 'Inconnu';
+  if (normalise === 'actif') return { emailExpéditeur: nomSource, plugin, actif: true };
+  if (normalise === 'inactif') return { emailExpéditeur: nomSource, plugin, actif: false };
+  return { emailExpéditeur: nomSource, plugin: 'Inconnu', actif: false };
 }
 
 Given('le dossier email à traiter est configuré', async () => {
@@ -49,7 +49,7 @@ When('la table Sources est préparée pour cette version', async () => {
 });
 
 Then('le champ {string} n\'est plus utilisé', async ({ page: _page }, _champ: string) => {
-  // Legacy BDD: le modèle actuel utilise "actif" + "algo". On garde ce step non bloquant.
+  // Legacy BDD: le modèle actuel utilise "actif" + "plugin". On garde ce step non bloquant.
   expect(true).toBe(true);
 });
 
@@ -59,7 +59,7 @@ Then(
     // Legacy BDD: vérifie que le schéma actuel est bien valide côté implémentation.
     const ok = preparerMigrationSources({
       emailExpéditeur: { type: 'text' },
-      algo: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle'] },
+      plugin: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle'] },
       actif: { type: 'checkbox' },
     });
     expect(ok.ok).toBe(true);
@@ -123,7 +123,7 @@ Then(
     const match = created.find((s) => s.emailExpéditeur.includes(sourceNom));
     expect(match).toBeDefined();
     if ((statut || '').toLowerCase() === 'inconnu') {
-      expect(match?.algo).toBe('Inconnu');
+      expect(match?.plugin).toBe('Inconnu');
     }
   }
 );
@@ -159,7 +159,7 @@ When('le traitement des emails est lancé', async () => {
   });
   for (const c of lastTraitement.corrections) {
     const idx = sources.findIndex((s) => s.emailExpéditeur === c.emailExpéditeur);
-    if (idx >= 0) sources[idx].algo = c.nouveauAlgo;
+    if (idx >= 0) sources[idx].plugin = c.nouveauPlugin;
   }
 });
 
@@ -199,7 +199,7 @@ Then('le statut de cette source est {string}', async ({ page: _page }, statut: s
   if ((statut || '').toLowerCase() === 'inconnu') {
     const created = lastTraitement?.creees[0];
     expect(created).toBeDefined();
-    expect(created?.algo).toBe('Inconnu');
+    expect(created?.plugin).toBe('Inconnu');
     expect(created?.actif).toBe(false);
   } else {
     expect(true).toBe(true);
@@ -215,8 +215,8 @@ Then(
 
 Given('la disponibilité du parseur pour {string} est {string}', async ({ page: _page }, nomSource: string, disponibilite: string) => {
   const d = (disponibilite || '').toLowerCase();
-  const algo = nomSource.includes('linkedin') ? 'Linkedin' : nomSource.includes('hellowork') ? 'HelloWork' : 'Inconnu';
-  parseursDisponibles = d.includes('disponible') && algo !== 'Inconnu' ? [algo] : [];
+  const plugin = nomSource.includes('linkedin') ? 'Linkedin' : nomSource.includes('hellowork') ? 'HelloWork' : 'Inconnu';
+  parseursDisponibles = d.includes('disponible') && plugin !== 'Inconnu' ? [plugin] : [];
 });
 
 Then('le traitement métier est {string}', async ({ page: _page }, execution: string) => {

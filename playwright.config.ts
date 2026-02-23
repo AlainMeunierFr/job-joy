@@ -13,7 +13,7 @@ export default defineConfig({
   webServer: {
     command: 'node dist/scripts/run-bdd-server.js',
     url: 'http://127.0.0.1:3011',
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     cwd: process.cwd(),
     timeout: 15000,
   },

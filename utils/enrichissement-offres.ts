@@ -5,12 +5,30 @@
 import type { OffreARecuperer } from '../types/offres-releve.js';
 import type { ResultatEnrichissement, ResultatEnrichissementOffre } from '../types/offres-releve.js';
 
-export const STATUT_ANNONCE_A_RECUPERER = 'Annonce à récupérer';
+export const STATUT_A_COMPLETER = 'A compléter';
 export const STATUT_A_ANALYSER = 'À analyser';
+export const STATUT_EXPIRE = 'Expiré';
+export const STATUT_IGNORE = 'Ignoré';
 
-/** Champs Airtable pour une offre (noms de colonnes). */
+/** Détecte un message d'échec indiquant une offre expirée/supprimée (ex. HelloWork 404/410 ou structure page introuvable). */
+function indiqueOffreExpiree(message: string): boolean {
+  const m = (message ?? '').toLowerCase();
+  return (
+    m.includes('404') ||
+    m.includes('410') ||
+    m.includes('expir') ||
+    m.includes('gone') ||
+    m.includes('agentiajsonoffre introuvable')
+  );
+}
+
+/**
+ * Champs Airtable pour une offre.
+ * Noms exacts des colonnes tels que définis dans airtable-driver-reel.ts (création table Offres).
+ */
 export interface ChampsOffreAirtable {
   'Texte de l\'offre'?: string;
+  Résumé?: string;
   Poste?: string;
   Entreprise?: string;
   Ville?: string;
@@ -18,11 +36,34 @@ export interface ChampsOffreAirtable {
   Salaire?: string;
   DateOffre?: string;
   Statut?: string;
+  CritèreRéhibitoire1?: boolean;
+  CritèreRéhibitoire2?: boolean;
+  CritèreRéhibitoire3?: boolean;
+  CritèreRéhibitoire4?: boolean;
+  ScoreCritère1?: number;
+  ScoreCritère2?: number;
+  ScoreCritère3?: number;
+  ScoreCritère4?: number;
+  ScoreLocalisation?: number;
+  ScoreSalaire?: number;
+  ScoreCulture?: number;
+  /** Nom exact Airtable (sans accent). */
+  ScoreQualiteOffre?: number;
+}
+
+/** Offre en statut « À analyser » pour le worker Analyse IA (poste/ville pour libellé, texte pour prompt). */
+export interface OffreAAnalyser {
+  id: string;
+  poste?: string;
+  ville?: string;
+  texteOffre?: string;
 }
 
 /** Port : lister les offres à récupérer et mettre à jour une offre. */
 export interface EnrichissementOffresDriver {
   getOffresARecuperer(): Promise<OffreARecuperer[]>;
+  /** Offres dont le statut est « À analyser » (pour worker Analyse IA). */
+  getOffresAAnalyser?(): Promise<OffreAAnalyser[]>;
   updateOffre(recordId: string, champs: ChampsOffreAirtable): Promise<void>;
 }
 
@@ -36,6 +77,10 @@ export interface OptionsEnrichissement {
   fetcher: FetcherContenuOffre;
   /** Appelé au début de chaque offre traitée (index 0-based, total = nombre d'offres). */
   onProgress?: (offre: OffreARecuperer, index: number, total: number) => void;
+  /** Appelé à chaque changement de statut (pour mise à jour chirurgicale du tableau). */
+  onTransition?: (offre: OffreARecuperer, statutAvant: string, statutApres: string) => void;
+  /** Si retourne true, la boucle s'arrête immédiatement (ex. bouton Arrêter le traitement). */
+  shouldAbort?: () => boolean;
 }
 
 type ChampsEnrichissement = {
@@ -89,6 +134,7 @@ export async function executerEnrichissementOffres(
   const offres = await driver.getOffresARecuperer();
   const total = offres.length;
   for (let i = 0; i < offres.length; i++) {
+    if (options.shouldAbort?.()) break;
     const offre = offres[i];
     options.onProgress?.(offre, i, total);
     const result = await fetcher.recupererContenuOffre(offre.url);
@@ -97,37 +143,66 @@ export async function executerEnrichissementOffres(
       messages.push(
         `Offre ${offre.id} (${offre.url}) : échec récupération — ${result.message}. Traçabilité : limite consignée.`
       );
+      if (indiqueOffreExpiree(result.message)) {
+        try {
+          options.onTransition?.(offre, STATUT_A_COMPLETER, STATUT_EXPIRE);
+          await driver.updateOffre(offre.id, { Statut: STATUT_EXPIRE });
+        } catch {
+          // Ignore si la mise à jour échoue (ex. option Expiré absente côté Airtable, le driver peut la créer au retry)
+        }
+      } else {
+        // Échec sans signal « expiré » (anti-crawler, timeout, contenu non exploitable) → Ignoré pour sortir du pool
+        try {
+          options.onTransition?.(offre, STATUT_A_COMPLETER, STATUT_IGNORE);
+          await driver.updateOffre(offre.id, { Statut: STATUT_IGNORE });
+        } catch {
+          // ignore
+        }
+      }
       continue;
     }
     if (champsVides(result.champs)) {
       nbEchecs++;
       messages.push(
-        `Offre ${offre.id} : enrichissement n'a pas pu être effectué (réponse vide ou non exploitable). Statut resté « Annonce à récupérer ».`
+        `Offre ${offre.id} : enrichissement n'a pas pu être effectué (réponse vide ou non exploitable). Statut passé à « Ignoré » pour sortir du pool.`
       );
+      try {
+        options.onTransition?.(offre, STATUT_A_COMPLETER, STATUT_IGNORE);
+        await driver.updateOffre(offre.id, { Statut: STATUT_IGNORE });
+      } catch {
+        // ignore
+      }
       continue;
     }
+    // Phase 2 ne met à jour que : Texte de l'offre, DateOffre, Salaire (poste / entreprise / ville déjà en phase 1).
     const champs: ChampsOffreAirtable = {};
     if (result.champs.texteOffre) champs["Texte de l'offre"] = result.champs.texteOffre;
-    if (result.champs.poste) champs.Poste = result.champs.poste;
-    if (result.champs.entreprise) champs.Entreprise = result.champs.entreprise;
-    if (result.champs.ville) champs.Ville = result.champs.ville;
-    if (result.champs.département) champs.Département = result.champs.département;
     if (result.champs.salaire) champs.Salaire = result.champs.salaire;
     if (result.champs.dateOffre) champs.DateOffre = result.champs.dateOffre;
     const champsPourTransition: ChampsEnrichissement = {
       texteOffre: result.champs.texteOffre,
-      poste: result.champs.poste ?? offre.poste,
-      entreprise: result.champs.entreprise ?? offre.entreprise,
-      ville: result.champs.ville ?? offre.ville,
-      département: result.champs.département ?? offre.département,
+      poste: offre.poste,
+      entreprise: offre.entreprise,
+      ville: offre.ville,
+      département: offre.département,
       salaire: result.champs.salaire ?? offre.salaire,
       dateOffre: result.champs.dateOffre ?? offre.dateOffre,
     };
     if (donneesSuffisantesPourAnalyser(champsPourTransition)) {
       champs.Statut = STATUT_A_ANALYSER;
     }
-    await driver.updateOffre(offre.id, champs);
-    nbEnrichies++;
+    if (champs.Statut) {
+      options.onTransition?.(offre, STATUT_A_COMPLETER, champs.Statut);
+    }
+    try {
+      await driver.updateOffre(offre.id, champs);
+      nbEnrichies++;
+    } catch (err) {
+      nbEchecs++;
+      messages.push(
+        `Offre ${offre.id} : mise à jour Airtable échouée — ${err instanceof Error ? err.message : String(err)}.`
+      );
+    }
   }
 
   return {

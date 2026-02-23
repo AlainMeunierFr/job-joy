@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Copie et fusionne les CSS : design system (globals) + styles contenu → dist/app/site.css.
- * Utilise process.cwd() = racine du projet (build lancé depuis la racine).
+ * Utilisé par "npm run build" (prod). En dev (npm run dev), le serveur lit app/*.css à la volée, ce script n’est pas exécuté.
  */
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

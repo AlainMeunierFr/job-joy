@@ -12,6 +12,7 @@ export {
   type AirtableConfigDriver,
 } from './configuration-airtable.js';
 export { lireAirTable, ecrireAirTable } from './parametres-airtable.js';
+export { lireClaudeCode, ecrireClaudeCode } from './parametres-claudecode.js';
 export { evaluerParametragesComplets, type ResultatParametragesComplets } from './parametrages-complets.js';
 export {
   createAirtableDriverReel,
@@ -21,7 +22,7 @@ export { getUrlOuvertureBase } from './airtable-url.js';
 export type { ParametresCompte, ComptePersiste, CompteLu, ResultatValidation, ResultatTestConnexion, ConnecteurEmail } from '../types/compte.js';
 export {
   executerReleveOffresLinkedIn,
-  STATUT_ANNONCE_A_RECUPERER,
+  STATUT_A_COMPLETER,
   type RelèveOffresDriver,
   type LecteurEmails,
   type OptionsReleve,
@@ -32,7 +33,7 @@ export {
   preparerMigrationSources,
   auditerSourcesDepuisEmails,
   traiterEmailsSelonStatutSource,
-  type AlgoSource,
+  type PluginSource,
   type SourceEmail,
   type EmailAAnalyser,
   type OptionsTraitementSources,
@@ -50,13 +51,31 @@ export {
 } from './enrichissement-offres.js';
 export { createAirtableEnrichissementDriver, type AirtableEnrichissementDriverOptions } from './airtable-enrichissement-driver.js';
 export { createFetcherContenuOffre } from './fetcher-contenu-offre.js';
-export { STATUTS_OFFRES_AIRTABLE } from './statuts-offres-airtable.js';
+export { STATUTS_OFFRES_AIRTABLE, STATUTS_OFFRES_AVEC_AUTRE } from './statuts-offres-airtable.js';
 export {
   construireTableauSynthese,
+  calculerTotauxTableauSynthese,
   produireTableauSynthese,
   type SourcePourTableau,
   type OffrePourTableau,
   type LigneTableauSynthese,
   type OptionsTableauSynthese,
   type TableauSyntheseRepository,
+  type TotauxTableauSynthese,
 } from './tableau-synthese-offres.js';
+export {
+  construirePromptComplet,
+  construireListeClesJson,
+  getPartieFixePromptIA,
+  getPartieModifiablePromptDefaut,
+  PARTIE_FIXE_PROMPT_IA,
+} from './prompt-ia.js';
+export { lirePartieModifiablePrompt, ecrirePartieModifiablePrompt } from './parametres-io.js';
+export {
+  assurerDossierLogAppels,
+  enregistrerAppel,
+  lireLogsDuJour,
+  agregerConsommationParJourEtApi,
+  type EntreeLogAppel,
+  type OptionsEnregistrerAppel,
+} from './log-appels-api.js';

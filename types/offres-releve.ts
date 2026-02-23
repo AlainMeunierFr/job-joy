@@ -3,7 +3,7 @@
  * Même nom pour les propriétés JSON et les champs TypeScript.
  */
 
-/** Résultat de la recherche de la source LinkedIn dans la table Sources (identifiée par email expéditeur + algo). */
+/** Résultat de la recherche de la source LinkedIn dans la table Sources (identifiée par email expéditeur + plugin). */
 export type SourceLinkedInResult =
   | { found: false }
   | { found: true; actif: boolean; emailExpéditeur: string; sourceId: string };
@@ -59,6 +59,8 @@ export interface OffreARecuperer {
   id: string; // record id
   url: string;
   statut: string;
+  /** Email de la source (ligne du tableau), dérivé de la liste Sources + lien. */
+  emailExpéditeur?: string;
   poste?: string;
   entreprise?: string;
   ville?: string;

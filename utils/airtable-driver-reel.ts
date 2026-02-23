@@ -4,10 +4,11 @@
  */
 import type { AirtableConfigDriver } from './configuration-airtable.js';
 import { normaliserBaseId } from './airtable-url.js';
-import { STATUTS_OFFRES_AIRTABLE } from './statuts-offres-airtable.js';
+import { STATUTS_OFFRES_AIRTABLE_WITH_COLORS } from './statuts-offres-airtable.js';
+import { PLUGINS_SOURCES_AIRTABLE } from './plugins-sources-airtable.js';
+import { getBaseSchema, ensureSingleSelectChoices, ensureLookupsOffresFromSources } from './airtable-ensure-enums.js';
 
 const API_BASE = 'https://api.airtable.com/v0';
-const ALGO_CHOICES = ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle'] as const;
 
 interface TableSchema {
   id: string;
@@ -23,55 +24,13 @@ interface TableSchema {
 }
 
 /** Récupère le schéma de la base (liste des tables) pour réutiliser des tables existantes. */
-async function getBaseSchema(
-  baseId: string,
-  headers: Record<string, string>
-): Promise<TableSchema[]> {
-  const res = await fetch(`${API_BASE}/meta/bases/${baseId}/tables`, { method: 'GET', headers });
-  if (!res.ok) return [];
-  const json = await res.json();
-  const tables = Array.isArray(json) ? json : (json as { tables?: TableSchema[] }).tables ?? [];
-  return tables.map((t: TableSchema) => ({
+async function loadBaseSchema(baseId: string, apiKey: string): Promise<TableSchema[]> {
+  const tables = await getBaseSchema(baseId, apiKey);
+  return tables.map((t) => ({
     id: t.id,
-    name: t.name,
-    fields: t.fields ?? [],
+    name: t.name ?? t.id,
+    fields: (t.fields ?? []) as TableSchema['fields'],
   }));
-}
-
-async function ensureStatutChoices(
-  baseId: string,
-  offresTable: TableSchema | undefined,
-  headers: Record<string, string>
-): Promise<void> {
-  if (!offresTable?.id) return;
-  const fields = offresTable.fields ?? [];
-  const statutField = fields.find((f) => f.name === 'Statut');
-  if (!statutField || statutField.type !== 'singleSelect') return;
-
-  const currentChoices = (statutField.options?.choices ?? [])
-    .map((c) => (c.name ?? '').trim())
-    .filter(Boolean);
-  const missing = STATUTS_OFFRES_AIRTABLE.filter((c) => !currentChoices.includes(c));
-  if (missing.length === 0) return;
-
-  const merged = [...currentChoices, ...missing];
-  const updateUrl = `${API_BASE}/meta/bases/${baseId}/tables/${offresTable.id}/fields/${statutField.id}`;
-  const res = await fetch(updateUrl, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify({
-      type: 'singleSelect',
-      options: {
-        choices: merged.map((name) => ({ name })),
-      },
-    }),
-  });
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(
-      `Mise à jour options Statut échouée (${res.status}): ${errBody || res.statusText}`
-    );
-  }
 }
 
 export interface AirtableDriverReelOptions {
@@ -102,10 +61,9 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
       }
 
       const tablesUrl = `${API_BASE}/meta/bases/${baseId}/tables`;
-      const existingTables = await getBaseSchema(baseId, headers);
+      const existingTables = await loadBaseSchema(baseId, apiKey);
 
       const findTableId = (name: string) => existingTables.find((t) => t.name === name)?.id ?? '';
-      const findTable = (name: string) => existingTables.find((t) => t.name === name);
 
       // 1) Sources : réutiliser si elle existe, sinon créer
       let sourcesId = findTableId('Sources');
@@ -116,10 +74,10 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
           fields: [
             { name: 'emailExpéditeur', type: 'singleLineText' as const },
             {
-              name: 'algo',
+              name: 'plugin',
               type: 'singleSelect' as const,
               options: {
-                choices: ALGO_CHOICES.map((name) => ({ name })),
+                choices: PLUGINS_SOURCES_AIRTABLE.map((name) => ({ name })),
               },
             },
             { name: 'actif', type: 'checkbox' as const, options: { icon: 'check', color: 'greenBright' } },
@@ -176,7 +134,7 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
               name: 'Statut',
               type: 'singleSelect' as const,
               options: {
-                choices: STATUTS_OFFRES_AIRTABLE.map((name) => ({ name })),
+                choices: STATUTS_OFFRES_AIRTABLE_WITH_COLORS.map((c) => (c.color ? { name: c.name, color: c.color } : { name: c.name })),
               },
             },
             { name: 'Résumé', type: 'multilineText' as const },
@@ -184,15 +142,15 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
             { name: 'CritèreRéhibitoire2', type: 'checkbox' as const, options: { icon: 'check', color: 'redBright' } },
             { name: 'CritèreRéhibitoire3', type: 'checkbox' as const, options: { icon: 'check', color: 'redBright' } },
             { name: 'CritèreRéhibitoire4', type: 'checkbox' as const, options: { icon: 'check', color: 'redBright' } },
-            { name: 'ScoreCritère1', type: 'number' as const, options: { precision: 2 } },
-            { name: 'ScoreCritère2', type: 'number' as const, options: { precision: 2 } },
-            { name: 'ScoreCritère3', type: 'number' as const, options: { precision: 2 } },
-            { name: 'ScoreCritère4', type: 'number' as const, options: { precision: 2 } },
-            { name: 'ScoreCulture', type: 'number' as const, options: { precision: 2 } },
-            { name: 'ScoreLocalisation', type: 'number' as const, options: { precision: 2 } },
-            { name: 'ScoreSalaire', type: 'number' as const, options: { precision: 2 } },
-            { name: 'ScoreQualiteOffre', type: 'number' as const, options: { precision: 2 } },
-            { name: 'Score_Total', type: 'number' as const, options: { precision: 2 } },
+            { name: 'ScoreCritère1', type: 'number' as const, options: { precision: 0 } },
+            { name: 'ScoreCritère2', type: 'number' as const, options: { precision: 0 } },
+            { name: 'ScoreCritère3', type: 'number' as const, options: { precision: 0 } },
+            { name: 'ScoreCritère4', type: 'number' as const, options: { precision: 0 } },
+            { name: 'ScoreCulture', type: 'number' as const, options: { precision: 0 } },
+            { name: 'ScoreLocalisation', type: 'number' as const, options: { precision: 0 } },
+            { name: 'ScoreSalaire', type: 'number' as const, options: { precision: 0 } },
+            { name: 'ScoreQualiteOffre', type: 'number' as const, options: { precision: 0 } },
+            { name: 'Score_Total', type: 'number' as const, options: { precision: 0 } },
             { name: 'Verdict', type: 'singleLineText' as const },
             // Lien mono : une offre n'a qu'un seul expéditeur (Sources). À configurer en "un seul enregistrement" dans l'UI Airtable si besoin.
             { name: 'email expéditeur', type: 'multipleRecordLinks' as const, options: { linkedTableId: sourcesId } },
@@ -216,8 +174,10 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
 
       // Garantit que les options single select de "Statut" incluent la valeur attendue
       // même si la table Offres existait déjà avant cette initialisation.
-      const tablesAfterCreate = await getBaseSchema(baseId, headers);
-      await ensureStatutChoices(baseId, tablesAfterCreate.find((t) => t.id === offresId) ?? findTable('Offres'), headers);
+      await ensureSingleSelectChoices(baseId, offresId, 'Statut', STATUTS_OFFRES_AIRTABLE_WITH_COLORS, apiKey);
+
+      // Lookups Offres <- Sources (Source - emailExpéditeur, Source - plugin, Source - actif) pour afficher les infos source dans Offres. Ne casse pas si l’API refuse.
+      await ensureLookupsOffresFromSources(baseId, sourcesId, offresId, apiKey);
 
       return { baseId, sourcesId, offresId };
     },

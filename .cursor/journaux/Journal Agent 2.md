@@ -6,7 +6,7 @@
 GO NEXT : revue de la livraison TDD-front-end pour US-1.8 (Analyse des emails HelloWork). Consignes passées en RAM (Task), plus de mise à jour des fichiers de consignes (ex. go-next.md).
 
 #### Résultat
-- **Revue** : Livraison acceptée. Correctif Lead Dev : erreur TypeScript sur la route `POST /api/test/set-mock-sources` (body `algo: string` vs `AlgoSource`) — import de `AlgoSource` et cast explicite dans `app/server.ts`.
+- **Revue** : Livraison acceptée. Correctif Lead Dev : erreur TypeScript sur la route `POST /api/test/set-mock-sources` (body `plugin: string` vs `PluginSource`) — import de `PluginSource` et cast explicite dans `app/server.ts`.
 - **BDD** : 7 scénarios `offres-emails-hellowork.feature` passent (`npx playwright test --grep "HelloWork|hellowork|Offres des emails"`).
 - **Lane B** : marquée **done** dans `US-en-cours.json`. Pas de passage Designer (aucune nouvelle page UI).
 - Source de vérité des lanes = `.cursor/sprints/US-en-cours.json` ; délégation via Task avec prompt en RAM.
@@ -36,8 +36,8 @@ GO US pour US-1.9 à partir du fichier « US-1.9 - Analyse des emails Welcome to
 #### Résultat
 - **Agent US** invoqué via Task (prompt en RAM). US reformulée au format DOD.
 - **Fichier créé** : `.cursor/sprints/Sprint 1 - Relève les emails/US-1.9 - Analyse des emails Welcome to the Jungle.md` (remplace le .txt).
-- **Contenu** : En tant que utilisateur / Je souhaite (offres emails Welcome to the Jungle dans table Offres) / Afin de (analyse par IA). CA1 init sources Airtable (énumération Algo), CA2 audit (expéditeur `alerts@welcometothejungle.com` → algo « Welcome to the Jungle », actif), CA3 étape 1 plug-in (body email, exemples `tests/exemples/alerts@welcometothejungle.com`, décodage URL base64), CA4 étape 2 worker (enrichissement, référence `data/ressources/AnalyseeMailWelcometoTheJungle.js`). Algo affichage « Welcome to the Jungle », plug-in « WelcomeToTheJungle » (PascalCase).
-- **Revue Lead Dev** : US acceptée. Rappel : à l’implémentation, ajouter `WelcomeToTheJungle` au type `AlgoSource` et à la gouvernance (`utils/gouvernance-sources-emails.ts`).
+- **Contenu** : En tant que utilisateur / Je souhaite (offres emails Welcome to the Jungle dans table Offres) / Afin de (analyse par IA). CA1 init sources Airtable (énumération Plugin), CA2 audit (expéditeur `alerts@welcometothejungle.com` → plugin « Welcome to the Jungle », actif), CA3 étape 1 plug-in (body email, exemples `tests/exemples/alerts@welcometothejungle.com`, décodage URL base64), CA4 étape 2 worker (enrichissement, référence `data/ressources/AnalyseeMailWelcometoTheJungle.js`). Plugin affichage « Welcome to the Jungle », plug-in « WelcomeToTheJungle » (PascalCase).
+- **Revue Lead Dev** : US acceptée. Rappel : à l’implémentation, ajouter `WelcomeToTheJungle` au type `PluginSource` et à la gouvernance (`utils/gouvernance-sources-emails.ts`).
 
 ---
 

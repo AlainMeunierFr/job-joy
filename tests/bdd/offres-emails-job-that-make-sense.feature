@@ -6,7 +6,7 @@ Fonctionnalité: Offres des emails Job That Make Sense
 
   Contexte:
     Étant donné que la base Airtable est configurée avec les tables Sources et Offres
-    Et que le modèle Sources utilise les champs "emailExpéditeur" (clé), "algo" et "actif"
+    Et que le modèle Sources utilise les champs "emailExpéditeur" (clé), "plugin" et "actif"
     Et que le compte email et le dossier à analyser sont configurés
     Et que le dossier des emails traités est configuré
 
@@ -16,25 +16,25 @@ Fonctionnalité: Offres des emails Job That Make Sense
     Et que le dossier à analyser contient un email d'expéditeur "Jobs@MakeSense.Org"
     Quand je lance l'audit du dossier email
     Alors l'expéditeur "jobs@makesense.org" est créé dans la table "Sources"
-    Et la source créée porte l'algo "Job That Make Sense" avec le champ "actif" à true
+    Et la source créée porte l'plugin "Job That Make Sense" avec le champ "actif" à true
     Et cet email est rattaché à la source "Job That Make Sense"
 
   Scénario: Une variante proche avec +alias n'est pas reconnue comme Job That Make Sense
-    Étant donné que la source d'expéditeur "jobs@makesense.org" existe avec l'algo "Job That Make Sense" et le champ "actif" à true
+    Étant donné que la source d'expéditeur "jobs@makesense.org" existe avec l'plugin "Job That Make Sense" et le champ "actif" à true
     Et que le dossier à analyser contient un email d'expéditeur "jobs+alias@makesense.org"
     Quand je lance l'audit du dossier email
     Alors cet email n'est pas rattaché à la source "Job That Make Sense"
     Et l'audit signale une source inconnue pour cet expéditeur
 
-  Scénario: Une source Job That Make Sense deja existante est mise à jour avec algo et actif conformes
-    Étant donné que la source d'expéditeur "jobs@makesense.org" existe avec l'algo "inconnu" et le champ "actif" à false
+  Scénario: Une source Job That Make Sense deja existante est mise à jour avec plugin et actif conformes
+    Étant donné que la source d'expéditeur "jobs@makesense.org" existe avec l'plugin "inconnu" et le champ "actif" à false
     Quand je lance l'audit du dossier email
-    Alors la source "jobs@makesense.org" est mise à jour avec l'algo "Job That Make Sense"
+    Alors la source "jobs@makesense.org" est mise à jour avec l'plugin "Job That Make Sense"
     Et le champ "actif" de cette source vaut true
 
   # --- B) Etape 1 plugin email ---
   Scénario: Le plugin email Job That Make Sense est branche et extrait les URLs depuis la fixture de reference
-    Étant donné que la source d'expéditeur "jobs@makesense.org" existe avec l'algo "Job That Make Sense" et le champ "actif" à true
+    Étant donné que la source d'expéditeur "jobs@makesense.org" existe avec l'plugin "Job That Make Sense" et le champ "actif" à true
     Et que la fixture email "tests/exemples/jobs@makesense.org" contient des offres extractibles
     Et que les exemples "data/ressourcesjtms.js" et "data/JTMS" sont utilises comme reference de format
     Quand je lance la releve des offres depuis les emails Job That Make Sense

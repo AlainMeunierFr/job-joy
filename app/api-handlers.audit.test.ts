@@ -22,8 +22,8 @@ describe('api audit handlers', () => {
       nbSourcesCreees: 2,
       nbSourcesExistantes: 2,
       synthese: [
-        { emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin', actif: 'Oui', nbEmails: 3 },
-        { emailExpéditeur: 'alerte@wttj.com', algo: 'Inconnu', actif: 'Non', nbEmails: 1 },
+        { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin', actif: 'Oui', nbEmails: 3 },
+        { emailExpéditeur: 'alerte@wttj.com', plugin: 'Inconnu', actif: 'Non', nbEmails: 1 },
       ],
       sousTotauxPrevisionnels: {
         emailsÀArchiver: 3,
@@ -52,8 +52,8 @@ describe('api audit handlers', () => {
       nbSourcesCreees: 2,
       nbSourcesExistantes: 2,
       synthese: [
-        { emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin', actif: 'Oui', nbEmails: 3 },
-        { emailExpéditeur: 'alerte@wttj.com', algo: 'Inconnu', actif: 'Non', nbEmails: 1 },
+        { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin', actif: 'Oui', nbEmails: 3 },
+        { emailExpéditeur: 'alerte@wttj.com', plugin: 'Inconnu', actif: 'Non', nbEmails: 1 },
       ],
       sousTotauxPrevisionnels: {
         emailsÀArchiver: 3,

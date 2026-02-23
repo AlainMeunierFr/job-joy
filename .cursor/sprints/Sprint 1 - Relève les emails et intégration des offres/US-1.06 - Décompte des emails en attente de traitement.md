@@ -24,13 +24,13 @@ Given un dossier de boite aux lettres contenant 7 emails :
 - Une passe d'audit scanne le dossier BAL et aligne les sources avec Airtable.
 - Le tableau de synthese affiche exactement les colonnes suivantes :
   - `emailExpediteur`
-  - `algo`
+  - `plugin`
   - `actif`
   - `nbEmails`
 
 Tableau attendu (exemple) :
 
-| emailExpediteur | algo | actif | nbEmails |
+| emailExpediteur | plugin | actif | nbEmails |
 | --- | --- | --- | --- |
 | jobs@linkedin.com | Linkedin | true | 3 |
 | alerte@emails.hellowork.com | Inconnu | false | 3 |

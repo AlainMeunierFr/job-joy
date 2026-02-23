@@ -1,81 +1,81 @@
 # language: fr
 @cadreemploi @us-1.12
-Fonctionnalité: Offres des emails cadreemploi
-  En tant qu'utilisateur, je souhaite que les offres contenues dans les emails recus de cadreemploi
+Fonctionnalité: Offres des emails Cadre Emploi
+  En tant qu'utilisateur, je souhaite que les offres contenues dans les emails recus de Cadre Emploi
   soient ajoutees dans la table Offres afin de pouvoir les faire analyser par une IA.
 
   Contexte:
     Étant donné que la base Airtable est configurée avec les tables Sources et Offres
-    Et que le modèle Sources utilise les champs "emailExpéditeur" (clé), "algo" et "actif"
+    Et que le modèle Sources utilise les champs "emailExpéditeur" (clé), "plugin" et "actif"
     Et que le compte email et le dossier à analyser sont configurés
     Et que le dossier des emails traités est configuré
 
   # --- A) Audit source ---
-  Scénario: Le matching cadreemploi se fait en comparaison exacte insensible à la casse
+  Scénario: Le matching Cadre Emploi se fait en comparaison exacte insensible à la casse
     Étant donné qu'aucune source d'expéditeur "offres@alertes.cadremploi.fr" n'existe dans "Sources"
     Et que le dossier à analyser contient un email d'expéditeur "Offres@Alertes.CadreEmploi.Fr"
     Quand je lance l'audit du dossier email
     Alors l'expéditeur "offres@alertes.cadremploi.fr" est créé dans la table "Sources"
-    Et la source créée porte l'algo "cadreemploi" avec le champ "actif" à true
-    Et cet email est rattaché à la source "cadreemploi"
+    Et la source créée porte l'plugin "Cadre Emploi" avec le champ "actif" à true
+    Et cet email est rattaché à la source "Cadre Emploi"
 
-  Scénario: Une variante proche avec +alias n'est pas reconnue comme cadreemploi
-    Étant donné que la source d'expéditeur "offres@alertes.cadremploi.fr" existe avec l'algo "cadreemploi" et le champ "actif" à true
+  Scénario: Une variante proche avec +alias n'est pas reconnue comme Cadre Emploi
+    Étant donné que la source d'expéditeur "offres@alertes.cadremploi.fr" existe avec l'plugin "Cadre Emploi" et le champ "actif" à true
     Et que le dossier à analyser contient un email d'expéditeur "offres+alias@alertes.cadremploi.fr"
     Quand je lance l'audit du dossier email
-    Alors cet email n'est pas rattaché à la source "cadreemploi"
+    Alors cet email n'est pas rattaché à la source "Cadre Emploi"
     Et l'audit signale une source inconnue pour cet expéditeur
 
-  Scénario: Une source cadreemploi deja existante est mise à jour avec algo et actif conformes
-    Étant donné que la source d'expéditeur "offres@alertes.cadremploi.fr" existe avec l'algo "inconnu" et le champ "actif" à false
+  Scénario: Une source Cadre Emploi deja existante est mise à jour avec plugin et actif conformes
+    Étant donné que la source d'expéditeur "offres@alertes.cadremploi.fr" existe avec l'plugin "inconnu" et le champ "actif" à false
     Quand je lance l'audit du dossier email
-    Alors la source "offres@alertes.cadremploi.fr" est mise à jour avec l'algo "cadreemploi"
+    Alors la source "offres@alertes.cadremploi.fr" est mise à jour avec l'plugin "Cadre Emploi"
     Et le champ "actif" de cette source vaut true
 
   # --- B) Etape 1 plugin email ---
-  Scénario: Le plugin email cadreemploi est branche et extrait les URLs depuis la fixture de reference
-    Étant donné que la source d'expéditeur "offres@alertes.cadremploi.fr" existe avec l'algo "cadreemploi" et le champ "actif" à true
+  Scénario: Le plugin email Cadre Emploi est branche et extrait les URLs depuis la fixture de reference
+    Étant donné que la source d'expéditeur "offres@alertes.cadremploi.fr" existe avec l'plugin "Cadre Emploi" et le champ "actif" à true
     Et que la fixture email "tests/exemples/offres@alertes.cadremploi.fr" contient des offres extractibles
     Et que les exemples "data/ce.js" et "data/CE" sont utilises comme reference de format
-    Quand je lance la releve des offres depuis les emails cadreemploi
-    Alors au moins une ligne est inseree dans la table Offres pour la source "cadreemploi"
+    Quand je lance la releve des offres depuis les emails Cadre Emploi
+    Alors au moins une ligne est inseree dans la table Offres pour la source "Cadre Emploi"
     Et chaque ligne inseree contient une URL d'offre issue de la fixture "tests/exemples/offres@alertes.cadremploi.fr"
 
   Scénario: Une URL encodee est decodee en URL exploitable à l'etape 1
-    Étant donné qu'un email cadreemploi eligible contient une URL encodee decodable
-    Quand je lance la releve des offres depuis les emails cadreemploi
+    Étant donné qu'un email Cadre Emploi eligible contient une URL encodee decodable
+    Quand je lance la releve des offres depuis les emails Cadre Emploi
     Alors la ligne Offres creee contient l'URL decodee exploitable
     Et le statut initial de l'offre est "Annonce à récupérer"
 
   Scénario: En cas d'echec de decodage URL, le fallback conserve une URL exploitable pour l'etape 2
-    Étant donné qu'un email cadreemploi eligible contient une URL encodee non decodable
-    Quand je lance la releve des offres depuis les emails cadreemploi
+    Étant donné qu'un email Cadre Emploi eligible contient une URL encodee non decodable
+    Quand je lance la releve des offres depuis les emails Cadre Emploi
     Alors une ligne est creee dans la table Offres pour cette offre
     Et le champ URL conserve la meilleure valeur exploitable disponible via fallback
     Et le statut initial de l'offre est "Annonce à récupérer"
 
   # --- C) Etape 2 plugin fetch ---
-  Scénario: L'etape 2 enrichit une offre cadreemploi avec le texte de l'offre
-    Étant donné qu'une offre cadreemploi en statut "Annonce à récupérer" existe dans la table Offres avec une URL exploitable
+  Scénario: L'etape 2 enrichit une offre Cadre Emploi avec le texte de l'offre
+    Étant donné qu'une offre Cadre Emploi en statut "Annonce à récupérer" existe dans la table Offres avec une URL exploitable
     Quand je lance l'etape 2 d'enrichissement des offres à récupérer
     Alors cette offre est mise à jour dans la table Offres
     Et le champ "Texte de l'offre" est renseigne
 
   Scénario: Le statut passe à "À analyser" quand les donnees enrichies sont suffisantes
-    Étant donné qu'une offre cadreemploi en statut "Annonce à récupérer" existe dans la table Offres avec une URL exploitable
+    Étant donné qu'une offre Cadre Emploi en statut "Annonce à récupérer" existe dans la table Offres avec une URL exploitable
     Et que l'etape 2 recupere des donnees enrichies suffisantes pour l'analyse
     Quand je lance l'etape 2 d'enrichissement des offres à récupérer
     Alors le statut de cette offre dans la table Offres devient "À analyser"
     Et le champ "Texte de l'offre" est renseigne
 
   Scénario: Le statut final reste explicite en cas d'URL invalide
-    Étant donné qu'une offre cadreemploi en statut "Annonce à récupérer" existe avec une URL invalide
+    Étant donné qu'une offre Cadre Emploi en statut "Annonce à récupérer" existe avec une URL invalide
     Quand je lance l'etape 2 d'enrichissement des offres à récupérer
     Alors le statut final de cette offre indique explicitement un echec de recuperation
     Et la cause "URL invalide" est tracable
 
   Scénario: Le statut final reste explicite en cas de blocage anti-crawler
-    Étant donné qu'une offre cadreemploi en statut "Annonce à récupérer" existe avec une URL accessible mais protegee anti-crawler
+    Étant donné qu'une offre Cadre Emploi en statut "Annonce à récupérer" existe avec une URL accessible mais protegee anti-crawler
     Quand je lance l'etape 2 d'enrichissement des offres à récupérer
     Alors le statut final de cette offre indique explicitement un echec lie à l'anti-crawler
     Et aucune transition incoherente de statut n'est appliquee

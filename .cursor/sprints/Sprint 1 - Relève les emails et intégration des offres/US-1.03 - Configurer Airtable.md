@@ -19,7 +19,7 @@
 **CA3 – Créer la table "Sources" via l'API**
 - La table "Sources" est créée dans la base "Analyse offres" via l'API Airtable avec les champs suivants :
   - **emailExpéditeur** : Texte sur une seule ligne
-  - **algo** : Sélection unique (`Linkedin`, `Inconnu`)
+  - **plugin** : Sélection unique (`Linkedin`, `Inconnu`)
   - **actif** : Case à cocher
 
 **CA4 – Créer la table "Offres" via l'API**

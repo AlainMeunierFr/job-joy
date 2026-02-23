@@ -111,9 +111,9 @@ describe('createHelloworkOfferFetchPlugin', () => {
     if (!result.ok) expect(result.message).toContain('JSON AgentIaJsonOffre invalide');
   });
 
-  it('expose stage2Implemented à true et algo HelloWork', () => {
+  it('expose stage2Implemented à true et plugin HelloWork', () => {
     const plugin = createHelloworkOfferFetchPlugin();
-    expect(plugin.algo).toBe('HelloWork');
+    expect(plugin.plugin).toBe('HelloWork');
     expect(plugin.stage2Implemented).toBe(true);
   });
 

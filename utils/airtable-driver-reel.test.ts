@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createAirtableDriverReel } from './airtable-driver-reel.js';
+import { PLUGINS_SOURCES_AIRTABLE } from './plugins-sources-airtable.js';
 
 interface FieldDef {
   name: string;
@@ -37,7 +38,7 @@ describe('createAirtableDriverReel - schéma Sources US-1.6', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('crée la table Sources avec emailExpéditeur/algo/actif (sans import CSV)', async () => {
+  it('crée la table Sources avec emailExpéditeur/plugin/actif (sans import CSV)', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const globalFetch = globalThis.fetch;
     let schemaCalls = 0;
@@ -77,15 +78,10 @@ describe('createAirtableDriverReel - schéma Sources US-1.6', () => {
       );
       expect(createSourcesCall).toBeDefined();
       const fields = (createSourcesCall?.body as { fields: FieldDef[] }).fields;
-      expect(fields.map((f: FieldDef) => f.name)).toEqual(['emailExpéditeur', 'algo', 'actif']);
-      const algoField = fields.find((f: FieldDef) => f.name === 'algo');
-      expect(algoField?.type).toBe('singleSelect');
-      expect(algoField?.options?.choices?.map((c: { name: string }) => c.name)).toEqual([
-        'Linkedin',
-        'Inconnu',
-        'HelloWork',
-        'Welcome to the Jungle',
-      ]);
+      expect(fields.map((f: FieldDef) => f.name)).toEqual(['emailExpéditeur', 'plugin', 'actif']);
+      const pluginField = fields.find((f: FieldDef) => f.name === 'plugin');
+      expect(pluginField?.type).toBe('singleSelect');
+      expect(pluginField?.options?.choices?.map((c: { name: string }) => c.name)).toEqual([...PLUGINS_SOURCES_AIRTABLE]);
       const sourceRecordCreates = calls.filter(
         (c) => c.method === 'POST' && c.url.endsWith(`/${baseId}/tblSources`) && !!(c.body as { records?: unknown[] })?.records
       );
@@ -111,7 +107,7 @@ describe('createAirtableDriverReel - schéma Sources US-1.6', () => {
               name: 'Sources',
               fields: [
                 { id: 'fldEmail', name: 'emailExpéditeur', type: 'singleLineText' },
-                { id: 'fldAlgo', name: 'algo', type: 'singleSelect' },
+                { id: 'fldPlugin', name: 'plugin', type: 'singleSelect' },
                 { id: 'fldActif', name: 'actif', type: 'checkbox' },
               ],
             },

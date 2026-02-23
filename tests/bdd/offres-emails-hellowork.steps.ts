@@ -15,7 +15,7 @@ type AuditResult = {
   status: string;
   result?: {
     ok: boolean;
-    synthese?: Array<{ emailExpéditeur: string; algo: string; actif: string }>;
+    synthese?: Array<{ emailExpéditeur: string; plugin: string; actif: string }>;
   };
 };
 type TraitementResponse = { ok: boolean; message?: string; nbOffresCreees?: number };
@@ -23,7 +23,7 @@ type TraitementResponse = { ok: boolean; message?: string; nbOffresCreees?: numb
 let lastAuditResult: AuditResult | null = null;
 let lastTraitementResponse: TraitementResponse | null = null;
 let lastEnrichissementResponse: Record<string, unknown> | null = null;
-let schemaAlgoOptions: string[] = [];
+let schemaPluginOptions: string[] = [];
 let lastExpectedExpediteur = '';
 let lastEmailExpediteurInFolder = '';
 
@@ -63,25 +63,25 @@ Given('que le dossier des emails traités est configuré', async () => {
 });
 
 Given('que le modèle Sources utilise les champs {string} \\(clé\\), {string} et {string}', async () => {
-  // Le modèle actuel côté implémentation est bien emailExpéditeur/algo/actif.
+  // Le modèle actuel côté implémentation est bien emailExpéditeur/plugin/actif.
 });
 Given('le modèle Sources utilise les champs {string} \\(clé\\), {string} et {string}', async () => {
   // Alias sans préfixe "que" pour la formulation BDD.
 });
 
 Given('que la table {string} expose une liste de valeurs possibles pour le champ {string}', async ({ page: _page }, table: string, champ: string) => {
-  if (table === 'Sources' && champ === 'algo') {
-    schemaAlgoOptions = ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle'];
+  if (table === 'Sources' && champ === 'plugin') {
+    schemaPluginOptions = ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle'];
     return;
   }
-  schemaAlgoOptions = [];
+  schemaPluginOptions = [];
 });
 Given('la table {string} expose une liste de valeurs possibles pour le champ {string}', async ({ page: _page }, table: string, champ: string) => {
-  if (table === 'Sources' && champ === 'algo') {
-    schemaAlgoOptions = ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle'];
+  if (table === 'Sources' && champ === 'plugin') {
+    schemaPluginOptions = ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle'];
     return;
   }
-  schemaAlgoOptions = [];
+  schemaPluginOptions = [];
 });
 
 Given('qu\'aucune source d\'expéditeur {string} n\'existe dans {string}', async ({ page: _page }, _email: string, _table: string) => {
@@ -106,7 +106,7 @@ function setMockEmailHelloWork(emails: Array<{ id: string; from: string; html: s
     body: JSON.stringify({ emailsGouvernance: emails }),
   });
 }
-async function setMockSources(sources: Array<{ emailExpéditeur: string; algo: string; actif: boolean }>) {
+async function setMockSources(sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>) {
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -127,27 +127,27 @@ Given('qu\'aucun expéditeur d\'email {string} n\'existe dans {string}', async (
   ]);
 });
 
-Given('la source d\'expéditeur {string} existe avec l\'algo {string} et le champ {string} à true', async (
+Given('la source d\'expéditeur {string} existe avec l\'plugin {string} et le champ {string} à true', async (
   { page: _page },
   expediteur: string,
-  algo: string,
+  plugin: string,
   _champ: string
 ) => {
   lastExpectedExpediteur = expediteur.toLowerCase();
-  await setMockSources([{ emailExpéditeur: expediteur, algo, actif: true }]);
+  await setMockSources([{ emailExpéditeur: expediteur, plugin: plugin, actif: true }]);
   await setMockEmailHelloWork([
     { id: 'hw1', from: 'Notification@Emails.HelloWork.com', html: '<a href="https://emails.hellowork.com/clic/a/b/c/d/e/dGVzdA==/f">Voir</a>' },
   ]);
 });
-Given('que la source d\'expéditeur {string} existe avec l\'algo {string} et le champ {string} à {string}', async (
+Given('que la source d\'expéditeur {string} existe avec l\'plugin {string} et le champ {string} à {string}', async (
   { page: _page },
   expediteur: string,
-  algo: string,
+  plugin: string,
   _champ: string,
   valeur: string
 ) => {
   lastExpectedExpediteur = expediteur.toLowerCase();
-  await setMockSources([{ emailExpéditeur: expediteur, algo, actif: valeur === 'true' }]);
+  await setMockSources([{ emailExpéditeur: expediteur, plugin: plugin, actif: valeur === 'true' }]);
   await setMockEmailHelloWork([
     { id: 'hw1', from: 'Notification@Emails.HelloWork.com', html: '<a href="https://emails.hellowork.com/clic/a/b/c/d/e/dGVzdA==/f">Voir</a>' },
   ]);
@@ -334,7 +334,7 @@ When('je lance l\'audit du dossier email', async ({ page }) => {
 });
 
 When('je consulte les valeurs possibles du champ {string} de la table {string}', async ({ page: _page }, champ: string, table: string) => {
-  if (table !== 'Sources' || champ !== 'algo') schemaAlgoOptions = [];
+  if (table !== 'Sources' || champ !== 'plugin') schemaPluginOptions = [];
 });
 
 When('je lance la relève des offres depuis les emails HelloWork', async ({ page }) => {
@@ -390,23 +390,23 @@ Then('l\'expéditeur {string} est créé dans la table {string}', async ({ page:
   expect(row).toBeDefined();
 });
 
-Then('son algo est {string}', async ({ page: _page }, algo: string) => {
+Then('son plugin est {string}', async ({ page: _page }, plugin: string) => {
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find(
     (r) => r.emailExpéditeur?.toLowerCase() === 'notification@emails.hellowork.com'
   );
-  expect(row?.algo).toBe(algo);
+  expect(row?.plugin).toBe(plugin);
 });
 
 Then('la valeur {string} est disponible', async ({ page: _page }, valeur: string) => {
-  expect(schemaAlgoOptions).toContain(valeur);
+  expect(schemaPluginOptions).toContain(valeur);
 });
 
-Then('la source créée porte l\'algo {string} avec le champ {string} à true', async ({ page: _page }, algo: string, champ: string) => {
+Then('la source créée porte l\'plugin {string} avec le champ {string} à true', async ({ page: _page }, plugin: string, champ: string) => {
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === lastExpectedExpediteur);
   expect(row).toBeDefined();
-  expect(row?.algo).toBe(algo);
+  expect(row?.plugin).toBe(plugin);
   if (champ === 'actif' || champ === '"actif"') expect(row?.actif).toBe('Oui');
 });
 
@@ -429,49 +429,49 @@ Then('son champ {string} vaut {string}', async ({ page: _page }, champ: string, 
   }
 });
 
-Then('cet email est rattaché à la source {string}', async ({ page: _page }, algo: string) => {
+Then('cet email est rattaché à la source {string}', async ({ page: _page }, plugin: string) => {
   expect(lastAuditResult?.result?.ok).toBe(true);
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === (lastEmailExpediteurInFolder || lastExpectedExpediteur));
-  expect(row?.algo).toBe(algo);
+  expect(row?.plugin).toBe(plugin);
 });
 
-Then('la source est reportée avec l\'expéditeur {string}, l\'algo {string} et {string} à true', async (
+Then('la source est reportée avec l\'expéditeur {string}, l\'plugin {string} et {string} à true', async (
   { page: _page },
   expediteur: string,
-  algo: string,
+  plugin: string,
   _champ: string
 ) => {
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === expediteur.toLowerCase());
   expect(row).toBeDefined();
-  expect(row?.algo).toBe(algo);
+  expect(row?.plugin).toBe(plugin);
   expect(row?.actif).toBe('Oui');
 });
-Then('la source est reportée avec l\'expéditeur {string}, l\'algo {string} et {string} à {string}', async (
+Then('la source est reportée avec l\'expéditeur {string}, l\'plugin {string} et {string} à {string}', async (
   { page: _page },
   expediteur: string,
-  algo: string,
+  plugin: string,
   _champ: string,
   valeur: string
 ) => {
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === expediteur.toLowerCase());
   expect(row).toBeDefined();
-  expect(row?.algo).toBe(algo);
+  expect(row?.plugin).toBe(plugin);
   expect(row?.actif).toBe(valeur === 'true' ? 'Oui' : valeur);
 });
 
-Then('cet email n\'est pas rattaché à la source {string}', async ({ page: _page }, algo: string) => {
+Then('cet email n\'est pas rattaché à la source {string}', async ({ page: _page }, plugin: string) => {
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === lastEmailExpediteurInFolder);
-  expect(row?.algo).not.toBe(algo);
+  expect(row?.plugin).not.toBe(plugin);
 });
 
 Then('l\'audit signale une source inconnue pour cet expéditeur', async () => {
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === lastEmailExpediteurInFolder);
-  expect(row?.algo).toBe('Inconnu');
+  expect(row?.plugin).toBe('Inconnu');
 });
 
 Then('une ligne est créée dans la table Offres', async () => {

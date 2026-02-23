@@ -6,11 +6,12 @@ import { createBdd } from 'playwright-bdd';
 import { DataTable } from 'playwright-bdd';
 import { expect } from '@playwright/test';
 import { test } from './configuration-compte-email.steps.js';
+import { STATUTS_OFFRES_AVEC_AUTRE } from '../../utils/statuts-offres-airtable.js';
 
 export const { Given, When, Then } = createBdd(test);
 
 const API_BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3011';
-const STATUTS_ORDER = ['Annonce à récupérer', 'À traiter', 'Traité', 'Ignoré', 'À analyser'];
+const STATUTS_ORDER = [...STATUTS_OFFRES_AVEC_AUTRE];
 
 function parseTableToLignes(rows: string[][]): Array<Record<string, unknown>> {
   if (rows.length < 2) return [];
@@ -20,9 +21,9 @@ function parseTableToLignes(rows: string[][]): Array<Record<string, unknown>> {
     const row = rows[i];
     const obj: Record<string, unknown> = {
       emailExpéditeur: row[headers.indexOf('emailExpéditeur')]?.trim() ?? '',
-      algoEtape1: row[headers.indexOf('algo étape 1')]?.trim() ?? '',
-      algoEtape2: row[headers.indexOf('algo étape 2')]?.trim() ?? '',
-      actif: (row[headers.indexOf('actif')]?.trim() ?? '').toLowerCase() === 'oui',
+      pluginEtape1: row[headers.indexOf('plugin étape 1')]?.trim() ?? '',
+      pluginEtape2: row[headers.indexOf('plugin étape 2')]?.trim() ?? '',
+      actif: true,
       statuts: {} as Record<string, number>,
     };
     for (const statut of STATUTS_ORDER) {
@@ -42,14 +43,14 @@ function parseTableToLignesNbOffres(rows: string[][]): Array<Record<string, unkn
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     const nb = nbOffresIdx >= 0 ? parseInt(row[nbOffresIdx]?.trim() ?? '0', 10) : 1;
-    const algo = row[headers.indexOf('algo étape 1')]?.trim() ?? 'Inconnu';
+    const plugin = row[headers.indexOf('plugin étape 1')]?.trim() ?? 'Inconnu';
     const statuts: Record<string, number> = {};
     for (const s of STATUTS_ORDER) statuts[s] = 0;
-    statuts['Annonce à récupérer'] = nb;
+    statuts['A compléter'] = nb;
     lignes.push({
       emailExpéditeur: row[headers.indexOf('emailExpéditeur')]?.trim() ?? '',
-      algoEtape1: algo,
-      algoEtape2: row[headers.indexOf('algo étape 2')]?.trim() ?? algo,
+      pluginEtape1: plugin,
+      pluginEtape2: row[headers.indexOf('plugin étape 2')]?.trim() ?? plugin,
       actif: true,
       statuts,
     });
@@ -67,7 +68,7 @@ async function setMockTableauSynthese(lignes: Array<Record<string, unknown>>): P
 }
 
 async function setMockSourcesAndOffres(
-  sources: Array<{ emailExpéditeur: string; algo: string; actif: boolean }>,
+  sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>,
   offres: Array<{ emailExpéditeur: string; statut: string }>
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
@@ -83,7 +84,7 @@ async function setMockSourcesAndOffres(
 }
 
 function construireLignesDepuisSourcesEtOffres(
-  sources: Array<{ emailExpéditeur: string; algo: string; actif: boolean }>,
+  sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>,
   offres: Array<{ emailExpéditeur: string; statut: string }>
 ): Array<Record<string, unknown>> {
   const statutsParExpediteur = new Map<string, Record<string, number>>();
@@ -105,8 +106,8 @@ function construireLignesDepuisSourcesEtOffres(
     })
     .map((s) => ({
       emailExpéditeur: s.emailExpéditeur,
-      algoEtape1: s.algo,
-      algoEtape2: s.algo,
+      pluginEtape1: s.plugin,
+      pluginEtape2: s.plugin,
       actif: s.actif,
       statuts: statutsParExpediteur.get(s.emailExpéditeur.toLowerCase()) ?? {},
     }));
@@ -177,10 +178,10 @@ Given('que le tableau de synthèse des offres contient des données', async () =
   await setMockTableauSynthese([
     {
       emailExpéditeur: 'jobs@linkedin.com',
-      algoEtape1: 'Linkedin',
-      algoEtape2: 'Linkedin',
+      pluginEtape1: 'Linkedin',
+      pluginEtape2: 'Linkedin',
       actif: true,
-      statuts: { 'Annonce à récupérer': 2, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 1 },
+      statuts: { 'A compléter': 2, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 1 },
     },
   ]);
 });
@@ -188,10 +189,10 @@ Given('le tableau de synthèse des offres contient des données', async () => {
   await setMockTableauSynthese([
     {
       emailExpéditeur: 'jobs@linkedin.com',
-      algoEtape1: 'Linkedin',
-      algoEtape2: 'Linkedin',
+      pluginEtape1: 'Linkedin',
+      pluginEtape2: 'Linkedin',
       actif: true,
-      statuts: { 'Annonce à récupérer': 2, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 1 },
+      statuts: { 'A compléter': 2, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 1 },
     },
   ]);
 });
@@ -217,10 +218,10 @@ Given('que le tableau de synthèse des offres est chargé avec au moins une offr
   await setMockTableauSynthese([
     {
       emailExpéditeur: 'test@test.com',
-      algoEtape1: 'HelloWork',
-      algoEtape2: 'HelloWork',
+      pluginEtape1: 'HelloWork',
+      pluginEtape2: 'HelloWork',
       actif: true,
-      statuts: { 'Annonce à récupérer': 1, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 0 },
+      statuts: { 'A compléter': 1, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 0 },
     },
   ]);
 });
@@ -228,19 +229,19 @@ Given('le tableau de synthèse des offres est chargé avec au moins une offre', 
   await setMockTableauSynthese([
     {
       emailExpéditeur: 'test@test.com',
-      algoEtape1: 'HelloWork',
-      algoEtape2: 'HelloWork',
+      pluginEtape1: 'HelloWork',
+      pluginEtape2: 'HelloWork',
       actif: true,
-      statuts: { 'Annonce à récupérer': 1, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 0 },
+      statuts: { 'A compléter': 1, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 0 },
     },
   ]);
 });
 
 Given('qu\'une source {string} existe dans la table Sources', async ({ page: _page }, email: string) => {
-  await setMockSourcesAndOffres([{ emailExpéditeur: email, algo: 'Inconnu', actif: true }], []);
+  await setMockSourcesAndOffres([{ emailExpéditeur: email, plugin: 'Inconnu', actif: true }], []);
 });
 Given('une source {string} existe dans la table Sources', async ({ page: _page }, email: string) => {
-  await setMockSourcesAndOffres([{ emailExpéditeur: email, algo: 'Inconnu', actif: true }], []);
+  await setMockSourcesAndOffres([{ emailExpéditeur: email, plugin: 'Inconnu', actif: true }], []);
 });
 
 Given('qu\'aucune offre n\'est liée à cette source', async () => {
@@ -251,7 +252,7 @@ Given('aucune offre n\'est liée à cette source', async () => {
 });
 
 let lastSourcesAndOffres: {
-  sources: Array<{ emailExpéditeur: string; algo: string; actif: boolean }>;
+  sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>;
   offres: Array<{ emailExpéditeur: string; statut: string }>;
 } = { sources: [], offres: [] };
 
@@ -259,9 +260,9 @@ Given('que la source {string} a {int} offres en base', async ({ page: _page }, e
   lastSourcesAndOffres = { sources: [], offres: [] };
   const offres = Array.from({ length: nb }, (_, i) => ({
     emailExpéditeur: email,
-    statut: i === 0 ? 'Annonce à récupérer' : 'À traiter',
+    statut: i === 0 ? 'A compléter' : 'À traiter',
   }));
-  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, algo: 'Inconnu', actif: true });
+  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', actif: true });
   lastSourcesAndOffres.offres.push(...offres);
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
 });
@@ -269,19 +270,19 @@ Given('la source {string} a {int} offres en base', async ({ page: _page }, email
   if (lastSourcesAndOffres.sources.length === 0) lastSourcesAndOffres = { sources: [], offres: [] };
   const offres = Array.from({ length: nb }, (_, i) => ({
     emailExpéditeur: email,
-    statut: i === 0 ? 'Annonce à récupérer' : 'À traiter',
+    statut: i === 0 ? 'A compléter' : 'À traiter',
   }));
-  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, algo: 'Inconnu', actif: true });
+  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', actif: true });
   lastSourcesAndOffres.offres.push(...offres);
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
 });
 
 Given('que la source {string} n\'a aucune offre', async ({ page: _page }, email: string) => {
-  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, algo: 'Inconnu', actif: true });
+  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', actif: true });
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
 });
 Given('la source {string} n\'a aucune offre', async ({ page: _page }, email: string) => {
-  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, algo: 'Inconnu', actif: true });
+  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', actif: true });
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
 });
 
@@ -296,7 +297,7 @@ Given('qu\'une source {string} a {int} offres en statut {string} et {int} dans l
   for (const s of STATUTS_ORDER) statuts[s] = 0;
   statuts[statut] = nbStatut;
   await setMockTableauSynthese([
-    { emailExpéditeur: email, algoEtape1: 'Inconnu', algoEtape2: 'Inconnu', actif: true, statuts },
+    { emailExpéditeur: email, pluginEtape1: 'Inconnu', pluginEtape2: 'Inconnu', actif: true, statuts },
   ]);
 });
 Given('une source {string} a {int} offres en statut {string} et {int} dans les autres statuts', async (
@@ -310,7 +311,7 @@ Given('une source {string} a {int} offres en statut {string} et {int} dans les a
   for (const s of STATUTS_ORDER) statuts[s] = 0;
   statuts[statut] = nbStatut;
   await setMockTableauSynthese([
-    { emailExpéditeur: email, algoEtape1: 'Inconnu', algoEtape2: 'Inconnu', actif: true, statuts },
+    { emailExpéditeur: email, pluginEtape1: 'Inconnu', pluginEtape2: 'Inconnu', actif: true, statuts },
   ]);
 });
 
@@ -362,14 +363,14 @@ Then('les deux tableaux sont visuellement séparés \\(titres, emplacements ou s
   await expect(page.locator('.syntheseOffres')).toBeAttached();
 });
 
-Then('le tableau affiche les colonnes fixes dans l\'ordre : email expéditeur, algo étape 1, algo étape 2, actif', async ({
+Then('le tableau affiche les colonnes fixes dans l\'ordre : email expéditeur, plugin, Phase 1, Phase 2', async ({
   page,
 }) => {
   const ths = page.locator('.syntheseOffresTable thead th');
   await expect(ths.nth(0)).toContainText('email expéditeur');
-  await expect(ths.nth(1)).toContainText('algo étape 1');
-  await expect(ths.nth(2)).toContainText('algo étape 2');
-  await expect(ths.nth(3)).toContainText('actif');
+  await expect(ths.nth(1)).toContainText('plugin');
+  await expect(ths.nth(2)).toContainText('Phase 1');
+  await expect(ths.nth(3)).toContainText('Phase 2');
 });
 
 Then('le tableau affiche une colonne par statut d\'offre dans l\'ordre de l\'énum Airtable', async ({
@@ -385,20 +386,21 @@ Then('le tableau affiche les lignes suivantes', async ({ page }, dataTable: Data
   const rows = dataTable.raw();
   const tbody = page.locator('#synthese-offres-body');
   const trs = tbody.locator('tr');
-  await expect(trs).toHaveCount(Math.max(0, rows.length - 1));
+  const dataRowCount = Math.max(0, rows.length - 1);
+  await expect(trs).toHaveCount(dataRowCount + 1);
   for (let i = 1; i < rows.length; i++) {
     const cells = trs.nth(i - 1).locator('td');
     await expect(cells.nth(0)).toContainText(rows[i][0].trim());
-    await expect(cells.nth(1)).toContainText(rows[i][1].trim());
-    await expect(cells.nth(2)).toContainText(rows[i][2].trim());
-    await expect(cells.nth(3)).toContainText(rows[i][3].trim());
+    // Colonne 1 = plugin (capsule) : on ne vérifie pas le libellé ici, la donnée n'est pas dans cette table
+    await expect(cells.nth(2)).toContainText(rows[i][1].trim());
+    await expect(cells.nth(3)).toContainText(rows[i][2].trim());
     for (let j = 0; j < 5; j++) {
-      await expect(cells.nth(4 + j)).toContainText(rows[i][4 + j]?.trim() ?? '0');
+      await expect(cells.nth(4 + j)).toContainText(rows[i][3 + j]?.trim() ?? '0');
     }
   }
 });
 
-Then('les colonnes statut sont présentes dans l\'ordre : Annonce à récupérer, À traiter, Traité, Ignoré, À analyser', async ({
+Then('les colonnes statut sont présentes dans l\'ordre : Annonce à récupérer, À analyser, À traiter, Candidaté, Refusé, Traité, Ignoré, Expiré, Autre', async ({
   page,
 }) => {
   const ths = page.locator('.syntheseOffresTable thead th');
@@ -414,9 +416,9 @@ Then('une colonne existe pour chaque valeur de l\'énum même si le nombre d\'of
   expect(await ths.count()).toBeGreaterThanOrEqual(4 + STATUTS_ORDER.length);
 });
 
-Then('les lignes sont ordonnées par algo étape 2 puis par algo étape 1', async ({ page }) => {
+Then('les lignes sont ordonnées par plugin étape 2 puis par plugin étape 1', async ({ page }) => {
   const tbody = page.locator('#synthese-offres-body');
-  await expect(tbody.locator('tr')).toHaveCount(3);
+  await expect(tbody.locator('tr')).toHaveCount(4);
 });
 
 Then('la première ligne affichée correspond à l\'expéditeur {string}', async (
@@ -453,13 +455,77 @@ Then(/^la cellule \(([^ ×]+) × "([^"]+)"\) affiche "([^"]+)"$/, async (
   const statutIdx = STATUTS_ORDER.indexOf(statut);
   expect(statutIdx).toBeGreaterThanOrEqual(0);
   const rows = page.locator('#synthese-offres-body tr');
-  for (let i = 0; i < (await rows.count()); i++) {
+  const count = await rows.count();
+  for (let i = 0; i < count; i++) {
     const firstCell = rows.nth(i).locator('td').first();
     if ((await firstCell.textContent())?.trim() === email) {
-      const cell = rows.nth(i).locator('td').nth(4 + statutIdx);
+      const cell = rows.nth(i).locator('td').nth(3 + statutIdx);
       await expect(cell).toContainText(valeur);
       return;
     }
   }
   throw new Error(`Ligne pour ${email} non trouvée`);
+});
+
+// --- US-1.13 : Totaux (colonne et ligne) ---
+Then('une colonne {string} est affichée à droite des colonnes de statut', async ({ page }, nomColonne: string) => {
+  const lastTh = page.locator('.syntheseOffresTable thead th').last();
+  await expect(lastTh).toContainText(nomColonne);
+});
+
+Then('pour la ligne de la source {string} la cellule Totaux affiche {string}', async (
+  { page },
+  source: string,
+  valeur: string
+) => {
+  const rows = page.locator('#synthese-offres-body tr');
+  const count = await rows.count();
+  for (let i = 0; i < count; i++) {
+    const firstCell = rows.nth(i).locator('td').first();
+    if ((await firstCell.textContent())?.trim() === source) {
+      const cellTotaux = rows.nth(i).locator('td.syntheseOffresCellTotaux');
+      await expect(cellTotaux).toContainText(valeur);
+      return;
+    }
+  }
+  throw new Error(`Ligne pour la source ${source} non trouvée`);
+});
+
+Then('une ligne {string} est affichée en bas du tableau', async ({ page }, nomLigne: string) => {
+  const lastRow = page.locator('#synthese-offres-body tr').last();
+  await expect(lastRow).toContainText(nomLigne);
+});
+
+Then('la cellule de la ligne Totaux pour la colonne {string} affiche {string}', async (
+  { page },
+  colonne: string,
+  valeur: string
+) => {
+  const ligneTotaux = page.locator('[e2eid="e2eid-synthese-offres-ligne-totaux"]');
+  const statutIdx = STATUTS_ORDER.indexOf(colonne);
+  expect(statutIdx).toBeGreaterThanOrEqual(0);
+  const cell = ligneTotaux.locator('td').nth(3 + statutIdx);
+  await expect(cell).toContainText(valeur);
+});
+
+Then('la cellule Totaux×Totaux affiche {string}', async ({ page }, valeur: string) => {
+  const cell = page.locator('[e2eid="e2eid-synthese-offres-cellule-totaux-generaux"]');
+  await expect(cell).toContainText(valeur);
+});
+
+Given('les données du tableau de synthèse sont mises à jour en base avec les comptages suivants', async (
+  { page: _page },
+  dataTable: DataTable
+) => {
+  const rows = dataTable.raw();
+  const headers = rows[0]?.map((h) => h.trim()) ?? [];
+  const lignes = headers.includes('nb offres')
+    ? parseTableToLignesNbOffres(rows)
+    : parseTableToLignes(rows);
+  await setMockTableauSynthese(lignes);
+});
+
+When('je rafraîchis le tableau de synthèse des offres', async ({ page }) => {
+  await page.locator('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]').click();
+  await page.waitForTimeout(800);
 });

@@ -3,7 +3,9 @@
  * Reçoivent les ports (ex. ConnecteurEmail) par injection — pas d'import des implémentations.
  */
 import { randomUUID } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { ServerResponse } from 'node:http';
+import { join } from 'node:path';
 import { validerParametresCompte } from '../utils/validation-compte.js';
 import { ecrireCompte, lireCompte } from '../utils/compte-io.js';
 import { executerTestConnexion } from '../utils/test-connexion-compte.js';
@@ -22,21 +24,51 @@ import {
   getEnrichissementBackgroundState,
   type ResultatEnrichissementBackground,
 } from '../scripts/run-enrichissement-background.js';
+import {
+  runAnalyseIABackground,
+  getAnalyseIABackgroundState,
+  type ResultatAnalyseIABackground,
+} from '../scripts/run-analyse-ia-background.js';
 import type { ConnecteurEmail, OptionsImap } from '../types/compte.js';
 import { maskEmail } from '../utils/mask-email.js';
 import { chargerEnvLocal } from '../utils/load-env-local.js';
 import { lireParametres } from '../utils/parametres-io.js';
 import { createLecteurEmailsMock } from '../utils/lecteur-emails-mock.js';
 import type { SourceEmail } from '../utils/gouvernance-sources-emails.js';
-import { produireTableauSynthese } from '../utils/tableau-synthese-offres.js';
+import { produireTableauSynthese, calculerTotauxTableauSynthese } from '../utils/tableau-synthese-offres.js';
 import type { LigneTableauSynthese } from '../utils/tableau-synthese-offres.js';
 import { createAirtableReleveDriver } from '../utils/airtable-releve-driver.js';
 import { normaliserBaseId } from '../utils/airtable-url.js';
 import { createSourcePluginsRegistry } from '../utils/source-plugins.js';
-import { STATUTS_OFFRES_AIRTABLE } from '../utils/statuts-offres-airtable.js';
+import { STATUTS_OFFRES_AIRTABLE, STATUTS_OFFRES_AVEC_AUTRE } from '../utils/statuts-offres-airtable.js';
+import {
+  recupererTexteOffreTest,
+  createOffreTestDriverAirtable,
+} from '../utils/offre-test.js';
+import { appelerClaudeCode, type ResultatAppelClaude } from '../utils/appeler-claudecode.js';
+import { parseJsonReponseIA, validerConformiteJsonIA } from '../utils/parse-json-reponse-ia.js';
+import { construirePromptComplet } from '../utils/prompt-ia.js';
+import { lireClaudeCode } from '../utils/parametres-claudecode.js';
+import { agregerConsommationParJourEtApi, enregistrerAppel } from '../utils/log-appels-api.js';
 
 /** Store BDD : tableau synthèse offres pour tests (US-1.7). */
 let bddMockTableauSyntheseStore: LigneTableauSynthese[] | null = null;
+
+/** Store BDD : offre test pour Configuration ClaudeCode (US-2.4). null = utiliser Airtable réel. */
+let bddMockOffreTestStore: { hasOffre: boolean; texte?: string } | null = null;
+
+/** BDD : définir la réponse mock de GET /api/offre-test (null = comportement réel). */
+export function setBddMockOffreTest(offre: { hasOffre: boolean; texte?: string } | null): void {
+  bddMockOffreTestStore = offre;
+}
+
+/** Store BDD : réponse mock de POST /api/test-claudecode (null = appel API réel). */
+let bddMockTestClaudecodeStore: ResultatAppelClaude | null = null;
+
+/** BDD : définir la réponse mock de POST /api/test-claudecode (null = comportement réel). */
+export function setBddMockTestClaudecode(resultat: ResultatAppelClaude | null): void {
+  bddMockTestClaudecodeStore = resultat;
+}
 
 /** BDD : définir les lignes du tableau synthèse offres (null = utiliser produireTableauSynthese). */
 export function setBddMockTableauSynthese(lignes: LigneTableauSynthese[] | null | unknown): void {
@@ -60,7 +92,7 @@ export function setBddMockEmailsGouvernance(
 }
 
 /** BDD : remplacer les sources mock ([] = vide, pour scénario "aucun expéditeur"; sinon source(s) existante(s)). */
-export function setBddMockSources(sources: Array<{ emailExpéditeur: string; algo: SourceEmail['algo']; actif: boolean }>): void {
+export function setBddMockSources(sources: Array<{ emailExpéditeur: string; plugin: SourceEmail['plugin']; actif: boolean }>): void {
   bddMockSourcesStore.length = 0;
   for (const s of sources) {
     bddMockSourcesStore.push({
@@ -74,7 +106,7 @@ export function setBddMockSources(sources: Array<{ emailExpéditeur: string; alg
 function createBddMockDriverReleve(): {
   listerSources: () => Promise<SourceRuntime[]>;
   creerSource: (source: SourceEmail) => Promise<SourceRuntime>;
-  mettreAJourSource: (sourceId: string, patch: Partial<Pick<SourceEmail, 'algo' | 'actif'>>) => Promise<void>;
+  mettreAJourSource: (sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>) => Promise<void>;
   creerOffres: (offres: Array<{ idOffre: string; url: string; dateAjout: string; statut: string }>, sourceId: string) => Promise<{ nbCreees: number; nbDejaPresentes: number }>;
   getSourceLinkedIn: () => Promise<{ found: false } | { found: true; actif: boolean; emailExpéditeur: string; sourceId: string }>;
 } {
@@ -91,10 +123,10 @@ function createBddMockDriverReleve(): {
       bddMockSourcesStore.push(rec);
       return rec;
     },
-    async mettreAJourSource(sourceId: string, patch: Partial<Pick<SourceEmail, 'algo' | 'actif'>>) {
+    async mettreAJourSource(sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>) {
       const i = bddMockSourcesStore.findIndex((s) => s.sourceId === sourceId);
       if (i >= 0) {
-        if (patch.algo) bddMockSourcesStore[i].algo = patch.algo;
+        if (patch.plugin) bddMockSourcesStore[i].plugin = patch.plugin;
         if (typeof patch.actif === 'boolean') bddMockSourcesStore[i].actif = patch.actif;
       }
     },
@@ -111,7 +143,7 @@ function createBddMockDriverReleve(): {
       return { nbCreees, nbDejaPresentes: offres.length - nbCreees };
     },
     async getSourceLinkedIn() {
-      const linkedin = bddMockSourcesStore.find((s) => s.algo === 'Linkedin');
+      const linkedin = bddMockSourcesStore.find((s) => s.plugin === 'Linkedin');
       if (!linkedin) return { found: false };
       return { found: true, actif: linkedin.actif, emailExpéditeur: linkedin.emailExpéditeur, sourceId: linkedin.sourceId };
     },
@@ -138,136 +170,52 @@ function airtableHeaders(apiKey: string): Record<string, string> {
   };
 }
 
+/** 2 appels : Sources puis Offres avec la clé étrangère (champ lien vers Sources) + Statut. */
 async function listerOffresPourTableau(options: {
   apiKey: string;
   baseId: string;
-  baseRefRaw?: string;
   offresId: string;
   sourceIdVersEmail: Map<string, string>;
 }): Promise<Array<{ emailExpéditeur: string; statut: string }>> {
-  const { apiKey, baseId, baseRefRaw, offresId, sourceIdVersEmail } = options;
-  const identifiants = await resoudreRefsTableOffres(apiKey, baseId, offresId, baseRefRaw);
-  let lastError = '';
-  for (const tableRef of identifiants) {
-    const offres: Array<{ emailExpéditeur: string; statut: string }> = [];
-    let offset = '';
-    let tableFound = true;
-    do {
-      const url = `${AIRTABLE_API_BASE}/${encodeURIComponent(baseId)}/${encodeURIComponent(
-        tableRef
-      )}?pageSize=100${offset ? `&offset=${encodeURIComponent(offset)}` : ''}`;
-      const res = await fetch(url, { method: 'GET', headers: airtableHeaders(apiKey) });
-      if (!res.ok) {
-        const detail = await res.text();
-        if (res.status === 404) {
-          tableFound = false;
-          lastError = `Airtable Offres list: 404 ${detail || res.statusText}`;
-          break;
-        }
-        throw new Error(`Airtable Offres list: ${res.status} ${detail || res.statusText}`);
+  const { apiKey, baseId, offresId, sourceIdVersEmail } = options;
+  const offres: Array<{ emailExpéditeur: string; statut: string }> = [];
+  let offset = '';
+  const fieldsParam = 'fields%5B%5D=email%20exp%C3%A9diteur&fields%5B%5D=Statut';
+  do {
+    const url = `${AIRTABLE_API_BASE}/${encodeURIComponent(baseId)}/${encodeURIComponent(
+      offresId
+    )}?${fieldsParam}&pageSize=100${offset ? `&offset=${encodeURIComponent(offset)}` : ''}`;
+    const res = await fetch(url, { method: 'GET', headers: airtableHeaders(apiKey) });
+    if (!res.ok) {
+      const detail = await res.text();
+      if (res.status === 404) {
+        throw new Error(`Airtable Offres : table introuvable (404). Vérifie l’ID table Offres dans Paramètres. ${detail || res.statusText}`);
       }
-      const json = (await res.json()) as {
-        records?: Array<{ fields?: Record<string, unknown> }>;
-        offset?: string;
-      };
-      const records = json.records ?? [];
-      for (const rec of records) {
-        const fields = rec.fields ?? {};
-        const statut = typeof fields.Statut === 'string' ? fields.Statut.trim() : '';
-        if (!statut) continue;
-        const lienSource = fields['email expéditeur'];
-        if (Array.isArray(lienSource) && lienSource.length > 0) {
-          // Airtable linked record field: usually array of source record IDs.
-          const sourceRef = String(lienSource[0] ?? '').trim();
-          const email = sourceIdVersEmail.get(sourceRef) ?? '';
-          if (email) offres.push({ emailExpéditeur: email, statut });
-          continue;
-        }
-        // Fallback legacy: some datasets may still hold plain text email.
-        if (typeof lienSource === 'string' && lienSource.trim()) {
-          offres.push({ emailExpéditeur: lienSource.trim().toLowerCase(), statut });
-        }
-      }
-      offset = json.offset ?? '';
-    } while (offset);
-    if (tableFound) return offres;
-  }
-  throw new Error(lastError || 'Airtable Offres list: table introuvable');
-}
-
-async function resoudreRefsTableOffres(
-  apiKey: string,
-  baseId: string,
-  offresId: string,
-  baseRefRaw?: string
-): Promise<string[]> {
-  const refs = new Set<string>();
-  if (offresId.trim()) refs.add(offresId.trim());
-  refs.add('Offres');
-  const tableIdFromBaseRef = (baseRefRaw ?? '').match(/tbl[a-zA-Z0-9]+/)?.[0];
-  if (tableIdFromBaseRef) refs.add(tableIdFromBaseRef);
-  try {
-    const metaUrl = `${AIRTABLE_API_BASE}/meta/bases/${encodeURIComponent(baseId)}/tables`;
-    const res = await fetch(metaUrl, { method: 'GET', headers: airtableHeaders(apiKey) });
-    if (!res.ok) return [...refs];
+      throw new Error(`Airtable Offres list: ${res.status} ${detail || res.statusText}`);
+    }
     const json = (await res.json()) as {
-      tables?: Array<{
-        id: string;
-        name: string;
-        fields?: Array<{ name?: string }>;
-      }>;
+      records?: Array<{ fields?: Record<string, unknown> }>;
+      offset?: string;
     };
-    const tables = json.tables ?? [];
-    for (const t of tables) {
-      const fieldNames = (t.fields ?? [])
-        .map((f) => (f.name ?? '').trim())
-        .filter(Boolean);
-      const ressembleOffres =
-        fieldNames.includes('Statut') &&
-        fieldNames.includes('email expéditeur');
-      if (ressembleOffres) {
-        if (t.id) refs.add(t.id);
-        if (t.name) refs.add(t.name);
+    const records = json.records ?? [];
+    for (const rec of records) {
+      const fields = rec.fields ?? {};
+      const statut = typeof fields.Statut === 'string' ? fields.Statut.trim() : '';
+      if (!statut) continue;
+      const lienSource = fields['email expéditeur'];
+      if (Array.isArray(lienSource) && lienSource.length > 0) {
+        const sourceRef = String(lienSource[0] ?? '').trim();
+        const email = sourceIdVersEmail.get(sourceRef) ?? '';
+        if (email) offres.push({ emailExpéditeur: email, statut });
+        continue;
+      }
+      if (typeof lienSource === 'string' && lienSource.trim()) {
+        offres.push({ emailExpéditeur: lienSource.trim().toLowerCase(), statut });
       }
     }
-  } catch {
-    // Si l'API meta n'est pas accessible (scopes), on garde juste les refs explicites.
-  }
-  return [...refs];
-}
-
-async function lireOrdreStatutsOffresDepuisAirtable(options: {
-  apiKey: string;
-  baseId: string;
-  offresId: string;
-}): Promise<string[]> {
-  const { apiKey, baseId, offresId } = options;
-  const metaUrl = `${AIRTABLE_API_BASE}/meta/bases/${encodeURIComponent(baseId)}/tables`;
-  const res = await fetch(metaUrl, { method: 'GET', headers: airtableHeaders(apiKey) });
-  if (!res.ok) return [...STATUTS_OFFRES_AIRTABLE];
-  const json = (await res.json()) as {
-    tables?: Array<{
-      id?: string;
-      name?: string;
-      fields?: Array<{
-        name?: string;
-        type?: string;
-        options?: { choices?: Array<{ name?: string }> };
-      }>;
-    }>;
-  };
-  const tables = json.tables ?? [];
-  const offresIdNorm = (offresId ?? '').trim().toLowerCase();
-  const table = tables.find((t) => (t.id ?? '').toLowerCase() === offresIdNorm)
-    ?? tables.find((t) => (t.name ?? '').trim().toLowerCase() === offresIdNorm)
-    ?? tables.find((t) => (t.name ?? '').trim().toLowerCase() === 'offres');
-  const fieldStatut = table?.fields?.find(
-    (f) => (f.name ?? '').trim().toLowerCase() === 'statut' && f.type === 'singleSelect'
-  );
-  const choices = (fieldStatut?.options?.choices ?? [])
-    .map((c) => (c.name ?? '').trim())
-    .filter(Boolean);
-  return choices.length > 0 ? choices : [...STATUTS_OFFRES_AIRTABLE];
+    offset = json.offset ?? '';
+  } while (offset);
+  return offres;
 }
 
 type TraitementTask = {
@@ -298,7 +246,14 @@ type EnrichissementCurrentProgress = {
   index: number;
   total: number;
   recordId: string;
-  algo?: string;
+  plugin?: string;
+};
+
+type AnalyseIACurrentProgress = {
+  index: number;
+  total: number;
+  poste?: string;
+  ville?: string;
 };
 
 type EnrichissementWorkerState = {
@@ -311,9 +266,29 @@ type EnrichissementWorkerState = {
   timer?: ReturnType<typeof setTimeout>;
 };
 
+type AnalyseIAWorkerState = {
+  running: boolean;
+  intervalMs: number;
+  lastRunAt?: number;
+  lastResult?: ResultatAnalyseIABackground;
+  lastError?: string;
+  currentProgress?: AnalyseIACurrentProgress;
+  timer?: ReturnType<typeof setTimeout>;
+};
+
 const enrichissementWorker: EnrichissementWorkerState = {
   running: false,
   intervalMs: 30000,
+};
+
+/** Délai entre deux passes quand des offres ont été traitées (ou erreur). */
+const ANALYSE_IA_INTERVAL_MS = 30000;
+/** Délai plus court quand 0 candidat « À analyser » trouvé, pour réessayer vite (ex. après une vague d'enrichissement). */
+const ANALYSE_IA_INTERVAL_IDLE_MS = 10000;
+
+const analyseIAWorker: AnalyseIAWorkerState = {
+  running: false,
+  intervalMs: ANALYSE_IA_INTERVAL_MS,
 };
 
 async function runOneEnrichissementBatch(dataDir: string): Promise<void> {
@@ -321,13 +296,14 @@ async function runOneEnrichissementBatch(dataDir: string): Promise<void> {
   try {
     enrichissementWorker.currentProgress = undefined;
     const result = await runEnrichissementBackground(dataDir, {
-      onProgress: (offre, index, total, algo) => {
+      shouldAbort: () => !enrichissementWorker.running,
+      onProgress: (offre, index, total, plugin) => {
         if (!enrichissementWorker.running) return;
         enrichissementWorker.currentProgress = {
           index,
           total,
           recordId: offre.id,
-          algo,
+          plugin,
         };
       },
     });
@@ -351,14 +327,14 @@ async function runOneEnrichissementBatch(dataDir: string): Promise<void> {
 function planNextEnrichissementRun(dataDir: string): void {
   if (!enrichissementWorker.running) return;
   enrichissementWorker.timer = setTimeout(() => {
-    void runOneEnrichissementBatch(dataDir);
+    runOneEnrichissementBatch(dataDir).catch(() => {});
   }, enrichissementWorker.intervalMs);
 }
 
 function startEnrichissementWorker(dataDir: string): void {
   if (enrichissementWorker.running) return;
   enrichissementWorker.running = true;
-  void runOneEnrichissementBatch(dataDir);
+  runOneEnrichissementBatch(dataDir).catch(() => {});
 }
 
 function stopEnrichissementWorker(): void {
@@ -366,6 +342,68 @@ function stopEnrichissementWorker(): void {
   if (enrichissementWorker.timer) {
     clearTimeout(enrichissementWorker.timer);
     enrichissementWorker.timer = undefined;
+  }
+}
+
+async function runOneAnalyseIABatch(dataDir: string): Promise<void> {
+  if (!analyseIAWorker.running) return;
+  try {
+    analyseIAWorker.currentProgress = undefined;
+    const result = await runAnalyseIABackground(dataDir, {
+      shouldAbort: () => !analyseIAWorker.running,
+      onProgress: (offre, index, total) => {
+        if (!analyseIAWorker.running) return;
+        analyseIAWorker.currentProgress = {
+          index,
+          total,
+          poste: offre.poste,
+          ville: offre.ville,
+        };
+      },
+    });
+    analyseIAWorker.lastRunAt = Date.now();
+    analyseIAWorker.lastResult = result;
+    if (result.ok && result.nbCandidates === 0) {
+      analyseIAWorker.currentProgress = { index: 0, total: 0 };
+    } else {
+      analyseIAWorker.currentProgress = undefined;
+    }
+    if (!result.ok) {
+      analyseIAWorker.lastError = result.message;
+    } else {
+      analyseIAWorker.lastError = undefined;
+    }
+  } catch (err) {
+    analyseIAWorker.lastRunAt = Date.now();
+    analyseIAWorker.lastError = err instanceof Error ? err.message : String(err);
+    analyseIAWorker.currentProgress = undefined;
+  } finally {
+    planNextAnalyseIARun(dataDir);
+  }
+}
+
+function planNextAnalyseIARun(dataDir: string): void {
+  if (!analyseIAWorker.running) return;
+  analyseIAWorker.timer = setTimeout(() => {
+    runOneAnalyseIABatch(dataDir).catch(() => {
+      /* erreur déjà logée dans lastError, on évite un rejet non géré */
+    });
+  }, analyseIAWorker.intervalMs);
+}
+
+function startAnalyseIAWorker(dataDir: string): void {
+  if (analyseIAWorker.running) return;
+  analyseIAWorker.running = true;
+  runOneAnalyseIABatch(dataDir).catch(() => {
+    /* erreur déjà logée dans lastError */
+  });
+}
+
+function stopAnalyseIAWorker(): void {
+  analyseIAWorker.running = false;
+  if (analyseIAWorker.timer) {
+    clearTimeout(analyseIAWorker.timer);
+    analyseIAWorker.timer = undefined;
   }
 }
 
@@ -440,6 +478,12 @@ function updateTaskProgress(task: TraitementTask, message: string): void {
   }
 }
 
+/** GET /api/consommation-api : agrégation par jour et par API (US-2.5). */
+export function handleGetConsommationApi(dataDir: string, res: ServerResponse): void {
+  const data = agregerConsommationParJourEtApi(dataDir);
+  sendJson(res, 200, data, { 'Cache-Control': 'no-store' });
+}
+
 /** GET /api/compte : ne jamais exposer l'email en clair (masqué pour affichage). */
 export function handleGetCompte(dataDir: string, res: ServerResponse): void {
   const compte = lireCompte(dataDir);
@@ -451,12 +495,18 @@ export function handleGetCompte(dataDir: string, res: ServerResponse): void {
   sendJson(res, 200, { ...rest, adresseEmail: adresseEmail ? maskEmail(adresseEmail) : '' });
 }
 
-/** GET /api/tableau-synthese-offres : tableau de synthèse par expéditeur et statut (US-1.7). */
+/** GET /api/tableau-synthese-offres : tableau de synthèse par expéditeur et statut (US-1.7, US-1.13). 2 appels : Sources puis Offres (champ lien FK + Statut). Ordre statuts + colonne Autre depuis le code. */
 export async function handleGetTableauSyntheseOffres(dataDir: string, res: ServerResponse): Promise<void> {
+  let statutsOrdre: string[] = [...STATUTS_OFFRES_AVEC_AUTRE];
   if (bddMockTableauSyntheseStore !== null) {
+    const lignes = enrichirPhasesImplementation(bddMockTableauSyntheseStore);
+    const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
     sendJson(res, 200, {
-      lignes: enrichirPhasesImplementation(bddMockTableauSyntheseStore),
-      statutsOrdre: [...STATUTS_OFFRES_AIRTABLE],
+      lignes,
+      statutsOrdre,
+      totauxColonnes: totaux.totalParColonne,
+      totalParLigne: totaux.totalParLigne,
+      totalGeneral: totaux.totalGeneral,
     });
     return;
   }
@@ -466,7 +516,7 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
       async listerSources() {
         return bddMockSourcesStore.map((s) => ({
           emailExpéditeur: s.emailExpéditeur,
-          algo: s.algo,
+          plugin: s.plugin,
           actif: s.actif,
         }));
       },
@@ -482,62 +532,84 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
           });
       },
     };
-    const lignes = await produireTableauSynthese(repo, STATUTS_OFFRES_AIRTABLE);
+    const lignes = await produireTableauSynthese(repo, STATUTS_OFFRES_AVEC_AUTRE);
+    const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
     sendJson(res, 200, {
       lignes: enrichirPhasesImplementation(lignes),
-      statutsOrdre: [...STATUTS_OFFRES_AIRTABLE],
+      statutsOrdre: [...STATUTS_OFFRES_AVEC_AUTRE],
+      totauxColonnes: totaux.totalParColonne,
+      totalParLigne: totaux.totalParLigne,
+      totalGeneral: totaux.totalGeneral,
     });
     return;
   }
   const airtable = lireAirTable(dataDir);
   if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.sources?.trim() || !airtable?.offres?.trim()) {
-    sendJson(res, 200, { lignes: [] }, { 'Cache-Control': 'no-store' });
+    sendJson(res, 200, {
+      lignes: [],
+      statutsOrdre: [...STATUTS_OFFRES_AVEC_AUTRE],
+      totauxColonnes: {},
+      totalParLigne: [],
+      totalGeneral: 0,
+    }, { 'Cache-Control': 'no-store' });
     return;
   }
   const baseId = normaliserBaseId(airtable.base.trim());
-  const driver = createAirtableReleveDriver({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    sourcesId: airtable.sources.trim(),
-    offresId: airtable.offres.trim(),
-  });
-  const sources = await driver.listerSources();
-  const sourceIdVersEmail = new Map(
-    sources.map((s) => [s.sourceId, s.emailExpéditeur.trim().toLowerCase()])
-  );
-  const offres = await listerOffresPourTableau({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    baseRefRaw: airtable.base.trim(),
-    offresId: airtable.offres.trim(),
-    sourceIdVersEmail,
-  });
-  const statutsOrdre = await lireOrdreStatutsOffresDepuisAirtable({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    offresId: airtable.offres.trim(),
-  });
-  const lignes = await produireTableauSynthese({
-    async listerSources() {
-      return sources.map((s) => ({
-        emailExpéditeur: s.emailExpéditeur,
-        algo: s.algo,
-        actif: s.actif,
-      }));
-    },
-    async listerOffres() {
-      return offres;
-    },
-  }, statutsOrdre);
-  sendJson(res, 200, { lignes: enrichirPhasesImplementation(lignes), statutsOrdre }, {
-    'Cache-Control': 'no-store',
-  });
+  const apiKey = airtable.apiKey.trim();
+  const offresId = airtable.offres.trim();
+  statutsOrdre = [...STATUTS_OFFRES_AVEC_AUTRE];
+
+  try {
+    const driver = createAirtableReleveDriver({
+      apiKey,
+      baseId,
+      sourcesId: airtable.sources.trim(),
+      offresId,
+    });
+    const sources = await driver.listerSources();
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: true });
+    const sourceIdVersEmail = new Map(
+      sources.map((s) => [s.sourceId, s.emailExpéditeur.trim().toLowerCase()])
+    );
+    const offres = await listerOffresPourTableau({
+      apiKey,
+      baseId,
+      offresId,
+      sourceIdVersEmail,
+    });
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: true });
+    const lignes = await produireTableauSynthese({
+      async listerSources() {
+        return sources.map((s) => ({
+          emailExpéditeur: s.emailExpéditeur,
+          plugin: s.plugin,
+          actif: s.actif,
+        }));
+      },
+      async listerOffres() {
+        return offres;
+      },
+    }, statutsOrdre);
+    const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
+    sendJson(res, 200, {
+      lignes: enrichirPhasesImplementation(lignes),
+      statutsOrdre,
+      totauxColonnes: totaux.totalParColonne,
+      totalParLigne: totaux.totalParLigne,
+      totalGeneral: totaux.totalGeneral,
+    }, {
+      'Cache-Control': 'no-store',
+    });
+  } catch (err) {
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: err instanceof Error ? err.message : String(err) });
+    throw err;
+  }
 }
 
-function normaliserAlgoPourPlugin(algo: string): SourceEmail['algo'] {
-  const a = (algo ?? '').trim();
-  if (a.toLowerCase() === 'linkedin') return 'Linkedin';
-  if (a === 'HelloWork' || a === 'Welcome to the Jungle' || a === 'Job That Make Sense' || a === 'cadreemploi' || a === 'Inconnu') return a as SourceEmail['algo'];
+function normaliserPluginValue(value: string): SourceEmail['plugin'] {
+  const v = (value ?? '').trim();
+  if (v.toLowerCase() === 'linkedin') return 'Linkedin';
+  if (v === 'HelloWork' || v === 'Welcome to the Jungle' || v === 'Job That Make Sense' || v === 'Cadre Emploi' || v === 'Inconnu') return v as SourceEmail['plugin'];
   return 'Inconnu';
 }
 
@@ -546,14 +618,14 @@ function enrichirPhasesImplementation(
 ): Array<LigneTableauSynthese & { phase1Implemented: boolean; phase2Implemented: boolean }> {
   const registry = createSourcePluginsRegistry();
   return lignes.map((ligne) => {
-    const algoRaw = ligne.algoEtape1 || ligne.algoEtape2 || 'Inconnu';
-    const algo = normaliserAlgoPourPlugin(algoRaw);
-    const pluginEtape1 = registry.getEmailPlugin(algo);
-    const pluginEtape2 = registry.getOfferFetchPluginByAlgo(algo);
+    const pluginRaw = ligne.pluginEtape1 || ligne.pluginEtape2 || 'Inconnu';
+    const plugin = normaliserPluginValue(pluginRaw);
+    const emailPlugin = registry.getEmailPlugin(plugin);
+    const offerPlugin = registry.getOfferFetchPlugin(plugin);
     return {
       ...ligne,
-      phase1Implemented: !!pluginEtape1,
-      phase2Implemented: !!pluginEtape2?.stage2Implemented,
+      phase1Implemented: !!emailPlugin,
+      phase2Implemented: !!offerPlugin?.stage2Implemented,
     };
   });
 }
@@ -573,6 +645,110 @@ export function handleGetAirtable(dataDir: string, res: ServerResponse): void {
     offres: airtable.offres,
     hasApiKey: !!(airtable.apiKey?.trim()),
   });
+}
+
+/** Retourne true si au moins une offre a du texte (pour afficher le bouton "Récupérer" en page Paramètres). US-2.4 */
+export async function getOffreTestHasOffre(dataDir: string): Promise<boolean> {
+  if (bddMockOffreTestStore !== null) {
+    return bddMockOffreTestStore.hasOffre;
+  }
+  const airtable = lireAirTable(dataDir);
+  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.offres?.trim()) {
+    return false;
+  }
+  const baseId = normaliserBaseId(airtable.base.trim());
+  const driver = createOffreTestDriverAirtable({
+    apiKey: airtable.apiKey.trim(),
+    baseId,
+    offresId: airtable.offres.trim(),
+  });
+  const texte = await recupererTexteOffreTest(driver);
+  return !!texte;
+}
+
+/** GET /api/offre-test : texte d'une offre pour préremplir le champ test ClaudeCode (US-2.4). */
+export async function handleGetOffreTest(dataDir: string, res: ServerResponse): Promise<void> {
+  if (bddMockOffreTestStore !== null) {
+    sendJson(res, 200, {
+      hasOffre: bddMockOffreTestStore.hasOffre,
+      ...(bddMockOffreTestStore.texte !== undefined && { texte: bddMockOffreTestStore.texte }),
+    });
+    return;
+  }
+  const airtable = lireAirTable(dataDir);
+  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.offres?.trim()) {
+    sendJson(res, 200, { hasOffre: false });
+    return;
+  }
+  const baseId = normaliserBaseId(airtable.base.trim());
+  try {
+    const driver = createOffreTestDriverAirtable({
+      apiKey: airtable.apiKey.trim(),
+      baseId,
+      offresId: airtable.offres.trim(),
+    });
+    const texte = await recupererTexteOffreTest(driver);
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: true });
+    sendJson(res, 200, {
+      hasOffre: !!texte,
+      ...(texte !== null && { texte }),
+    });
+  } catch (err) {
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: err instanceof Error ? err.message : String(err) });
+    throw err;
+  }
+}
+
+/** POST /api/test-claudecode : envoie le prompt (système + texte offre) à l'API Claude et retourne le résultat (US-2.4). US-2.5 : enregistre l'appel dans le log consommation API. */
+export async function handlePostTestClaudecode(
+  dataDir: string,
+  body: Record<string, unknown>,
+  res: ServerResponse
+): Promise<void> {
+  if (bddMockTestClaudecodeStore !== null) {
+    enregistrerAppel(dataDir, {
+      api: 'Claude',
+      succes: bddMockTestClaudecodeStore.ok,
+      codeErreur: bddMockTestClaudecodeStore.ok ? undefined : bddMockTestClaudecodeStore.code,
+    });
+    sendJson(res, 200, bddMockTestClaudecodeStore);
+    return;
+  }
+  const claudecode = lireClaudeCode(dataDir);
+  if (!claudecode?.hasApiKey) {
+    sendJson(res, 200, {
+      ok: false,
+      code: 'no_api_key',
+      message: 'Clé API ClaudeCode non configurée. Enregistrez une clé dans la section Configuration ClaudeCode.',
+    });
+    return;
+  }
+  const texteOffre = typeof body.texteOffre === 'string' ? body.texteOffre : '';
+  const parametrageIA = lireParametres(dataDir)?.parametrageIA ?? null;
+  const promptSystem = construirePromptComplet(dataDir, parametrageIA);
+  const messageUser = `Analyse cette offre et retourne le JSON demandé.\n\nContenu de l'offre :\n${texteOffre}`;
+  const result = await appelerClaudeCode(dataDir, promptSystem, messageUser);
+  enregistrerAppel(dataDir, {
+    api: 'Claude',
+    succes: result.ok,
+    codeErreur: result.ok ? undefined : result.code,
+  });
+  const payload: Record<string, unknown> = { ...result };
+  if (result.ok && typeof result.texte === 'string') {
+    const parsed = parseJsonReponseIA(result.texte);
+    if (parsed.ok) {
+      const conformite = validerConformiteJsonIA(parsed.json, parametrageIA);
+      payload.jsonValidation = {
+        valid: true,
+        json: parsed.json,
+        conform: conformite.conform,
+        ...(conformite.conform ? {} : { validationErrors: conformite.errors }),
+      };
+    } else {
+      payload.jsonValidation = { valid: false, error: parsed.error };
+    }
+  }
+  sendJson(res, 200, payload);
 }
 
 /**
@@ -741,42 +917,81 @@ export function handleGetAuditStatus(taskId: string, res: ServerResponse): void 
 }
 
 export function handleGetEnrichissementWorkerStatus(dataDir: string, res: ServerResponse): void {
-  void getEnrichissementBackgroundState(dataDir)
-    .then((etat) => {
-      if (etat.ok && etat.nbEligibles > 0 && !enrichissementWorker.running) {
-        startEnrichissementWorker(dataDir);
-      }
+  const running = enrichissementWorker.running || analyseIAWorker.running;
+  const payload = {
+    ok: true,
+    running,
+    enrichissement: {
+      running: enrichissementWorker.running,
+      intervalMs: enrichissementWorker.intervalMs,
+      lastRunAt: enrichissementWorker.lastRunAt,
+      lastError: enrichissementWorker.lastError,
+      lastResult: enrichissementWorker.lastResult,
+      currentProgress: enrichissementWorker.currentProgress,
+    },
+    analyseIA: {
+      running: analyseIAWorker.running,
+      intervalMs: analyseIAWorker.intervalMs,
+      lastRunAt: analyseIAWorker.lastRunAt,
+      lastError: analyseIAWorker.lastError,
+      lastResult: analyseIAWorker.lastResult,
+      currentProgress: analyseIAWorker.currentProgress,
+    },
+  };
+  Promise.all([
+    getEnrichissementBackgroundState(dataDir),
+    getAnalyseIABackgroundState(dataDir),
+  ])
+    .then(([etat, etatAnalyseIA]) => {
       sendJson(res, 200, {
-        ok: true,
-        running: enrichissementWorker.running,
-        intervalMs: enrichissementWorker.intervalMs,
-        lastRunAt: enrichissementWorker.lastRunAt,
-        lastError: enrichissementWorker.lastError,
-        lastResult: enrichissementWorker.lastResult,
-        currentProgress: enrichissementWorker.currentProgress,
+        ...payload,
         state: etat,
+        stateAnalyseIA: etatAnalyseIA.ok ? { nbCandidates: etatAnalyseIA.nbCandidates } : { error: etatAnalyseIA.message },
       });
     })
-    .catch((err) => {
-      sendJson(res, 200, {
-        ok: true,
-        running: enrichissementWorker.running,
-        intervalMs: enrichissementWorker.intervalMs,
-        lastRunAt: enrichissementWorker.lastRunAt,
-        lastError: err instanceof Error ? err.message : String(err),
-        lastResult: enrichissementWorker.lastResult,
-        currentProgress: enrichissementWorker.currentProgress,
-      });
+    .catch(() => {
+      sendJson(res, 200, payload);
     });
+}
+
+const WORKER_STATE_FILENAME = 'worker-running.json';
+
+function persistWorkerRunning(dataDir: string, running: boolean): void {
+  try {
+    writeFileSync(join(dataDir, WORKER_STATE_FILENAME), JSON.stringify({ running }));
+  } catch {
+    // ignorer (dossier data absent ou droits)
+  }
+}
+
+/** À appeler au démarrage du serveur : relance les workers si ils tournaient avant un redémarrage. */
+export function restoreWorkerStateIfNeeded(dataDir: string): void {
+  try {
+    const path = join(dataDir, WORKER_STATE_FILENAME);
+    if (!existsSync(path)) return;
+    const raw = readFileSync(path, 'utf8');
+    const data = JSON.parse(raw) as { running?: boolean };
+    if (data.running === true) {
+      startEnrichissementWorker(dataDir);
+      startAnalyseIAWorker(dataDir);
+      console.log('[Worker] État relancé après redémarrage du serveur.');
+    }
+  } catch {
+    // ignorer
+  }
 }
 
 export function handlePostEnrichissementWorkerStart(dataDir: string, res: ServerResponse): void {
   startEnrichissementWorker(dataDir);
+  startAnalyseIAWorker(dataDir);
+  persistWorkerRunning(dataDir, true);
   sendJson(res, 200, { ok: true, running: true });
 }
 
-export function handlePostEnrichissementWorkerStop(res: ServerResponse): void {
+export function handlePostEnrichissementWorkerStop(dataDir: string, res: ServerResponse): void {
   stopEnrichissementWorker();
+  stopAnalyseIAWorker();
+  persistWorkerRunning(dataDir, false);
   sendJson(res, 200, { ok: true, running: false });
 }
 
@@ -944,10 +1159,12 @@ export async function handlePostConfigurationAirtable(
         : airtableDriverParDefaut;
   try {
     const result = await executerConfigurationAirtable(apiKey, dataDir, driver);
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: result.ok, codeErreur: result.ok ? undefined : result.message });
     const status = libelleStatutConfigurationAirtable(result);
     sendJson(res, 200, { ok: result.ok, status });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: message });
     sendJson(res, 200, { ok: false, status: `Erreur avec AirTable : ${message}` });
   }
 }

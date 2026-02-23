@@ -391,7 +391,7 @@ describe('extractJobThatMakeSenseOffresFromHtml', () => {
 });
 
 describe('extractCadreemploiOffresFromHtml', () => {
-  it('US-1.12 étape 1: extrait des offres depuis les fixtures cadreemploi', () => {
+  it('US-1.12 étape 1: extrait des offres depuis les fixtures Cadre Emploi', () => {
     const fixturesDir = join(process.cwd(), 'tests', 'exemples', 'offres@alertes.cadremploi.fr');
     const html1 = readFileSync(join(fixturesDir, '01-email-1-of-3.html'), 'utf-8');
     const html2 = readFileSync(join(fixturesDir, '02-email-2-of-3.html'), 'utf-8');
@@ -402,25 +402,32 @@ describe('extractCadreemploiOffresFromHtml', () => {
       expect(offres.length).toBeGreaterThan(0);
       expect(offres[0].id).toBeDefined();
       expect(offres[0].url).toMatch(/^https?:\/\//i);
-      expect(offres[0].titre).toBeDefined();
+      expect(offres[0].id).toMatch(/^cadreemploi-[a-f0-9]{32}$/);
     }
   });
 
-  it('US-1.12: URL encodée décodable via query param -> URL décodée', () => {
-    const destination = encodeURIComponent('https://www.cadremploi.fr/emploi/detail_offre?offreId=987654');
-    const html = `<a href="https://r.emails.alertes.cadremploi.fr/tr/cl/abc?url=${destination}">Product Manager</a>`;
-    const offres = extractCadreemploiOffresFromHtml(html);
-    expect(offres).toHaveLength(1);
-    expect(offres[0].url).toBe('https://www.cadremploi.fr/emploi/detail_offre?offreId=987654');
-    expect(offres[0].id).toBe('987654');
-  });
-
-  it('US-1.12: URL non décodable -> fallback tracking conservé', () => {
-    const trackingUrl = 'https://r.emails.alertes.cadremploi.fr/tr/cl/no-decode-token';
-    const html = `<a href="${trackingUrl}">Lead Product Manager</a>`;
+  it('US-1.12: URL conservée telle quelle (même encodée) ; ID = MD5(titre|entreprise|ville|type)', () => {
+    const trackingUrl = 'https://r.emails.alertes.cadremploi.fr/tr/cl/abc?url=xxx';
+    const html = `<span>ACME • Paris • CDI</span><a href="${trackingUrl}">Voir l'offre</a>`;
     const offres = extractCadreemploiOffresFromHtml(html);
     expect(offres).toHaveLength(1);
     expect(offres[0].url).toBe(trackingUrl);
-    expect(offres[0].id).toMatch(/^cadreemploi-[a-f0-9]{16}$/);
+    expect(offres[0].id).toMatch(/^cadreemploi-[a-f0-9]{32}$/);
+  });
+
+  it('US-1.12: lien sans texte "Voir l\'offre" ignoré', () => {
+    const html = `<a href="https://r.emails.alertes.cadremploi.fr/tr/cl/token">Lead Product Manager</a>`;
+    const offres = extractCadreemploiOffresFromHtml(html);
+    expect(offres).toHaveLength(0);
+  });
+
+  it('US-1.12: seul le lien "Voir l\'offre" est extrait', () => {
+    const html = `
+      <a href="https://www.cadremploi.fr/emploi/detail_offre?offreId=111">Voir l'offre</a>
+      <a href="https://www.cadremploi.fr/accueil">Accueil</a>
+    `;
+    const offres = extractCadreemploiOffresFromHtml(html);
+    expect(offres).toHaveLength(1);
+    expect(offres[0].url).toContain('offreId=111');
   });
 });

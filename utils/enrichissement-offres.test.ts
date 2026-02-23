@@ -4,11 +4,17 @@
  */
 import {
   executerEnrichissementOffres,
-  STATUT_ANNONCE_A_RECUPERER,
+  STATUT_A_COMPLETER,
   STATUT_A_ANALYSER,
+  STATUT_EXPIRE,
+  STATUT_IGNORE,
 } from './enrichissement-offres.js';
 import { createCadreEmploiOfferFetchPlugin } from './cadreemploi-offer-fetch-plugin.js';
 import { createJobThatMakeSenseOfferFetchPlugin } from './job-that-make-sense-offer-fetch-plugin.js';
+
+jest.mock('./cadreemploi-page-fetcher.js', () => ({
+  fetchCadreEmploiPage: jest.fn().mockResolvedValue({ error: 'Playwright indisponible (test)' }),
+}));
 import { createWelcomeToTheJungleOfferFetchPlugin } from './welcome-to-the-jungle-offer-fetch-plugin.js';
 
 describe('executerEnrichissementOffres', () => {
@@ -32,7 +38,7 @@ describe('executerEnrichissementOffres', () => {
     const updateOffre = jest.fn().mockResolvedValue(undefined);
     const driver = {
       getOffresARecuperer: async () => [
-        { id: 'rec1', url: 'https://www.linkedin.com/jobs/view/1/', statut: STATUT_ANNONCE_A_RECUPERER },
+        { id: 'rec1', url: 'https://www.linkedin.com/jobs/view/1/', statut: STATUT_A_COMPLETER },
       ],
       updateOffre,
     };
@@ -66,7 +72,7 @@ describe('executerEnrichissementOffres', () => {
     const updateOffre = jest.fn().mockResolvedValue(undefined);
     const driver = {
       getOffresARecuperer: async () => [
-        { id: 'recTexteSeul', url: 'https://www.linkedin.com/jobs/view/4/', statut: STATUT_ANNONCE_A_RECUPERER },
+        { id: 'recTexteSeul', url: 'https://www.linkedin.com/jobs/view/4/', statut: STATUT_A_COMPLETER },
       ],
       updateOffre,
     };
@@ -91,7 +97,7 @@ describe('executerEnrichissementOffres', () => {
     const updateOffre = jest.fn().mockResolvedValue(undefined);
     const driver = {
       getOffresARecuperer: async () => [
-        { id: 'recSuffisant', url: 'https://www.hellowork.com/fr-fr/emplois/99.html', statut: STATUT_ANNONCE_A_RECUPERER },
+        { id: 'recSuffisant', url: 'https://www.hellowork.com/fr-fr/emplois/99.html', statut: STATUT_A_COMPLETER },
       ],
       updateOffre,
     };
@@ -124,7 +130,7 @@ describe('executerEnrichissementOffres', () => {
         {
           id: 'recMetaEtape1',
           url: 'https://www.hellowork.com/fr-fr/emplois/123.html',
-          statut: STATUT_ANNONCE_A_RECUPERER,
+          statut: STATUT_A_COMPLETER,
           poste: 'Product Owner',
           ville: 'Nantes',
         },
@@ -153,10 +159,10 @@ describe('executerEnrichissementOffres', () => {
   });
 
   it('ne met pas à jour le statut et consigne l’échec quand le fetcher échoue', async () => {
-    const updateOffre = jest.fn();
+    const updateOffre = jest.fn().mockResolvedValue(undefined);
     const driver = {
       getOffresARecuperer: async () => [
-        { id: 'rec2', url: 'https://www.linkedin.com/jobs/view/2/', statut: STATUT_ANNONCE_A_RECUPERER },
+        { id: 'rec2', url: 'https://www.linkedin.com/jobs/view/2/', statut: STATUT_A_COMPLETER },
       ],
       updateOffre,
     };
@@ -175,14 +181,51 @@ describe('executerEnrichissementOffres', () => {
         true
       );
     }
-    expect(updateOffre).not.toHaveBeenCalled();
+    expect(updateOffre).toHaveBeenCalledWith('rec2', { Statut: STATUT_IGNORE });
   });
 
-  it('conserve le statut Annonce à récupérer et trace quand le contenu est vide ou non exploitable', async () => {
-    const updateOffre = jest.fn();
+  it('passe le statut à Expiré quand le fetcher indique une offre expirée (ex. HelloWork 404/410)', async () => {
+    const updateOffre = jest.fn().mockResolvedValue(undefined);
     const driver = {
       getOffresARecuperer: async () => [
-        { id: 'rec3', url: 'https://www.linkedin.com/jobs/view/3/', statut: STATUT_ANNONCE_A_RECUPERER },
+        { id: 'recExpire', url: 'https://www.hellowork.com/fr-fr/emplois/999.html', statut: STATUT_A_COMPLETER },
+      ],
+      updateOffre,
+    };
+    const fetcher = {
+      recupererContenuOffre: async () => ({ ok: false as const, message: 'HTTP 404' }),
+    };
+    const r = await executerEnrichissementOffres({ driver, fetcher });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.nbEnrichies).toBe(0);
+      expect(r.nbEchecs).toBe(1);
+    }
+    expect(updateOffre).toHaveBeenCalledWith('recExpire', { Statut: STATUT_EXPIRE });
+  });
+
+  it('passe le statut à Expiré quand le fetcher retourne AgentIaJsonOffre introuvable (HelloWork)', async () => {
+    const updateOffre = jest.fn().mockResolvedValue(undefined);
+    const driver = {
+      getOffresARecuperer: async () => [
+        { id: 'recHw', url: 'https://www.hellowork.com/fr-fr/emplois/123.html', statut: STATUT_A_COMPLETER },
+      ],
+      updateOffre,
+    };
+    const fetcher = {
+      recupererContenuOffre: async () => ({ ok: false as const, message: 'AgentIaJsonOffre introuvable.' }),
+    };
+    const r = await executerEnrichissementOffres({ driver, fetcher });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.nbEchecs).toBe(1);
+    expect(updateOffre).toHaveBeenCalledWith('recHw', { Statut: STATUT_EXPIRE });
+  });
+
+  it('passe le statut à Ignoré quand le contenu est vide ou non exploitable (sort du pool)', async () => {
+    const updateOffre = jest.fn().mockResolvedValue(undefined);
+    const driver = {
+      getOffresARecuperer: async () => [
+        { id: 'rec3', url: 'https://www.linkedin.com/jobs/view/3/', statut: STATUT_A_COMPLETER },
       ],
       updateOffre,
     };
@@ -199,7 +242,27 @@ describe('executerEnrichissementOffres', () => {
       expect(r.nbEchecs).toBe(1);
       expect(r.messages.length).toBeGreaterThan(0);
     }
-    expect(updateOffre).not.toHaveBeenCalled();
+    expect(updateOffre).toHaveBeenCalledWith('rec3', { Statut: STATUT_IGNORE });
+  });
+
+  it('passe le statut à Ignoré quand le fetcher échoue sans indiquer expiré (anti-crawler, timeout)', async () => {
+    const updateOffre = jest.fn().mockResolvedValue(undefined);
+    const driver = {
+      getOffresARecuperer: async () => [
+        { id: 'recFail', url: 'https://example.com/job/1', statut: STATUT_A_COMPLETER },
+      ],
+      updateOffre,
+    };
+    const fetcher = {
+      recupererContenuOffre: async () => ({
+        ok: false as const,
+        message: 'URL inaccessible (anti-crawler) HTTP 403',
+      }),
+    };
+    const r = await executerEnrichissementOffres({ driver, fetcher });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.nbEchecs).toBe(1);
+    expect(updateOffre).toHaveBeenCalledWith('recFail', { Statut: STATUT_IGNORE });
   });
 
   it('US-1.10 étape 2 worker WTTJ: renseigne "Texte de l\'offre" et passe à "À analyser" si données suffisantes', async () => {
@@ -222,7 +285,7 @@ describe('executerEnrichissementOffres', () => {
           {
             id: 'recWttj1',
             url: 'https://www.welcometothejungle.com/fr/companies/acme/jobs/product-manager_paris',
-            statut: STATUT_ANNONCE_A_RECUPERER,
+            statut: STATUT_A_COMPLETER,
           },
         ],
         updateOffre,
@@ -255,7 +318,7 @@ describe('executerEnrichissementOffres', () => {
           {
             id: 'recWttj2',
             url: 'https://www.welcometothejungle.com/fr/companies/acme/jobs/product-manager_paris',
-            statut: STATUT_ANNONCE_A_RECUPERER,
+            statut: STATUT_A_COMPLETER,
           },
         ],
         updateOffre,
@@ -267,7 +330,7 @@ describe('executerEnrichissementOffres', () => {
         expect(r.nbEchecs).toBe(1);
         expect(r.messages.some((m) => /anti-crawler|inaccessible|échec/i.test(m))).toBe(true);
       }
-      expect(updateOffre).not.toHaveBeenCalled();
+      expect(updateOffre).toHaveBeenCalledWith('recWttj2', { Statut: STATUT_IGNORE });
     } finally {
       globalThis.fetch = globalFetch;
     }
@@ -285,7 +348,7 @@ describe('executerEnrichissementOffres', () => {
       const updateOffre = jest.fn().mockResolvedValue(undefined);
       const driver = {
         getOffresARecuperer: async () => [
-          { id: 'recJtms1', url: 'https://jobs.makesense.org/jobs/abc123', statut: STATUT_ANNONCE_A_RECUPERER },
+          { id: 'recJtms1', url: 'https://jobs.makesense.org/jobs/abc123', statut: STATUT_A_COMPLETER },
         ],
         updateOffre,
       };
@@ -303,7 +366,7 @@ describe('executerEnrichissementOffres', () => {
     }
   });
 
-  it('US-1.12 étape 2 worker cadreemploi: URL inaccessible/anti-crawler -> pas de transition', async () => {
+  it('US-1.12 étape 2 worker Cadre Emploi: URL inaccessible/anti-crawler -> passage à Ignoré (sort du pool)', async () => {
     const plugin = createCadreEmploiOfferFetchPlugin();
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 429 });
@@ -314,7 +377,7 @@ describe('executerEnrichissementOffres', () => {
           {
             id: 'recCe1',
             url: 'https://www.cadremploi.fr/emploi/detail_offre?offreId=1',
-            statut: STATUT_ANNONCE_A_RECUPERER,
+            statut: STATUT_A_COMPLETER,
           },
         ],
         updateOffre,
@@ -325,7 +388,7 @@ describe('executerEnrichissementOffres', () => {
         expect(r.nbEnrichies).toBe(0);
         expect(r.nbEchecs).toBe(1);
       }
-      expect(updateOffre).not.toHaveBeenCalled();
+      expect(updateOffre).toHaveBeenCalledWith('recCe1', { Statut: STATUT_IGNORE });
     } finally {
       globalThis.fetch = globalFetch;
     }

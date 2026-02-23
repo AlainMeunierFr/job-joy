@@ -3,14 +3,14 @@
  * Construit un tableau croisé dynamique : une ligne par expéditeur, colonnes statuts.
  */
 import { STATUTS_OFFRES_AIRTABLE } from './statuts-offres-airtable.js';
-import type { AlgoSource } from './gouvernance-sources-emails.js';
+import type { PluginSource } from './gouvernance-sources-emails.js';
 
-/** Ordre de tri des lignes : algo étape 2 puis algo étape 1 (CA3 BDD). */
-const ORDRE_TRI_ALGO: AlgoSource[] = ['HelloWork', 'Linkedin', 'Inconnu'];
+/** Ordre de tri des lignes : plugin étape 2 puis plugin étape 1 (CA3 BDD). */
+const ORDRE_TRI_PLUGIN: PluginSource[] = ['HelloWork', 'Linkedin', 'Inconnu'];
 
 export interface SourcePourTableau {
   emailExpéditeur: string;
-  algo: AlgoSource;
+  plugin: PluginSource;
   actif: boolean;
 }
 
@@ -21,10 +21,17 @@ export interface OffrePourTableau {
 
 export interface LigneTableauSynthese {
   emailExpéditeur: string;
-  algoEtape1: string;
-  algoEtape2: string;
+  pluginEtape1: string;
+  pluginEtape2: string;
   actif: boolean;
   statuts: Record<string, number>;
+}
+
+/** Totaux du tableau de synthèse (US-1.13) : par ligne, par colonne (statut), et général. */
+export interface TotauxTableauSynthese {
+  totalParLigne: number[];
+  totalParColonne: Record<string, number>;
+  totalGeneral: number;
 }
 
 export interface OptionsTableauSynthese {
@@ -76,30 +83,63 @@ export function construireTableauSynthese(options: OptionsTableauSynthese): Lign
       compteursParExpediteur.set(key, statuts);
     }
     const statut = offre.statut?.trim() || '';
-    if (statut && statuts[statut] !== undefined) statuts[statut] += 1;
+    if (!statut) continue;
+    if (statuts[statut] !== undefined) {
+      statuts[statut] += 1;
+    } else if (statuts['Autre'] !== undefined) {
+      statuts['Autre'] += 1;
+    }
   }
 
   const lignes = Array.from(compteursParExpediteur.entries()).map(([key, statuts]) => {
     const source = indexSources.get(key)!;
     return {
       emailExpéditeur: source.emailExpéditeur,
-      algoEtape1: source.algo,
-      algoEtape2: source.algo,
+      pluginEtape1: source.plugin,
+      pluginEtape2: source.plugin,
       actif: source.actif,
       statuts: { ...statuts },
     };
   });
 
-  const indexOfAlgo = (a: string) => {
-    const i = ORDRE_TRI_ALGO.indexOf(a as AlgoSource);
-    return i >= 0 ? i : ORDRE_TRI_ALGO.length;
+  const indexOfPlugin = (a: string) => {
+    const i = ORDRE_TRI_PLUGIN.indexOf(a as PluginSource);
+    return i >= 0 ? i : ORDRE_TRI_PLUGIN.length;
   };
   lignes.sort((a, b) => {
-    const cmp2 = indexOfAlgo(a.algoEtape2) - indexOfAlgo(b.algoEtape2);
+    const cmp2 = indexOfPlugin(a.pluginEtape2) - indexOfPlugin(b.pluginEtape2);
     if (cmp2 !== 0) return cmp2;
-    const cmp1 = indexOfAlgo(a.algoEtape1) - indexOfAlgo(b.algoEtape1);
+    const cmp1 = indexOfPlugin(a.pluginEtape1) - indexOfPlugin(b.pluginEtape1);
     if (cmp1 !== 0) return cmp1;
     return a.emailExpéditeur.localeCompare(b.emailExpéditeur);
   });
   return lignes;
+}
+
+/**
+ * Calcule les totaux du tableau de synthèse (US-1.13).
+ * - totalParLigne[i] = somme des statuts de la ligne i
+ * - totalParColonne[statut] = somme des valeurs de ce statut sur toutes les lignes
+ * - totalGeneral = somme de tous les totalParLigne (ou des totalParColonne)
+ */
+export function calculerTotauxTableauSynthese(
+  lignes: Array<{ statuts: Record<string, number> }>,
+  statutsOrdre: readonly string[]
+): TotauxTableauSynthese {
+  const totalParColonne: Record<string, number> = {};
+  for (const s of statutsOrdre) totalParColonne[s] = 0;
+
+  const totalParLigne: number[] = [];
+  for (const ligne of lignes) {
+    let sumLigne = 0;
+    for (const s of statutsOrdre) {
+      const v = ligne.statuts[s] ?? 0;
+      totalParColonne[s] += v;
+      sumLigne += v;
+    }
+    totalParLigne.push(sumLigne);
+  }
+
+  const totalGeneral = totalParLigne.reduce((a, b) => a + b, 0);
+  return { totalParLigne, totalParColonne, totalGeneral };
 }

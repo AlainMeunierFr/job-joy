@@ -1,8 +1,11 @@
 /**
  * Tests US-1.7 : tableau de synthèse des offres.
+ * US-1.13 : totaux (colonne et ligne).
  */
+import { STATUTS_OFFRES_AIRTABLE, STATUTS_OFFRES_AVEC_AUTRE } from './statuts-offres-airtable.js';
 import {
   construireTableauSynthese,
+  calculerTotauxTableauSynthese,
   produireTableauSynthese,
   type TableauSyntheseRepository,
 } from './tableau-synthese-offres.js';
@@ -10,7 +13,7 @@ import {
 describe('tableau-synthese-offres (US-1.7)', () => {
   it('agrégation vide : aucune offre => aucune ligne retournée', () => {
     const sources = [
-      { emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin' as const, actif: true },
+      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
     ];
     const offres: Array<{ emailExpéditeur: string; statut: string }> = [];
     const result = construireTableauSynthese({ sources, offres });
@@ -19,72 +22,75 @@ describe('tableau-synthese-offres (US-1.7)', () => {
 
   it('1 offre / 1 source : ligne avec colonnes source + colonnes statuts complètes (0 sauf statut concerné)', () => {
     const sources = [
-      { emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin' as const, actif: true },
+      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
     ];
     const offres = [{ emailExpéditeur: 'jobs@linkedin.com', statut: 'À analyser' }];
     const result = construireTableauSynthese({ sources, offres });
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
       emailExpéditeur: 'jobs@linkedin.com',
-      algoEtape1: 'Linkedin',
-      algoEtape2: 'Linkedin',
+      pluginEtape1: 'Linkedin',
+      pluginEtape2: 'Linkedin',
       actif: true,
     });
     expect(result[0].statuts).toEqual({
-      'Annonce à récupérer': 0,
-      'À traiter': 0,
-      'Traité': 0,
-      'Ignoré': 0,
+      'A compléter': 0,
       'À analyser': 1,
+      'À traiter': 0,
+      Candidaté: 0,
+      Refusé: 0,
+      Traité: 0,
+      Ignoré: 0,
+      Expiré: 0,
     });
   });
 
   it('plusieurs offres même source : incrément correct des compteurs par statut', () => {
     const sources = [
-      { emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin' as const, actif: true },
+      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
     ];
     const offres = [
-      { emailExpéditeur: 'jobs@linkedin.com', statut: 'Annonce à récupérer' },
-      { emailExpéditeur: 'jobs@linkedin.com', statut: 'Annonce à récupérer' },
+      { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
+      { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
       { emailExpéditeur: 'jobs@linkedin.com', statut: 'À analyser' },
     ];
     const result = construireTableauSynthese({ sources, offres });
     expect(result).toHaveLength(1);
-    expect(result[0].statuts['Annonce à récupérer']).toBe(2);
+    expect(result[0].statuts['A compléter']).toBe(2);
     expect(result[0].statuts['À analyser']).toBe(1);
     expect(result[0].statuts['À traiter']).toBe(0);
   });
 
   it('plusieurs sources : une ligne par expéditeur avec matrice complète des statuts', () => {
     const sources = [
-      { emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin' as const, actif: true },
-      { emailExpéditeur: 'notification@emails.hellowork.com', algo: 'HelloWork' as const, actif: true },
+      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
+      { emailExpéditeur: 'notification@emails.hellowork.com', plugin: 'HelloWork' as const, actif: true },
     ];
     const offres = [
-      { emailExpéditeur: 'jobs@linkedin.com', statut: 'Annonce à récupérer' },
-      { emailExpéditeur: 'jobs@linkedin.com', statut: 'Annonce à récupérer' },
+      { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
+      { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
       { emailExpéditeur: 'jobs@linkedin.com', statut: 'À analyser' },
-      { emailExpéditeur: 'notification@emails.hellowork.com', statut: 'Annonce à récupérer' },
+      { emailExpéditeur: 'notification@emails.hellowork.com', statut: 'A compléter' },
     ];
     const result = construireTableauSynthese({ sources, offres });
     expect(result).toHaveLength(2);
 
     const linkedin = result.find((r) => r.emailExpéditeur === 'jobs@linkedin.com');
     expect(linkedin).toBeDefined();
-    expect(linkedin?.algoEtape1).toBe('Linkedin');
-    expect(linkedin?.statuts['Annonce à récupérer']).toBe(2);
+    expect(linkedin?.pluginEtape1).toBe('Linkedin');
+    expect(linkedin?.statuts['A compléter']).toBe(2);
     expect(linkedin?.statuts['À analyser']).toBe(1);
 
     const hellowork = result.find((r) => r.emailExpéditeur === 'notification@emails.hellowork.com');
     expect(hellowork).toBeDefined();
-    expect(hellowork?.algoEtape1).toBe('HelloWork');
-    expect(hellowork?.statuts['Annonce à récupérer']).toBe(1);
+    expect(hellowork?.pluginEtape1).toBe('HelloWork');
+    expect(hellowork?.statuts['A compléter']).toBe(1);
   });
 
   it('filtrage : une source sans offre n\'apparaît pas', () => {
     const sources = [
-      { emailExpéditeur: 'avec-offres@test.com', algo: 'HelloWork' as const, actif: true },
-      { emailExpéditeur: 'sans-offres@test.com', algo: 'Inconnu' as const, actif: false },
+      { emailExpéditeur: 'avec-offres@test.com', plugin: 'HelloWork' as const, actif: true },
+      { emailExpéditeur: 'sans-offres@test.com', plugin: 'Inconnu' as const, actif: false },
     ];
     const offres = [
       { emailExpéditeur: 'avec-offres@test.com', statut: 'À traiter' },
@@ -95,11 +101,25 @@ describe('tableau-synthese-offres (US-1.7)', () => {
     expect(result.find((r) => r.emailExpéditeur === 'sans-offres@test.com')).toBeUndefined();
   });
 
-  it('tri : ordre des lignes par algo étape 2 puis algo étape 1', () => {
+  it('statut hors énum : compté dans Autre quand statutsOrdre inclut Autre', () => {
     const sources = [
-      { emailExpéditeur: 'a@test.com', algo: 'HelloWork' as const, actif: true },
-      { emailExpéditeur: 'b@test.com', algo: 'Linkedin' as const, actif: true },
-      { emailExpéditeur: 'c@test.com', algo: 'Inconnu' as const, actif: true },
+      { emailExpéditeur: 'x@test.com', plugin: 'Linkedin' as const, actif: true },
+    ];
+    const offres = [
+      { emailExpéditeur: 'x@test.com', statut: 'Custom statut' },
+      { emailExpéditeur: 'x@test.com', statut: 'À traiter' },
+    ];
+    const result = construireTableauSynthese({ sources, offres, statutsOrdre: STATUTS_OFFRES_AVEC_AUTRE });
+    expect(result).toHaveLength(1);
+    expect(result[0].statuts['À traiter']).toBe(1);
+    expect(result[0].statuts['Autre']).toBe(1);
+  });
+
+  it('tri : ordre des lignes par plugin étape 2 puis plugin étape 1', () => {
+    const sources = [
+      { emailExpéditeur: 'a@test.com', plugin: 'HelloWork' as const, actif: true },
+      { emailExpéditeur: 'b@test.com', plugin: 'Linkedin' as const, actif: true },
+      { emailExpéditeur: 'c@test.com', plugin: 'Inconnu' as const, actif: true },
     ];
     const offres = [
       { emailExpéditeur: 'c@test.com', statut: 'À traiter' },
@@ -119,36 +139,36 @@ describe('produireTableauSynthese (intégration utils)', () => {
     const repo: TableauSyntheseRepository = {
       async listerSources() {
         return [
-          { emailExpéditeur: 'jobs@linkedin.com', algo: 'Linkedin', actif: true },
-          { emailExpéditeur: 'notification@emails.hellowork.com', algo: 'HelloWork', actif: true },
+          { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin', actif: true },
+          { emailExpéditeur: 'notification@emails.hellowork.com', plugin: 'HelloWork', actif: true },
         ];
       },
       async listerOffres() {
         return [
-          { emailExpéditeur: 'jobs@linkedin.com', statut: 'Annonce à récupérer' },
-          { emailExpéditeur: 'jobs@linkedin.com', statut: 'Annonce à récupérer' },
+          { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
+          { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
           { emailExpéditeur: 'jobs@linkedin.com', statut: 'À analyser' },
-          { emailExpéditeur: 'notification@emails.hellowork.com', statut: 'Annonce à récupérer' },
+          { emailExpéditeur: 'notification@emails.hellowork.com', statut: 'A compléter' },
         ];
       },
     };
     const tableau = await produireTableauSynthese(repo);
     expect(tableau).toHaveLength(2);
     const linkedin = tableau.find((r) => r.emailExpéditeur === 'jobs@linkedin.com');
-    expect(linkedin?.statuts['Annonce à récupérer']).toBe(2);
+    expect(linkedin?.statuts['A compléter']).toBe(2);
     expect(linkedin?.statuts['À analyser']).toBe(1);
     const hellowork = tableau.find((r) => r.emailExpéditeur === 'notification@emails.hellowork.com');
-    expect(hellowork?.statuts['Annonce à récupérer']).toBe(1);
+    expect(hellowork?.statuts['A compléter']).toBe(1);
     expect(tableau[0].emailExpéditeur).toBe('notification@emails.hellowork.com');
     expect(tableau[1].emailExpéditeur).toBe('jobs@linkedin.com');
   });
 
-  it('tri place les algo inconnus à la fin', async () => {
+  it('tri place les plugin inconnus à la fin', async () => {
     const repo: TableauSyntheseRepository = {
       async listerSources() {
         return [
-          { emailExpéditeur: 'x@test.com', algo: 'Autre' as never, actif: true },
-          { emailExpéditeur: 'a@test.com', algo: 'HelloWork', actif: true },
+          { emailExpéditeur: 'x@test.com', plugin: 'Autre' as never, actif: true },
+          { emailExpéditeur: 'a@test.com', plugin: 'HelloWork', actif: true },
         ];
       },
       async listerOffres() {
@@ -161,5 +181,102 @@ describe('produireTableauSynthese (intégration utils)', () => {
     const tableau = await produireTableauSynthese(repo);
     expect(tableau[0].emailExpéditeur).toBe('a@test.com');
     expect(tableau[1].emailExpéditeur).toBe('x@test.com');
+  });
+});
+
+describe('calculerTotauxTableauSynthese (US-1.13)', () => {
+  const statutsOrdre = ['A compléter', 'À traiter', 'Traité', 'Ignoré', 'À analyser'];
+
+  it('0 ligne : totalParLigne vide, totalParColonne à 0, totalGeneral 0', () => {
+    const lignes: Array<{ statuts: Record<string, number> }> = [];
+    const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
+    expect(totaux.totalParLigne).toEqual([]);
+    expect(totaux.totalParColonne).toEqual({
+      'A compléter': 0,
+      'À traiter': 0,
+      Traité: 0,
+      Ignoré: 0,
+      'À analyser': 0,
+    });
+    expect(totaux.totalGeneral).toBe(0);
+  });
+
+  it('1 ligne : totalParLigne = [somme ligne], totalParColonne et totalGeneral cohérents', () => {
+    const lignes: Array<{ statuts: Record<string, number> }> = [
+      {
+        statuts: {
+          'A compléter': 2,
+          'À traiter': 1,
+          Traité: 0,
+          Ignoré: 0,
+          'À analyser': 1,
+        },
+      },
+    ];
+    const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
+    expect(totaux.totalParLigne).toEqual([4]);
+    expect(totaux.totalParColonne).toEqual({
+      'A compléter': 2,
+      'À traiter': 1,
+      Traité: 0,
+      Ignoré: 0,
+      'À analyser': 1,
+    });
+    expect(totaux.totalGeneral).toBe(4);
+  });
+
+  it('2 lignes avec statuts variés : totaux par ligne, par colonne et général', () => {
+    const lignes: Array<{ statuts: Record<string, number> }> = [
+      {
+        statuts: {
+          'A compléter': 2,
+          'À traiter': 1,
+          Traité: 0,
+          Ignoré: 0,
+          'À analyser': 1,
+        },
+      },
+      {
+        statuts: {
+          'A compléter': 1,
+          'À traiter': 0,
+          Traité: 0,
+          Ignoré: 0,
+          'À analyser': 0,
+        },
+      },
+    ];
+    const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
+    expect(totaux.totalParLigne).toEqual([4, 1]);
+    expect(totaux.totalParColonne).toEqual({
+      'A compléter': 3,
+      'À traiter': 1,
+      Traité: 0,
+      Ignoré: 0,
+      'À analyser': 1,
+    });
+    expect(totaux.totalGeneral).toBe(5);
+  });
+
+  it('avec lignes de construireTableauSynthese : totaux cohérents et totalGeneral = somme totalParColonne', () => {
+    const sources = [
+      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
+      { emailExpéditeur: 'notification@emails.hellowork.com', plugin: 'HelloWork' as const, actif: true },
+    ];
+    const offres = [
+      { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
+      { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
+      { emailExpéditeur: 'jobs@linkedin.com', statut: 'À traiter' },
+      { emailExpéditeur: 'jobs@linkedin.com', statut: 'À analyser' },
+      { emailExpéditeur: 'notification@emails.hellowork.com', statut: 'A compléter' },
+    ];
+    const lignes = construireTableauSynthese({ sources, offres, statutsOrdre: [...STATUTS_OFFRES_AIRTABLE] });
+    const totaux = calculerTotauxTableauSynthese(lignes, STATUTS_OFFRES_AIRTABLE);
+    expect(totaux.totalParLigne).toHaveLength(2);
+    expect(totaux.totalParLigne).toContain(4);
+    expect(totaux.totalParLigne).toContain(1);
+    const sommeColonnes = Object.values(totaux.totalParColonne).reduce((a, b) => a + b, 0);
+    expect(totaux.totalGeneral).toBe(sommeColonnes);
+    expect(totaux.totalGeneral).toBe(5);
   });
 });

@@ -8,7 +8,7 @@ import type { ResultatCreerOffres } from '../types/offres-releve.js';
 import type { ResultatReleve } from '../types/offres-releve.js';
 import { extractOffresFromHtml } from './extraction-offres-email.js';
 
-export const STATUT_ANNONCE_A_RECUPERER = 'Annonce à récupérer';
+export const STATUT_A_COMPLETER = 'A compléter';
 
 /** Port : récupérer la source LinkedIn et créer des lignes Offres (upsert : créées + mises à jour). */
 export interface RelèveOffresDriver {
@@ -120,7 +120,7 @@ export async function executerReleveOffresLinkedIn(
         url: o.url,
         dateAjout: now,
         dateOffre: email.receivedAtIso ?? now,
-        statut: STATUT_ANNONCE_A_RECUPERER,
+        statut: STATUT_A_COMPLETER,
         poste: o.titre,
         entreprise: o.entreprise,
         lieu: o.lieu,

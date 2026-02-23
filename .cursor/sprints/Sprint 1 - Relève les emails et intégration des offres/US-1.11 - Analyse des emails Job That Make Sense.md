@@ -11,8 +11,8 @@
 - **CA1 - Audit de la source Job That Make Sense** :
   - Le matching de l'expediteur se fait en comparaison exacte insensible a la casse.
   - Un expediteur proche mais non exact (exemple : variante avec +alias) n'est pas reconnu comme Job That Make Sense.
-  - Si la source n'existe pas, elle est creee avec `algo = "Job That Make Sense"` et `actif = true`.
-  - Si la source existe deja, elle est mise a jour pour garantir `algo = "Job That Make Sense"` et `actif = true`.
+  - Si la source n'existe pas, elle est creee avec `plugin = "Job That Make Sense"` et `actif = true`.
+  - Si la source existe deja, elle est mise a jour pour garantir `plugin = "Job That Make Sense"` et `actif = true`.
 
 - **CA2 - Etape 1 plugin email (parsing et creation des offres)** :
   - Le plugin email Job That Make Sense est branche dans le registry de plugins de l'etape 1.

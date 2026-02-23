@@ -19,6 +19,15 @@
       "agent": "Lead-dev",
       "statut": "done",
       "updatedAt": "2026-02-22T22:15:00.000Z"
+    },
+    {
+      "laneId": "C",
+      "usId": "US-2.2",
+      "titre": "Paramétrage des rédhibitoires (thème 3)",
+      "etape": "BDD",
+      "agent": "BDD",
+      "statut": "active",
+      "updatedAt": "2026-02-22T23:00:00.000Z"
     }
   ]
 }

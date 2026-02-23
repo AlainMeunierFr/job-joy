@@ -1,5 +1,6 @@
 import type { ResultatEnrichissementOffre } from '../types/offres-releve.js';
 import type { SourceOfferFetchPlugin } from './source-plugins.js';
+import { BROWSER_LIKE_HEADERS } from './fetch-offre-headers.js';
 
 function decodeHtmlEntities(input: string): string {
   return input
@@ -61,7 +62,7 @@ function extractMeta(html: string, property: string): string | undefined {
 
 export function createJobThatMakeSenseOfferFetchPlugin(): SourceOfferFetchPlugin {
   return {
-    algo: 'Job That Make Sense',
+    plugin: 'Job That Make Sense',
     stage2Implemented: true,
     async recupererContenuOffre(url: string): Promise<ResultatEnrichissementOffre> {
       const u = (url ?? '').trim();
@@ -69,9 +70,7 @@ export function createJobThatMakeSenseOfferFetchPlugin(): SourceOfferFetchPlugin
 
       try {
         const res = await fetch(u, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 analyse-offres/jtms',
-          },
+          headers: BROWSER_LIKE_HEADERS,
         });
         if (!res.ok) {
           const antiCrawler = res.status === 403 || res.status === 429;

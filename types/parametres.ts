@@ -44,6 +44,20 @@ export interface GmailParams {
   /** À venir. */
 }
 
+/** Section ClaudeCode dans parametres.json (API Key pour ClaudeCode, jamais persistée en clair). */
+export interface ClaudeCode {
+  /** Clé API en clair (en mémoire uniquement, après déchiffrement). Ne pas écrire en JSON. */
+  apiKey?: string;
+  /** Clé API chiffrée (AES-256-GCM) pour persistance. */
+  apiKeyChiffre?: string;
+}
+
+/** Résultat de lecture ClaudeCode (avec indicateur hasApiKey pour savoir si une clé est configurée sans l'exposer). */
+export interface ClaudeCodeLu extends ClaudeCode {
+  /** True si une clé est enregistrée (apiKeyChiffre présente), sans exposer la valeur. */
+  hasApiKey: boolean;
+}
+
 /** Section AirTable dans parametres.json (bases Free : créer la base à la main, coller l’URL). */
 export interface AirTable {
   /** Clé API en clair (en mémoire uniquement, après déchiffrement). Ne pas écrire en JSON. */
@@ -60,9 +74,49 @@ export interface AirTable {
   offres?: string;
 }
 
+/** Une paire (titre saisissable, description) pour un critère rédhibitoire. */
+export interface Rehibitoire {
+  titre: string;
+  description: string;
+}
+
+/** Une paire (titre saisissable, attente) pour un score optionnel. */
+export interface ScoreOptionnel {
+  titre: string;
+  attente: string;
+}
+
+/** Scores incontournables : 4 zones texte, titres fixes. */
+export interface ScoresIncontournables {
+  localisation: string;
+  salaire: string;
+  culture: string;
+  qualiteOffre: string;
+}
+
+/** Section Paramétrage IA dans parametres.json (rédhibitoires, scores, autres ressources). */
+export interface ParametrageIA {
+  /** Jusqu'à 4 paires (titre, description) pour critères rédhibitoires. */
+  rehibitoires: Rehibitoire[];
+  /** 4 zones texte : localisation, salaire, culture, qualiteOffre. */
+  scoresIncontournables: ScoresIncontournables;
+  /** Jusqu'à 4 paires (titre, attente) pour scores optionnels. */
+  scoresOptionnels: ScoreOptionnel[];
+  /** Zone texte : chemin répertoire ou autres ressources. */
+  autresRessources: string;
+}
+
 /** Fichier parametres.json (racine). */
 export interface ParametresPersistes {
   connexionBoiteEmail: ConnexionBoiteEmail;
   /** Section configuration Airtable (optionnelle). */
   airtable?: AirTable;
+  /** Section Paramétrage IA (optionnelle). */
+  parametrageIA?: ParametrageIA;
+  /** Section ClaudeCode (optionnelle). */
+  claudecode?: ClaudeCode;
+  /** Partie modifiable du prompt IA (éditable par l'utilisateur, ex. promptIA dans JSON). */
+  promptIA?: string;
+  /** Mot de passe Cadremploi (POC : en clair). Login = adresse email de la BAL. */
+  motDePasseCadreEmploi?: string;
 }

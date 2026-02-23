@@ -24,6 +24,6 @@
 
 ---
 
-**Note** : Ce tableau est distinct du « tableau de synthèse des emails » (US-1.5) qui agrège les emails par expéditeur (nbEmails, algo, actif). Ici, on agrège les **offres** par expéditeur et par statut.
+**Note** : Ce tableau est distinct du « tableau de synthèse des emails » (US-1.5) qui agrège les emails par expéditeur (nbEmails, plugin, actif). Ici, on agrège les **offres** par expéditeur et par statut.
 
 *Référence : Sprint 1 - Relève les emails ; objectif : vision synthétique des offres sur le tableau de bord.*

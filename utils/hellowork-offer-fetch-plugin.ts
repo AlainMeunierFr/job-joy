@@ -1,5 +1,6 @@
 import type { ResultatEnrichissementOffre } from '../types/offres-releve.js';
 import type { SourceOfferFetchPlugin } from './source-plugins.js';
+import { BROWSER_LIKE_HEADERS } from './fetch-offre-headers.js';
 
 function extractFirstString(obj: Record<string, unknown>, keys: string[]): string | undefined {
   for (const key of keys) {
@@ -21,7 +22,7 @@ function extractAgentIaScriptContent(html: string): string | undefined {
 
 export function createHelloworkOfferFetchPlugin(): SourceOfferFetchPlugin {
   return {
-    algo: 'HelloWork',
+    plugin: 'HelloWork',
     stage2Implemented: true,
     async recupererContenuOffre(url: string): Promise<ResultatEnrichissementOffre> {
       const u = (url ?? '').trim();
@@ -30,9 +31,7 @@ export function createHelloworkOfferFetchPlugin(): SourceOfferFetchPlugin {
       }
       try {
         const res = await fetch(u, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 analyse-offres/hellowork',
-          },
+          headers: BROWSER_LIKE_HEADERS,
         });
         if (!res.ok) {
           return { ok: false, message: `HTTP ${res.status}` };

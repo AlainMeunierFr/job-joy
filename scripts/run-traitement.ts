@@ -11,9 +11,9 @@ import { createLecteurEmailsImap } from '../utils/lecteur-emails-imap.js';
 import { createLecteurEmailsGraph } from '../utils/lecteur-emails-graph.js';
 import { createLecteurEmailsMock } from '../utils/lecteur-emails-mock.js';
 import { executerReleveOffresLinkedIn } from '../utils/relève-offres-linkedin.js';
-import { STATUT_ANNONCE_A_RECUPERER } from '../utils/relève-offres-linkedin.js';
+import { STATUT_A_COMPLETER } from '../utils/relève-offres-linkedin.js';
 import { traiterEmailsSelonStatutSource, type SourceEmail } from '../utils/gouvernance-sources-emails.js';
-import type { AlgoSource } from '../utils/gouvernance-sources-emails.js';
+import type { PluginSource } from '../utils/gouvernance-sources-emails.js';
 import { normaliserBaseId } from '../utils/airtable-url.js';
 import { getValidAccessToken } from '../utils/auth-microsoft.js';
 import { createAutoFixtureHook } from './email-fixtures.js';
@@ -41,7 +41,7 @@ type EmailRuntime = { id: string; from: string; html: string; receivedAtIso?: st
 interface DriverReleveGouvernance {
   listerSources: () => Promise<SourceRuntime[]>;
   creerSource: (source: SourceEmail) => Promise<SourceRuntime>;
-  mettreAJourSource: (sourceId: string, patch: Partial<Pick<SourceEmail, 'algo' | 'actif'>>) => Promise<void>;
+  mettreAJourSource: (sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>) => Promise<void>;
   creerOffres: (
     offres: Array<{
       idOffre: string;
@@ -164,19 +164,19 @@ export async function runTraitement(dataDir: string, options: OptionsRunTraiteme
     const capturesParSource = new Map<string, number>();
 
     onProgress?.(`Emails LinkedIn trouvés : ${lecture.emails.length}`);
-    const parseursDisponibles: AlgoSource[] = [
+    const parseursDisponibles: PluginSource[] = [
       'Linkedin',
       'HelloWork',
       'Welcome to the Jungle',
       'Job That Make Sense',
-      'cadreemploi',
+      'Cadre Emploi',
     ];
     const gouvernance = await traiterEmailsSelonStatutSource({
       emails: lecture.emails,
       onProgress,
       sourcesExistantes: sources.map((s) => ({
         emailExpéditeur: s.emailExpéditeur,
-        algo: s.algo,
+        plugin: s.plugin,
         actif: s.actif,
       })),
       parseursDisponibles,
@@ -191,7 +191,7 @@ export async function runTraitement(dataDir: string, options: OptionsRunTraiteme
       traiterEmail: async (email, source) => {
         const sourceRuntime = indexParEmail.get(source.emailExpéditeur.toLowerCase());
         if (!sourceRuntime) return { ok: false };
-        const emailPlugin = sourcePlugins.getEmailPlugin(source.algo);
+        const emailPlugin = sourcePlugins.getEmailPlugin(source.plugin);
         if (!emailPlugin) return { ok: false };
         // À l'insertion le texte de l'annonce n'est pas encore disponible (URL non ouverte) → statut « Annonce à récupérer »
         const offres = emailPlugin.extraireOffresDepuisEmail(email.html ?? '').map((o) => ({
@@ -199,7 +199,7 @@ export async function runTraitement(dataDir: string, options: OptionsRunTraiteme
           url: o.url,
           dateAjout: now,
           dateOffre: email.receivedAtIso ?? now,
-          statut: STATUT_ANNONCE_A_RECUPERER,
+          statut: STATUT_A_COMPLETER,
           poste: o.titre,
           entreprise: o.entreprise,
           lieu: o.lieu,
@@ -209,7 +209,7 @@ export async function runTraitement(dataDir: string, options: OptionsRunTraiteme
         }));
         if (offres.length === 0) return { ok: false };
         const result = await driverReleve.creerOffres(offres, sourceRuntime.sourceId);
-        if (source.algo === 'Linkedin') {
+        if (source.plugin === 'Linkedin') {
           nbEmailsLinkedin += 1;
         }
         nbOffresCreees += result.nbCreees;
@@ -228,10 +228,7 @@ export async function runTraitement(dataDir: string, options: OptionsRunTraiteme
     for (const correction of gouvernance.corrections) {
       const sourceRuntime = indexParEmail.get(correction.emailExpéditeur.toLowerCase());
       if (!sourceRuntime) continue;
-      await driverReleve.mettreAJourSource(sourceRuntime.sourceId, {
-        algo: correction.nouveauAlgo,
-        ...(typeof correction.nouveauActif === 'boolean' ? { actif: correction.nouveauActif } : {}),
-      });
+      await driverReleve.mettreAJourSource(sourceRuntime.sourceId, { plugin: correction.nouveauPlugin });
     }
     if (cheminDossierArchive && aDeplacer.length > 0) {
       const deplacement = await lecteurEmails.deplacerEmailsVersDossier(

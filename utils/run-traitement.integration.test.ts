@@ -18,7 +18,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
   };
 
   it('crée les sources absentes en Inconnu et ne traite/deplace pas ces emails', async () => {
-    const creations: Array<{ emailExpéditeur: string; algo: string; actif: boolean }> = [];
+    const creations: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }> = [];
     const createOffres = jest.fn().mockImplementation((offres: unknown[]) => Promise.resolve({ nbCreees: Array.isArray(offres) ? offres.length : 0, nbDejaPresentes: 0 }));
     const deplacer = jest.fn().mockResolvedValue({ ok: true });
     const driverReleve = {
@@ -28,7 +28,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
       creerSource: jest.fn().mockImplementation(async (source) => {
         creations.push({
           emailExpéditeur: source.emailExpéditeur,
-          algo: source.algo,
+          plugin: source.plugin,
           actif: source.actif,
         });
         return { sourceId: `rec_${source.emailExpéditeur}`, ...source };
@@ -55,7 +55,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(creations).toEqual([{ emailExpéditeur: 'noreply@nouvelle-source.test', algo: 'Inconnu', actif: false }]);
+    expect(creations).toEqual([{ emailExpéditeur: 'noreply@nouvelle-source.test', plugin: 'Inconnu', actif: false }]);
     expect(createOffres).not.toHaveBeenCalled();
     expect(deplacer).not.toHaveBeenCalled();
   });
@@ -70,7 +70,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recLinkedin',
           emailExpéditeur: 'jobs@linkedin.com',
-          algo: 'Linkedin',
+          plugin: 'Linkedin',
           actif: true,
         },
       ]),
@@ -115,7 +115,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     expect(deplacer).toHaveBeenCalledWith('test@example.com', 'x', ['m1'], 'Traite');
   });
 
-  it('algo=Inconnu & actif=true: archive sans traitement', async () => {
+  it('plugin=Inconnu & actif=true: archive sans traitement', async () => {
     const createOffres = jest.fn().mockImplementation((offres: unknown[]) => Promise.resolve({ nbCreees: Array.isArray(offres) ? offres.length : 0, nbDejaPresentes: 0 }));
     const deplacer = jest.fn().mockResolvedValue({ ok: true });
     const driverReleve = {
@@ -125,7 +125,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recUnknown',
           emailExpéditeur: 'alertes@unknown-source.test',
-          algo: 'Inconnu',
+          plugin: 'Inconnu',
           actif: true,
         },
       ]),
@@ -165,7 +165,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recLinkedin',
           emailExpéditeur: 'jobs@linkedin.com',
-          algo: 'Linkedin',
+          plugin: 'Linkedin',
           actif: true,
         },
       ]),
@@ -197,7 +197,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
   });
 
   it('source absente linkedin (from avec nom): crée Linkedin/actif par défaut', async () => {
-    const creations: Array<{ emailExpéditeur: string; algo: string; actif: boolean }> = [];
+    const creations: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }> = [];
     const driverReleve = {
       getSourceLinkedIn: jest.fn(),
       creerOffres: jest.fn().mockResolvedValue({ nbCreees: 0, nbDejaPresentes: 0 }),
@@ -205,7 +205,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
       creerSource: jest.fn().mockImplementation(async (source) => {
         creations.push({
           emailExpéditeur: source.emailExpéditeur,
-          algo: source.algo,
+          plugin: source.plugin,
           actif: source.actif,
         });
         return { sourceId: `rec_${source.emailExpéditeur}`, ...source };
@@ -232,7 +232,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(creations).toEqual([{ emailExpéditeur: 'jobs-listings@linkedin.com', algo: 'Linkedin', actif: true }]);
+    expect(creations).toEqual([{ emailExpéditeur: 'jobs-listings@linkedin.com', plugin: 'Linkedin', actif: true }]);
   });
 
   it('US-1.8 HelloWork: source active + email exploitable => crée une offre en "Annonce à récupérer"', async () => {
@@ -245,7 +245,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recHelloWork',
           emailExpéditeur: 'notification@emails.hellowork.com',
-          algo: 'HelloWork',
+          plugin: 'HelloWork',
           actif: true,
         },
       ]),
@@ -303,7 +303,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     expect(offres[0]).toMatchObject({
       idOffre: '123456',
       url: decodedUrl,
-      statut: 'Annonce à récupérer',
+      statut: 'A compléter',
       dateOffre: '2026-02-22T09:00:00.000Z',
       ville: 'Nantes',
       département: '44',
@@ -319,7 +319,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recHelloWork',
           emailExpéditeur: 'notification@emails.hellowork.com',
-          algo: 'HelloWork',
+          plugin: 'HelloWork',
           actif: true,
         },
       ]),
@@ -352,7 +352,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     expect(offres[0]).toMatchObject({
       idOffre: expect.stringMatching(/^hellowork-[a-f0-9]{16}$/),
       url: encodedUrl,
-      statut: 'Annonce à récupérer',
+      statut: 'A compléter',
     });
   });
 
@@ -365,7 +365,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recWttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          algo: 'Welcome to the Jungle',
+          plugin: 'Welcome to the Jungle',
           actif: true,
         },
       ]),
@@ -404,7 +404,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     const [offres, sourceId] = createOffres.mock.calls[0];
     expect(sourceId).toBe('recWttj');
     expect(offres[0]).toMatchObject({
-      statut: 'Annonce à récupérer',
+      statut: 'A compléter',
       poste: 'Product Manager',
       entreprise: 'Acme',
       ville: 'Paris',
@@ -423,7 +423,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recWttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          algo: 'Welcome to the Jungle',
+          plugin: 'Welcome to the Jungle',
           actif: true,
         },
       ]),
@@ -476,7 +476,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recJtms',
           emailExpéditeur: 'jobs@makesense.org',
-          algo: 'Job That Make Sense',
+          plugin: 'Job That Make Sense',
           actif: true,
         },
       ]),
@@ -510,12 +510,12 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     expect(offres[0]).toMatchObject({
       idOffre: 'abc123',
       url: 'https://jobs.makesense.org/jobs/abc123',
-      statut: 'Annonce à récupérer',
+      statut: 'A compléter',
       dateOffre: '2026-02-22T09:00:00.000Z',
     });
   });
 
-  it('US-1.12 cadreemploi: source active + URL fallback tracking => insertion "Annonce à récupérer"', async () => {
+  it('US-1.12 Cadre Emploi: source active + URL fallback tracking => insertion "Annonce à récupérer"', async () => {
     const createOffres = jest.fn().mockImplementation((offres: unknown[]) => Promise.resolve({ nbCreees: Array.isArray(offres) ? offres.length : 0, nbDejaPresentes: 0 }));
     const driverReleve = {
       getSourceLinkedIn: jest.fn(),
@@ -524,7 +524,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recCadreemploi',
           emailExpéditeur: 'offres@alertes.cadremploi.fr',
-          algo: 'cadreemploi',
+          plugin: 'Cadre Emploi',
           actif: true,
         },
       ]),
@@ -532,7 +532,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
       mettreAJourSource: jest.fn().mockResolvedValue(undefined),
     };
     const html =
-      '<a href="https://r.emails.alertes.cadremploi.fr/tr/cl/no-decode-token">Directeur tech et produit H/F</a>';
+      '<span style="font-weight:bold; color:#767676">ACME &nbsp;•&nbsp; Paris &nbsp;•&nbsp; CDI</span><a href="https://r.emails.alertes.cadremploi.fr/tr/cl/no-decode-token" title="Directeur tech et produit H/F">Voir l\'offre</a>';
     const lecteurEmails = {
       lireEmails: jest.fn(),
       lireEmailsGouvernance: jest.fn().mockResolvedValue({
@@ -551,8 +551,8 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     const [offres, sourceId] = createOffres.mock.calls[0];
     expect(sourceId).toBe('recCadreemploi');
     expect(offres[0]).toMatchObject({
-      idOffre: expect.stringMatching(/^cadreemploi-[a-f0-9]{16}$/),
-      statut: 'Annonce à récupérer',
+      idOffre: expect.stringMatching(/^cadreemploi-[a-f0-9]{32}$/),
+      statut: 'A compléter',
     });
   });
 });

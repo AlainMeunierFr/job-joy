@@ -53,9 +53,11 @@ body.appLayout {
 }
 
 .appMain {
-  max-width: 56rem;
+  max-width: 100rem;
   margin: 0 auto;
   padding: var(--space-lg) var(--space-md);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* --- Page tableau de bord --- */
@@ -83,14 +85,16 @@ body.appLayout {
 .pageTableauDeBord .boutonLancerTraitement,
 .pageTableauDeBord .boutonRafraichirSynthese,
 .pageTableauDeBord .boutonWorkerEnrichissement,
-.pageTableauDeBord .boutonOuvrirAirtable {
+.pageTableauDeBord .boutonOuvrirAirtable,
+.pageTableauDeBord .boutonCalculerConsommationApi {
   margin-top: var(--space-md);
 }
 
 .pageTableauDeBord .boutonRafraichirSynthese,
 .pageTableauDeBord .boutonLancerTraitement,
 .pageTableauDeBord .boutonWorkerEnrichissement,
-.pageTableauDeBord .boutonOuvrirAirtable {
+.pageTableauDeBord .boutonOuvrirAirtable,
+.pageTableauDeBord .boutonCalculerConsommationApi {
   margin-right: var(--space-sm);
 }
 
@@ -130,6 +134,93 @@ body.appLayout {
 
 .pageTableauDeBord .auditSyntheseTable tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* --- Consommation API (US-2.5) : tableau à gauche, histogramme à droite --- */
+.pageTableauDeBord .consommationApi,
+.pageTableauDeBord [data-layout="consommation-api"] {
+  margin-top: var(--space-lg);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.pageTableauDeBord .consommationApi h2,
+.pageTableauDeBord [data-layout="consommation-api"] h2 {
+  margin: 0 0 var(--space-md);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* Ligne tableau (gauche) + histogramme (droite) */
+.pageTableauDeBord .consommationApiRow {
+  display: flex;
+  gap: var(--space-lg);
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+}
+
+.pageTableauDeBord .consommationApiTableWrap {
+  flex-shrink: 0;
+}
+
+/* Même police que Synthèse des offres ; colonne Date en auto, Claude/Airtable 60px */
+.pageTableauDeBord .consommationApiTable {
+  width: auto;
+  table-layout: auto;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.pageTableauDeBord .consommationApiTable th,
+.pageTableauDeBord .consommationApiTable td {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pageTableauDeBord .consommationApiTable th:first-child,
+.pageTableauDeBord .consommationApiTable td:first-child {
+  width: auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.pageTableauDeBord .consommationApiTable th:nth-child(2),
+.pageTableauDeBord .consommationApiTable td:nth-child(2),
+.pageTableauDeBord .consommationApiTable th:nth-child(3),
+.pageTableauDeBord .consommationApiTable td:nth-child(3) {
+  width: 60px;
+  min-width: 60px;
+}
+
+.pageTableauDeBord .consommationApiTable thead th {
+  color: var(--color-text);
+  font-weight: 600;
+  background: var(--color-bg);
+  white-space: nowrap;
+}
+
+.pageTableauDeBord .consommationApiTable tbody tr:hover td {
+  background: var(--color-bg);
+}
+
+.pageTableauDeBord .consommationApiTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Histogramme à droite : plus haut, graduation Y adaptée à la hauteur en pixels */
+.pageTableauDeBord .consommationApiHistogram {
+  flex: 1;
+  min-width: 12rem;
+  min-height: 320px;
+}
+
+.pageTableauDeBord .consommationApiHistogram canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
 /* --- Synthèse des offres (US-1.7) : tableau croisé expéditeur × statuts --- */
@@ -214,7 +305,52 @@ body.appLayout {
   color: var(--color-error);
 }
 
-/* Colonnes statuts (5e à 9e) : alignement à droite pour les nombres */
+.pageTableauDeBord .syntheseOffresTable .phaseEtat--inactive {
+  opacity: 0.85;
+}
+
+/* Capsule plugin (style type Airtable) */
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule {
+  display: inline-block;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  font-size: 0.8em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--cadreemploi {
+  background: #fce4ec;
+  color: #880e4f;
+}
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--linkedin {
+  background: #bbdefb;
+  color: #0d47a1;
+}
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--hellowork {
+  background: #c8e6c9;
+  color: #1b5e20;
+}
+/* WTTJ : fond clair → texte noir (priorité sur héritage) */
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--wttj,
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--welcome-to-the-jungle,
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--welcometothejungle {
+  background: #ffe0b2;
+  color: #1a1a1a !important;
+}
+/* JTMS : fond vert d'eau clair → texte noir */
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--jtms,
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--job-that-make-sense,
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--job-that-makes-sense,
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--jobthatmakesense {
+  background: #b2dfdb !important;
+  color: #1a1a1a !important;
+}
+.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--inconnu {
+  background: #eeeeee;
+  color: #424242;
+}
+
+/* Colonnes statuts (5e et suivantes) : alignement à droite pour les nombres */
 .pageTableauDeBord .syntheseOffresTable th:nth-child(n+5),
 .pageTableauDeBord .syntheseOffresTable td:nth-child(n+5) {
   text-align: right;
@@ -228,11 +364,64 @@ body.appLayout {
   border-bottom: none;
 }
 
+/* Colonne Totaux (US-1.13) : en-tête + cellules identifiables */
+.pageTableauDeBord .syntheseOffresTable th.syntheseOffresColTotaux,
+.pageTableauDeBord .syntheseOffresTable td.syntheseOffresCellTotaux {
+  background: var(--color-bg);
+  border-left: 2px solid var(--color-primary);
+  font-weight: 700;
+}
+
+.pageTableauDeBord .syntheseOffresTable thead th.syntheseOffresColTotaux {
+  background: var(--color-bg);
+}
+
+/* Ligne Totaux (US-1.13) : dernière ligne du tbody */
+.pageTableauDeBord .syntheseOffresTable tbody tr.syntheseOffresLigneTotaux td {
+  background: var(--color-bg);
+  font-weight: 700;
+  border-top: 2px solid var(--color-border);
+}
+
+.pageTableauDeBord .syntheseOffresTable tbody tr.syntheseOffresLigneTotaux:hover td {
+  background: var(--color-bg-hover);
+}
+
 .pageTableauDeBord .syntheseOffresActions {
   margin-top: var(--space-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+}
+
+/* Une seule ligne : Mise à jour | Lancer/arrêter | Ouvrir | thermo 1 | thermo 2 */
+.pageTableauDeBord .syntheseOffresActionsOneLine {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.pageTableauDeBord .syntheseOffresActionsOneLine .syntheseOffresThermo {
+  display: flex;
+  flex-direction: column;
+  min-width: 8rem;
+  max-width: 16rem;
+  flex: 1 1 8rem;
+}
+
+.pageTableauDeBord .syntheseOffresActionsOneLine .syntheseOffresThermo .thermometreWorkerEnrichissement,
+.pageTableauDeBord .syntheseOffresActionsOneLine .syntheseOffresThermo .thermometreWorkerAnalyseIA {
+  width: 100%;
+  max-width: none;
+}
+
+.pageTableauDeBord .syntheseOffresActionsOneLine .resultatWorkerEnrichissement {
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .pageTableauDeBord .syntheseOffresActionsButtons {
@@ -247,13 +436,18 @@ body.appLayout {
   align-items: center;
 }
 
-.pageTableauDeBord .syntheseOffresProgress .thermometreWorkerEnrichissement {
+.pageTableauDeBord .syntheseOffresProgress .thermometreWorkerEnrichissement,
+.pageTableauDeBord .syntheseOffresProgress .thermometreWorkerAnalyseIA {
   width: 100%;
   max-width: 24rem;
 }
 
 .pageTableauDeBord .syntheseOffresProgress .resultatWorkerEnrichissement {
   text-align: center;
+}
+
+.pageTableauDeBord .sourceInactive {
+  cursor: help;
 }
 
 .pageTableauDeBord .auditSousTotaux,
@@ -326,16 +520,19 @@ body.appLayout {
 
 .thermometreAudit,
 .thermometreTraitement,
-.thermometreWorkerEnrichissement {
+.thermometreWorkerEnrichissement,
+.thermometreWorkerAnalyseIA {
   margin-top: var(--space-md);
   height: 0.5rem;
+  min-height: 6px;
   background: var(--color-border);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .thermometreAuditBar,
 .thermometreTraitementBar,
-.thermometreWorkerEnrichissementBar {
+.thermometreWorkerEnrichissementBar,
+.thermometreWorkerAnalyseIA .thermometreWorkerEnrichissementBar {
   height: 100%;
   width: 0;
   background: var(--color-primary);
@@ -436,6 +633,13 @@ body.appLayout {
 .pageParametres .blocParametrageSummary:hover,
 .appMain .pageParametres .blocParametrageSummary:hover {
   color: var(--color-primary);
+}
+
+/* Hauteur uniforme des containers fermés : même min-height pour tous les summary */
+.pageParametres .blocParametrage:not([open]) > .blocParametrageSummary,
+.appMain .pageParametres .blocParametrage:not([open]) > .blocParametrageSummary {
+  min-height: calc(2 * var(--space-lg) + 2em);
+  box-sizing: border-box;
 }
 
 .pageParametres .blocParametrageTitle,
@@ -665,7 +869,8 @@ body.parametrageCompteEmail,
 .appMain .parametrageCompteEmail .btnSecondary,
 .pageTableauDeBord .boutonRafraichirSynthese,
 .pageTableauDeBord .boutonWorkerEnrichissement,
-.pageTableauDeBord .boutonOuvrirAirtable {
+.pageTableauDeBord .boutonOuvrirAirtable,
+.pageTableauDeBord .boutonCalculerConsommationApi {
   display: inline-block;
   padding: var(--space-sm) var(--space-lg);
   font-family: var(--font-sans);
@@ -683,7 +888,8 @@ body.parametrageCompteEmail,
 .appMain .parametrageCompteEmail .btnSecondary:hover,
 .pageTableauDeBord .boutonRafraichirSynthese:hover,
 .pageTableauDeBord .boutonWorkerEnrichissement:hover,
-.pageTableauDeBord .boutonOuvrirAirtable:hover {
+.pageTableauDeBord .boutonOuvrirAirtable:hover,
+.pageTableauDeBord .boutonCalculerConsommationApi:hover {
   background: var(--color-bg-hover);
   border-color: var(--color-primary);
 }
@@ -692,7 +898,8 @@ body.parametrageCompteEmail,
 .appMain .parametrageCompteEmail .btnSecondary:focus,
 .pageTableauDeBord .boutonRafraichirSynthese:focus,
 .pageTableauDeBord .boutonWorkerEnrichissement:focus,
-.pageTableauDeBord .boutonOuvrirAirtable:focus {
+.pageTableauDeBord .boutonOuvrirAirtable:focus,
+.pageTableauDeBord .boutonCalculerConsommationApi:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.3);
 }
@@ -1137,6 +1344,601 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
   background: var(--color-error-bg);
 }
 
+/* --- Configuration ClaudeCode (US-2.2) — même présentation que les autres blocs Paramètres --- */
+.pageParametres .blocParametrage-claudecode #zone-tutoriel-claudecode,
+.pageParametres .blocParametrage-claudecode .zoneTutorielClaudecode,
+.appMain .pageParametres .blocParametrage-claudecode #zone-tutoriel-claudecode,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTutorielClaudecode {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.pageParametres .blocParametrage-claudecode #zone-tutoriel-claudecode a,
+.pageParametres .blocParametrage-claudecode .zoneTutorielClaudecode a,
+.appMain .pageParametres .blocParametrage-claudecode #zone-tutoriel-claudecode a,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTutorielClaudecode a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pageParametres .blocParametrage-claudecode #zone-tutoriel-claudecode a:hover,
+.pageParametres .blocParametrage-claudecode .zoneTutorielClaudecode a:hover,
+.appMain .pageParametres .blocParametrage-claudecode #zone-tutoriel-claudecode a:hover,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTutorielClaudecode a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.pageParametres .blocParametrage-claudecode .fieldGroup,
+.appMain .pageParametres .blocParametrage-claudecode .fieldGroup {
+  margin-bottom: var(--space-md);
+}
+
+.pageParametres .blocParametrage-claudecode .fieldGroup label,
+.appMain .pageParametres .blocParametrage-claudecode .fieldGroup label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.pageParametres .blocParametrage-claudecode .fieldGroup input[type="password"],
+.appMain .pageParametres .blocParametrage-claudecode .fieldGroup input[type="password"] {
+  width: 100%;
+  min-height: var(--input-min-height);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+
+.pageParametres .blocParametrage-claudecode .fieldGroup input:focus,
+.appMain .pageParametres .blocParametrage-claudecode .fieldGroup input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+.pageParametres .blocParametrage-claudecode .indicateurCleEnregistree,
+.appMain .pageParametres .blocParametrage-claudecode .indicateurCleEnregistree {
+  display: block;
+  margin-top: var(--space-xs);
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}
+
+.pageParametres .blocParametrage-claudecode .actions.actions-configuration-claudecode,
+.appMain .pageParametres .blocParametrage-claudecode .actions.actions-configuration-claudecode {
+  margin-top: var(--space-lg);
+}
+
+.pageParametres .blocParametrage-claudecode .actions.actions-configuration-claudecode button,
+.appMain .pageParametres .blocParametrage-claudecode .actions.actions-configuration-claudecode button {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: none;
+  min-height: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.pageParametres .blocParametrage-claudecode .actions.actions-configuration-claudecode button:hover,
+.appMain .pageParametres .blocParametrage-claudecode .actions.actions-configuration-claudecode button:hover {
+  background: var(--color-primary-hover);
+}
+
+.pageParametres .blocParametrage-claudecode .actions.actions-configuration-claudecode button:focus,
+.appMain .pageParametres .blocParametrage-claudecode .actions.actions-configuration-claudecode button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
+}
+
+/* --- Zone test ClaudeCode (US-2.4) : textarea, boutons, zone résultat --- */
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode[data-layout="zone-test-claudecode"],
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode[data-layout="zone-test-claudecode"] {
+  margin-top: var(--space-lg);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest {
+  width: 100%;
+  max-width: 100%;
+  min-height: 8rem;
+  box-sizing: border-box;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest:focus,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre,
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api {
+  margin-top: var(--space-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button {
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  min-height: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button:hover,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button:hover {
+  background: var(--color-bg-hover);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: none;
+  min-height: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button:hover,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button:hover {
+  background: var(--color-primary-hover);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions button:focus,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
+}
+
+/* Zone résultat test API ClaudeCode */
+.pageParametres .blocParametrage-claudecode #zone-resultat-test-claudecode,
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode {
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  min-height: 2.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* État attente (ex. "Test en cours…") ou vide */
+.pageParametres .blocParametrage-claudecode #zone-resultat-test-claudecode:not([data-type="succes"]):not(.zoneResultatTestClaudecode--erreur),
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode:not([data-type="succes"]):not(.zoneResultatTestClaudecode--erreur) {
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.pageParametres .blocParametrage-claudecode #zone-resultat-test-claudecode[data-type="succes"],
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode[data-type="succes"] {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode--erreur,
+.appMain .pageParametres .blocParametrage-claudecode #zone-resultat-test-claudecode.zoneResultatTestClaudecode--erreur,
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode.zoneResultatTestClaudecode--erreur {
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  font-weight: 500;
+}
+
+/* Bloc de texte du résultat (succès) — affichage lisible avec retours à la ligne, pas JSON brut */
+.pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeTexte,
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeTexte {
+  margin: 0;
+  padding: var(--space-md);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation,
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.875rem;
+}
+.pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--ok,
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--ok {
+  color: var(--color-success, #0d7d3d);
+}
+.pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--erreur,
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--erreur {
+  color: var(--color-error);
+  font-weight: 500;
+}
+
+.pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidationListe,
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidationListe {
+  margin: var(--space-xs) 0 0 var(--space-md);
+  padding-left: var(--space-md);
+  font-size: 0.875rem;
+  color: var(--color-error);
+}
+
+/* --- Section Paramétrage IA (US-2.1) --- */
+/* Même présentation que les autres blocs (Configuration Airtable, Compte email) : pas de padding sur le container */
+.pageParametres .parametrageIA[data-layout="parametrage-ia"],
+.appMain .pageParametres .parametrageIA[data-layout="parametrage-ia"] {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-xl);
+}
+
+.pageParametres .parametrageIA .parametrageIATitle,
+.appMain .pageParametres .parametrageIA .parametrageIATitle {
+  margin: 0 0 var(--space-lg);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Le summary du bloc IA ne doit pas avoir de marge basse (évite container fermé plus haut que les autres) */
+.pageParametres .parametrageIA > summary.parametrageIATitle.blocParametrageSummary,
+.appMain .pageParametres .parametrageIA > summary.parametrageIATitle.blocParametrageSummary {
+  margin: 0;
+}
+
+.pageParametres .parametrageIA .formParametrageIA,
+.appMain .pageParametres .parametrageIA .formParametrageIA {
+  margin: 0;
+}
+
+/* Séparateur horizontal entre les 4 groupes (réutilise formDivider du design system) */
+.pageParametres .parametrageIA .parametrageIADivider,
+.appMain .pageParametres .parametrageIA .parametrageIADivider {
+  margin: var(--space-xl) 0;
+}
+
+.pageParametres .parametrageIA .zoneParametrageIA,
+.appMain .pageParametres .parametrageIA .zoneParametrageIA {
+  margin-top: var(--space-xl);
+}
+
+.pageParametres .parametrageIA .zoneParametrageIA:first-of-type,
+.appMain .pageParametres .parametrageIA .zoneParametrageIA:first-of-type {
+  margin-top: 0;
+}
+
+.pageParametres .parametrageIA .zoneParametrageIATitle,
+.appMain .pageParametres .parametrageIA .zoneParametrageIATitle {
+  margin: 0 0 var(--space-md);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pageParametres .parametrageIA .blocCritere,
+.appMain .pageParametres .parametrageIA .blocCritere {
+  margin-bottom: var(--space-lg);
+  display: grid;
+  grid-template-columns: 30% 1fr;
+  align-items: start;
+  gap: 0 var(--space-md);
+}
+
+.pageParametres .parametrageIA .blocCritere:last-child,
+.appMain .pageParametres .parametrageIA .blocCritere:last-child {
+  margin-bottom: 0;
+}
+
+/* Libellés "Titre" / "Description" masqués visuellement (l’aide en gris suffit), restent pour l’accessibilité */
+.pageParametres .parametrageIA .blocCritereLabel,
+.appMain .pageParametres .parametrageIA .blocCritereLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pageParametres .parametrageIA .blocCritereTitreFixe,
+.appMain .pageParametres .parametrageIA .blocCritereTitreFixe {
+  grid-column: 1;
+  font-weight: 500;
+  font-size: 1rem;
+  color: var(--color-text);
+  padding-top: calc(var(--space-sm) + 1px);
+  line-height: 1.5;
+}
+
+.pageParametres .parametrageIA .blocCritere input[type="text"],
+.appMain .pageParametres .parametrageIA .blocCritere input[type="text"] {
+  grid-column: 1;
+  width: 100%;
+  min-height: var(--input-min-height);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+
+.pageParametres .parametrageIA .blocCritere input:focus,
+.appMain .pageParametres .parametrageIA .blocCritere input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+.pageParametres .parametrageIA .blocCritere textarea,
+.appMain .pageParametres .parametrageIA .blocCritere textarea {
+  grid-column: 2;
+  width: 100%;
+  min-height: 4.5rem;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  resize: vertical;
+  overflow-y: auto;
+}
+
+.pageParametres .parametrageIA .blocCritere textarea[rows="12"],
+.appMain .pageParametres .parametrageIA .blocCritere textarea[rows="12"] {
+  grid-column: 2;
+  min-height: 12em;
+}
+
+/* Autres ressources : pas de titre dans le bloc, zone de saisie 100 % largeur */
+.pageParametres .parametrageIA .blocAutresRessources.blocCritere,
+.appMain .pageParametres .parametrageIA .blocAutresRessources.blocCritere {
+  display: block;
+}
+
+.pageParametres .parametrageIA .blocAutresRessources.blocCritere textarea,
+.appMain .pageParametres .parametrageIA .blocAutresRessources.blocCritere textarea {
+  grid-column: unset;
+  width: 100%;
+  min-height: 12em;
+}
+
+.pageParametres .parametrageIA .blocCritere textarea:focus,
+.appMain .pageParametres .parametrageIA .blocCritere textarea:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+.pageParametres .parametrageIA .blocCritere input::placeholder,
+.pageParametres .parametrageIA .blocCritere textarea::placeholder,
+.appMain .pageParametres .parametrageIA .blocCritere input::placeholder,
+.appMain .pageParametres .parametrageIA .blocCritere textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Zones obligatoires (Scores incontournables) non renseignées : fond rose pastel */
+.pageParametres .parametrageIA .zoneScoresIncontournables textarea:placeholder-shown,
+.appMain .pageParametres .parametrageIA .zoneScoresIncontournables textarea:placeholder-shown {
+  background-color: var(--color-error-bg);
+}
+
+.pageParametres .parametrageIA .actions.actionsParametrageIA,
+.appMain .pageParametres .parametrageIA .actions.actionsParametrageIA {
+  margin-top: var(--space-xl);
+  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-md);
+}
+
+.pageParametres .parametrageIA .actions.actionsParametrageIA button,
+.appMain .pageParametres .parametrageIA .actions.actionsParametrageIA button {
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: none;
+}
+
+.pageParametres .parametrageIA .actions.actionsParametrageIA button:hover,
+.appMain .pageParametres .parametrageIA .actions.actionsParametrageIA button:hover {
+  background: var(--color-primary-hover);
+}
+
+.pageParametres .parametrageIA .actions.actionsParametrageIA button:focus,
+.appMain .pageParametres .parametrageIA .actions.actionsParametrageIA button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
+}
+
+.pageParametres .parametrageIA .actions.actionsParametrageIA button:disabled,
+.appMain .pageParametres .parametrageIA .actions.actionsParametrageIA button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* --- Zone Prompt IA (US-2.3) --- */
+.pageParametres .parametrageIA .promptIAPartieFixeTexte,
+.appMain .pageParametres .parametrageIA .promptIAPartieFixeTexte {
+  display: block;
+  width: 100%;
+  margin: var(--space-md) 0 0;
+  padding: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 20rem;
+}
+
+.pageParametres .parametrageIA details .promptIAPartieFixeTexte,
+.appMain .pageParametres .parametrageIA details .promptIAPartieFixeTexte {
+  margin-top: var(--space-sm);
+}
+
+.pageParametres .parametrageIA details summary,
+.appMain .pageParametres .parametrageIA details summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--color-text);
+  padding: var(--space-xs) 0;
+}
+
+.pageParametres .parametrageIA .zonePromptModifiable,
+.appMain .pageParametres .parametrageIA .zonePromptModifiable {
+  display: block;
+  width: 100%;
+  min-height: 50em;
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  resize: vertical;
+  overflow-y: auto;
+}
+
+.pageParametres .parametrageIA .zonePromptModifiable:focus,
+.appMain .pageParametres .parametrageIA .zonePromptModifiable:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+.pageParametres .parametrageIA .zonePromptModifiable::placeholder,
+.appMain .pageParametres .parametrageIA .zonePromptModifiable::placeholder {
+  color: var(--color-text-muted);
+}
+
+.pageParametres .parametrageIA .actionsPromptIA,
+.appMain .pageParametres .parametrageIA .actionsPromptIA {
+  margin-top: var(--space-xl);
+  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-md);
+}
+
+.pageParametres .parametrageIA .actionsPromptIA button,
+.appMain .pageParametres .parametrageIA .actionsPromptIA button {
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: none;
+}
+
+.pageParametres .parametrageIA .actionsPromptIA button:hover,
+.appMain .pageParametres .parametrageIA .actionsPromptIA button:hover {
+  background: var(--color-primary-hover);
+}
+
+.pageParametres .parametrageIA .actionsPromptIA button:focus,
+.appMain .pageParametres .parametrageIA .actionsPromptIA button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
+}
+
+.pageParametres .parametrageIA .actionsPromptIA button:disabled,
+.appMain .pageParametres .parametrageIA .actionsPromptIA button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 /* --- Responsive (mobile-first : base = mobile) --- */
 @media (min-width: 480px) {
   body.parametrageCompteEmail,
@@ -1157,7 +1959,8 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
   .pageTableauDeBord .boutonLancerTraitement,
   .pageTableauDeBord .boutonRafraichirSynthese,
   .pageTableauDeBord .boutonWorkerEnrichissement,
-  .pageTableauDeBord .boutonOuvrirAirtable {
+  .pageTableauDeBord .boutonOuvrirAirtable,
+  .pageTableauDeBord .boutonCalculerConsommationApi {
     display: inline-block;
   }
 }

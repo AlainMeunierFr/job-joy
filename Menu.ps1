@@ -25,8 +25,8 @@ function Afficher-Menu {
 
 function Lancer-Serveur {
     $env:PORT = "3001"
-    Write-Host "Serveur de dev : nodemon surveille app/, utils/, types/, scripts/ (TS + CSS)." -ForegroundColor Gray
-    Write-Host "Demarrage sur http://127.0.0.1:3001 - Modifiez le code puis F5 dans le navigateur." -ForegroundColor Green
+    Write-Host "Serveur de dev : build + demarrage sur http://127.0.0.1:3001" -ForegroundColor Gray
+    Write-Host "Apres modification du code : Ctrl+C puis relancer (pas de redemarrage auto)." -ForegroundColor Green
     Write-Host "Arreter avec Ctrl+C" -ForegroundColor Gray
     npm run dev
 }

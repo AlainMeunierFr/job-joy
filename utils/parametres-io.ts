@@ -12,6 +12,7 @@ import type {
   ImapParams,
   MicrosoftParams,
   GmailParams,
+  ParametrageIA,
 } from '../types/parametres.js';
 import type { CompteLu, ParametresCompte, ProviderCompte } from '../types/compte.js';
 
@@ -103,7 +104,7 @@ export function defaultConnexionBoiteEmail(): ConnexionBoiteEmail {
 }
 
 export function getDefaultParametres(): ParametresPersistes {
-  return { connexionBoiteEmail: defaultConnexionBoiteEmail() };
+  return { connexionBoiteEmail: defaultConnexionBoiteEmail(), motDePasseCadreEmploi: '' };
 }
 
 /**
@@ -292,6 +293,34 @@ export function ecrireParametresFromForm(
     connexionBoiteEmail: connexion,
   };
   ecrireParametres(dataDir, toWrite);
+}
+
+/**
+ * Met à jour uniquement la section parametrageIA dans parametres.json (US-2.1).
+ */
+export function ecrireParametrageIA(dataDir: string, data: ParametrageIA): void {
+  const p = lireParametres(dataDir) ?? getDefaultParametres();
+  p.parametrageIA = data;
+  ecrireParametres(dataDir, p);
+}
+
+/**
+ * Lit la partie modifiable du prompt IA depuis parametres.json (US-2.3).
+ * Si rien n'est stocké (section promptIA absente), retourne une chaîne vide.
+ */
+export function lirePartieModifiablePrompt(dataDir: string): string {
+  const p = lireParametres(dataDir);
+  const value = p?.promptIA;
+  return typeof value === 'string' ? value : '';
+}
+
+/**
+ * Enregistre la partie modifiable du prompt IA dans parametres.json (US-2.3).
+ */
+export function ecrirePartieModifiablePrompt(dataDir: string, texte: string): void {
+  const p = lireParametres(dataDir) ?? getDefaultParametres();
+  p.promptIA = texte;
+  ecrireParametres(dataDir, p);
 }
 
 export function resetParametresStoreForTest(): void {

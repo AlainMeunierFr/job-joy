@@ -6,14 +6,14 @@ Fonctionnalité: Offres des emails Welcome to the Jungle
 
   Contexte:
     Étant donné que la base Airtable est configurée avec les tables Sources et Offres
-    Et que le modèle Sources utilise les champs "emailExpéditeur" (clé), "algo" et "actif"
+    Et que le modèle Sources utilise les champs "emailExpéditeur" (clé), "plugin" et "actif"
     Et que le compte email et le dossier à analyser sont configurés
     Et que le dossier des emails traités est configuré
 
-  # --- CA1 : Disponibilité de l'algo dans Sources ---
-  Scénario: La valeur d'algo "Welcome to the Jungle" est disponible dans Sources
-    Étant donné que la table "Sources" expose une liste de valeurs possibles pour le champ "algo"
-    Quand je consulte les valeurs possibles du champ "algo" de la table "Sources"
+  # --- CA1 : Disponibilité de l'plugin dans Sources ---
+  Scénario: La valeur d'plugin "Welcome to the Jungle" est disponible dans Sources
+    Étant donné que la table "Sources" expose une liste de valeurs possibles pour le champ "plugin"
+    Quand je consulte les valeurs possibles du champ "plugin" de la table "Sources"
     Alors la valeur "Welcome to the Jungle" est disponible
 
   # --- CA2 : Audit par expéditeur exact (casse ignorée) ---
@@ -22,12 +22,12 @@ Fonctionnalité: Offres des emails Welcome to the Jungle
     Et que le dossier à analyser contient un email d'expéditeur "Alerts@WelcomeToTheJungle.com"
     Quand je lance l'audit du dossier email
     Alors l'expéditeur "alerts@welcometothejungle.com" est créé dans la table "Sources"
-    Et la source créée porte l'algo "Welcome to the Jungle" avec le champ "actif" à true
+    Et la source créée porte l'plugin "Welcome to the Jungle" avec le champ "actif" à true
     Et cet email est rattaché à la source "Welcome to the Jungle"
-    Et la source est reportée avec l'expéditeur "alerts@welcometothejungle.com", l'algo "Welcome to the Jungle" et "actif" à true
+    Et la source est reportée avec l'expéditeur "alerts@welcometothejungle.com", l'plugin "Welcome to the Jungle" et "actif" à true
 
   Scénario: Un expéditeur partiellement similaire n'est pas reconnu comme WTTJ
-    Étant donné que la source d'expéditeur "alerts@welcometothejungle.com" existe avec l'algo "Welcome to the Jungle" et le champ "actif" à true
+    Étant donné que la source d'expéditeur "alerts@welcometothejungle.com" existe avec l'plugin "Welcome to the Jungle" et le champ "actif" à true
     Et que le dossier à analyser contient un email d'expéditeur "alerts+jobs@welcometothejungle.com"
     Quand je lance l'audit du dossier email
     Alors cet email n'est pas rattaché à la source "Welcome to the Jungle"
@@ -35,7 +35,7 @@ Fonctionnalité: Offres des emails Welcome to the Jungle
 
   # --- CA3 : Étape 1 plugin WTTJ (body email + décodage base64 URL) ---
   Scénario: Extraire une offre WTTJ depuis le body et décoder l'URL base64 vers une URL normale
-    Étant donné que la source d'expéditeur "alerts@welcometothejungle.com" existe avec l'algo "Welcome to the Jungle" et le champ "actif" à true
+    Étant donné que la source d'expéditeur "alerts@welcometothejungle.com" existe avec l'plugin "Welcome to the Jungle" et le champ "actif" à true
     Et qu'un email WTTJ éligible contient dans son body une offre exploitable avec une URL encodée en base64 décodable
     Quand je lance la relève des offres depuis les emails Welcome to the Jungle
     Alors une ligne est créée dans la table Offres
@@ -49,7 +49,7 @@ Fonctionnalité: Offres des emails Welcome to the Jungle
     """
 
   Scénario: Si le décodage base64 échoue, l'offre WTTJ est insérée avec l'URL encodée d'origine
-    Étant donné que la source d'expéditeur "alerts@welcometothejungle.com" existe avec l'algo "Welcome to the Jungle" et le champ "actif" à true
+    Étant donné que la source d'expéditeur "alerts@welcometothejungle.com" existe avec l'plugin "Welcome to the Jungle" et le champ "actif" à true
     Et qu'un email WTTJ éligible contient une URL encodée en base64 non décodable
     Quand je lance la relève des offres depuis les emails Welcome to the Jungle
     Alors une ligne est créée dans la table Offres pour cette offre

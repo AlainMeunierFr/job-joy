@@ -9,10 +9,10 @@
 - **Critères d'acceptation** :
 
 - **CA1 - Init sources Airtable** :
-  - Ajouter « Welcome to the Jungle » à l'énumération de la colonne « Sources.Algo » (ou liste des valeurs Algo) sur Airtable.
+  - Ajouter « Welcome to the Jungle » à l'énumération de la colonne « Sources.Plugin » (ou liste des valeurs Plugin) sur Airtable.
 
 - **CA2 - Audit des emails Welcome to the Jungle** :
-  - Lorsqu'un email a pour expéditeur « alerts@welcometothejungle.com », l'insérer dans les sources avec l'algo « Welcome to the Jungle » et l'activer (actif = true).
+  - Lorsqu'un email a pour expéditeur « alerts@welcometothejungle.com », l'insérer dans les sources avec l'plugin « Welcome to the Jungle » et l'activer (actif = true).
 
 - **CA3 - Étape 1 (plug-in) : extraction depuis le body de l'email** :
   - Implémenter l'étape 1 du traitement pour le plug-in « WelcomeToTheJungle » : lire le body de l'email et en extraire un maximum d'informations pour alimenter la table « Offres ».

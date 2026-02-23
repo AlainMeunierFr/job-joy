@@ -13,7 +13,7 @@ type AuditResult = {
   status: string;
   result?: {
     ok: boolean;
-    synthese?: Array<{ emailExpéditeur: string; algo: string; actif: string }>;
+    synthese?: Array<{ emailExpéditeur: string; plugin: string; actif: string }>;
   };
 };
 type TraitementResponse = { ok: boolean; message?: string; nbOffresCreees?: number };
@@ -21,7 +21,7 @@ type TraitementResponse = { ok: boolean; message?: string; nbOffresCreees?: numb
 let lastTraitementResponse: TraitementResponse | null = null;
 let lastEnrichissementResponse: Record<string, unknown> | null = null;
 let currentExpediteur = '';
-let currentAlgo = '';
+let currentPlugin = '';
 let expectedDecodedUrl = '';
 let expectedFallbackUrl = '';
 
@@ -34,7 +34,7 @@ async function setMockEmail(emails: Array<{ id: string; from: string; html: stri
   if (!res.ok) throw new Error(`set-mock-emails failed: ${res.status}`);
 }
 
-async function setMockSources(sources: Array<{ emailExpéditeur: string; algo: string; actif: boolean }>) {
+async function setMockSources(sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>) {
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -60,7 +60,7 @@ async function pollTaskStatus(
 
 async function runAuditAndGetSynthese(
   page: { request: { post: (url: string, options?: { data: Record<string, unknown> }) => Promise<{ json: () => Promise<Record<string, unknown>> }> } }
-): Promise<Array<{ emailExpéditeur: string; algo: string; actif: string }>> {
+): Promise<Array<{ emailExpéditeur: string; plugin: string; actif: string }>> {
   const startRes = await page.request.post(`${API_BASE}/api/audit/start`, { data: {} });
   const startData = (await startRes.json()) as { taskId?: string };
   if (!startData.taskId) return [];
@@ -98,11 +98,11 @@ Given('les exemples {string} et {string} sont utilises comme reference de format
 });
 
 Given(
-  'la source d\'expéditeur {string} existe avec l\'algo {string} et le champ {string} à false',
-  async ({ page: _page }, expediteur: string, algo: string, _champ: string) => {
+  'la source d\'expéditeur {string} existe avec l\'plugin {string} et le champ {string} à false',
+  async ({ page: _page }, expediteur: string, plugin: string, _champ: string) => {
     currentExpediteur = expediteur.toLowerCase();
-    currentAlgo = algo;
-    await setMockSources([{ emailExpéditeur: expediteur, algo, actif: false }]);
+    currentPlugin = plugin;
+    await setMockSources([{ emailExpéditeur: expediteur, plugin: plugin, actif: false }]);
   }
 );
 
@@ -166,7 +166,7 @@ Given('un email Job That Make Sense eligible contient une URL encodee non decoda
   ]);
 });
 
-Given('qu\'un email cadreemploi eligible contient une URL encodee decodable', async ({ page: _page }) => {
+Given('qu\'un email Cadre Emploi eligible contient une URL encodee decodable', async ({ page: _page }) => {
   expectedDecodedUrl = 'https://www.cadremploi.fr/emploi/detail_offre?offreId=987654';
   const encoded = encodeURIComponent(expectedDecodedUrl);
   await setMockEmail([
@@ -177,7 +177,7 @@ Given('qu\'un email cadreemploi eligible contient une URL encodee decodable', as
     },
   ]);
 });
-Given('un email cadreemploi eligible contient une URL encodee decodable', async ({ page: _page }) => {
+Given('un email Cadre Emploi eligible contient une URL encodee decodable', async ({ page: _page }) => {
   expectedDecodedUrl = 'https://www.cadremploi.fr/emploi/detail_offre?offreId=987654';
   const encoded = encodeURIComponent(expectedDecodedUrl);
   await setMockEmail([
@@ -189,7 +189,7 @@ Given('un email cadreemploi eligible contient une URL encodee decodable', async 
   ]);
 });
 
-Given('qu\'un email cadreemploi eligible contient une URL encodee non decodable', async ({ page: _page }) => {
+Given('qu\'un email Cadre Emploi eligible contient une URL encodee non decodable', async ({ page: _page }) => {
   expectedFallbackUrl = 'https://r.emails.alertes.cadremploi.fr/tr/cl/no-decode-token';
   await setMockEmail([
     {
@@ -199,7 +199,7 @@ Given('qu\'un email cadreemploi eligible contient une URL encodee non decodable'
     },
   ]);
 });
-Given('un email cadreemploi eligible contient une URL encodee non decodable', async ({ page: _page }) => {
+Given('un email Cadre Emploi eligible contient une URL encodee non decodable', async ({ page: _page }) => {
   expectedFallbackUrl = 'https://r.emails.alertes.cadremploi.fr/tr/cl/no-decode-token';
   await setMockEmail([
     {
@@ -218,34 +218,34 @@ Given(
 );
 Given('une offre Job That Make Sense en statut {string} existe dans la table Offres avec une URL exploitable', async () => {});
 Given(
-  'qu\'une offre cadreemploi en statut {string} existe dans la table Offres avec une URL exploitable',
+  'qu\'une offre Cadre Emploi en statut {string} existe dans la table Offres avec une URL exploitable',
   async ({ page: _page }, _statut: string) => {
     // La création est couverte via étape 1 + tests d'intégration.
   }
 );
-Given('une offre cadreemploi en statut {string} existe dans la table Offres avec une URL exploitable', async () => {});
+Given('une offre Cadre Emploi en statut {string} existe dans la table Offres avec une URL exploitable', async () => {});
 Given('que l\'etape 2 recupere des donnees enrichies suffisantes pour l\'analyse', async () => {
   // Couvert par les plugins fetch + tests unitaires.
 });
 Given('l\'etape {int} recupere des donnees enrichies suffisantes pour l\'analyse', async () => {});
 Given('qu\'une offre Job That Make Sense en statut {string} existe avec une URL invalide', async () => {});
-Given('qu\'une offre cadreemploi en statut {string} existe avec une URL invalide', async () => {});
+Given('qu\'une offre Cadre Emploi en statut {string} existe avec une URL invalide', async () => {});
 Given('une offre Job That Make Sense en statut {string} existe avec une URL invalide', async () => {});
-Given('une offre cadreemploi en statut {string} existe avec une URL invalide', async () => {});
+Given('une offre Cadre Emploi en statut {string} existe avec une URL invalide', async () => {});
 Given(
   'qu\'une offre Job That Make Sense en statut {string} existe avec une URL accessible mais protegee anti-crawler',
   async () => {}
 );
 Given(
-  'qu\'une offre cadreemploi en statut {string} existe avec une URL accessible mais protegee anti-crawler',
+  'qu\'une offre Cadre Emploi en statut {string} existe avec une URL accessible mais protegee anti-crawler',
   async () => {}
 );
 Given('une offre Job That Make Sense en statut {string} existe avec une URL accessible mais protegee anti-crawler', async () => {});
-Given('une offre cadreemploi en statut {string} existe avec une URL accessible mais protegee anti-crawler', async () => {});
+Given('une offre Cadre Emploi en statut {string} existe avec une URL accessible mais protegee anti-crawler', async () => {});
 
 When('je lance la releve des offres depuis les emails Job That Make Sense', async ({ page }) => {
   currentExpediteur = 'jobs@makesense.org';
-  currentAlgo = 'Job That Make Sense';
+  currentPlugin = 'Job That Make Sense';
   const startRes = await page.request.post(`${API_BASE}/api/traitement/start`, { data: {} });
   const startData = (await startRes.json()) as { taskId?: string; message?: string };
   if (!startData?.taskId) {
@@ -259,9 +259,9 @@ When('je lance la releve des offres depuis les emails Job That Make Sense', asyn
   };
 });
 
-When('je lance la releve des offres depuis les emails cadreemploi', async ({ page }) => {
+When('je lance la releve des offres depuis les emails Cadre Emploi', async ({ page }) => {
   currentExpediteur = 'offres@alertes.cadremploi.fr';
-  currentAlgo = 'cadreemploi';
+  currentPlugin = 'Cadre Emploi';
   const startRes = await page.request.post(`${API_BASE}/api/traitement/start`, { data: {} });
   const startData = (await startRes.json()) as { taskId?: string; message?: string };
   if (!startData?.taskId) {
@@ -280,12 +280,12 @@ When('je lance l\'etape 2 d\'enrichissement des offres à récupérer', async ({
   lastEnrichissementResponse = (await res.json()) as Record<string, unknown>;
 });
 
-Then('la source {string} est mise à jour avec l\'algo {string}', async ({ page }, expediteur: string, algo: string) => {
+Then('la source {string} est mise à jour avec l\'plugin {string}', async ({ page }, expediteur: string, plugin: string) => {
   const synthese = await runAuditAndGetSynthese(page as never);
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === expediteur.toLowerCase());
-  expect(row?.algo).toBe(algo);
+  expect(row?.plugin).toBe(plugin);
   currentExpediteur = expediteur.toLowerCase();
-  currentAlgo = algo;
+  currentPlugin = plugin;
 });
 
 Then('le champ {string} de cette source vaut true', async ({ page }, champ: string) => {
@@ -294,7 +294,7 @@ Then('le champ {string} de cette source vaut true', async ({ page }, champ: stri
   if (champ === 'actif') expect(row?.actif).toBe('Oui');
 });
 
-Then('au moins une ligne est inseree dans la table Offres pour la source {string}', async ({ page: _page }, _algo: string) => {
+Then('au moins une ligne est inseree dans la table Offres pour la source {string}', async ({ page: _page }, _plugin: string) => {
   expect(lastTraitementResponse?.ok).toBe(true);
   expect(lastTraitementResponse?.nbOffresCreees ?? 0).toBeGreaterThan(0);
 });

@@ -12,7 +12,7 @@ type AuditStatus = {
   result?: {
     ok?: boolean;
     nbEmailsScannes?: number;
-    synthese?: Array<{ emailExpéditeur: string; algo: string; actif: string; nbEmails?: number }>;
+    synthese?: Array<{ emailExpéditeur: string; plugin: string; actif: string; nbEmails?: number }>;
     sousTotauxPrevisionnels?: { emailsÀArchiver?: number; emailsÀAnalyser?: number };
   };
   message?: string;
@@ -20,9 +20,9 @@ type AuditStatus = {
 
 let lastAuditStatus: AuditStatus | null = null;
 let inputEmails: string[] = [];
-let syntheseDocRows: Array<{ emailExpéditeur: string; algo: string; actif: string; nbEmails: number }> = [];
+let syntheseDocRows: Array<{ emailExpéditeur: string; plugin: string; actif: string; nbEmails: number }> = [];
 
-function normaliserAlgo(value: string): string {
+function normaliserPlugin(value: string): string {
   return (value || '').trim().toLowerCase();
 }
 
@@ -40,7 +40,7 @@ function parseEmailsDocString(docString: string): string[] {
     .filter(Boolean);
 }
 
-function parseRowsDocString(docString: string): Array<{ emailExpéditeur: string; algo: string; actif: string; nbEmails: number }> {
+function parseRowsDocString(docString: string): Array<{ emailExpéditeur: string; plugin: string; actif: string; nbEmails: number }> {
   return String(docString || '')
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -49,7 +49,7 @@ function parseRowsDocString(docString: string): Array<{ emailExpéditeur: string
     .filter((parts) => parts.length >= 4)
     .map((parts) => ({
       emailExpéditeur: parts[0].toLowerCase(),
-      algo: parts[1],
+      plugin: parts[1],
       actif: parts[2],
       nbEmails: Number(parts[3]),
     }));
@@ -65,7 +65,7 @@ async function setMockEmails(emails: string[]): Promise<void> {
   if (!res.ok) throw new Error(`set-mock-emails failed: ${res.status}`);
 }
 
-async function setMockSources(sources: Array<{ emailExpéditeur: string; algo: string; actif: boolean }>): Promise<void> {
+async function setMockSources(sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>): Promise<void> {
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -114,12 +114,12 @@ Given('le dossier à analyser contient les emails suivants', async ({ page: _pag
 });
 
 Given(
-  'la source {string} est reconnue avec l\'algo {string} et le statut actif {string}',
-  async ({ page: _page }, email: string, algo: string, actif: string) => {
+  'la source {string} est reconnue avec l\'plugin {string} et le statut actif {string}',
+  async ({ page: _page }, email: string, plugin: string, actif: string) => {
     await setMockSources([
       {
         emailExpéditeur: email.toLowerCase(),
-        algo: (algo || '').toLowerCase() === 'linkedin' ? 'Linkedin' : 'Inconnu',
+        plugin: (plugin || '').toLowerCase() === 'linkedin' ? 'Linkedin' : 'Inconnu',
         actif: normaliserActif(actif) === 'oui',
       },
     ]);
@@ -141,11 +141,11 @@ When('je clique sur le bouton {string}', async ({ page }, bouton: string) => {
 
 Then('le tableau de synthèse affiche les colonnes suivantes', async ({ page: _page }, docString: string) => {
   const expected = String(docString || '').toLowerCase().replace(/\s+/g, '');
-  expect(expected).toContain('emailexpéditeur|algo|actif|nbemails');
+  expect(expected).toContain('emailexpéditeur|plugin|actif|nbemails');
   const rows = lastAuditStatus?.result?.synthese ?? [];
   if (rows.length > 0) {
     expect(rows[0]).toHaveProperty('emailExpéditeur');
-    expect(rows[0]).toHaveProperty('algo');
+    expect(rows[0]).toHaveProperty('plugin');
     expect(rows[0]).toHaveProperty('actif');
     expect(rows[0]).toHaveProperty('nbEmails');
   }
@@ -155,14 +155,14 @@ Then('le tableau de synthèse affiche les lignes suivantes', async ({ page: _pag
   const expected = parseRowsDocString(docString);
   const actual = (lastAuditStatus?.result?.synthese ?? []).map((r) => ({
     emailExpéditeur: (r.emailExpéditeur || '').toLowerCase(),
-    algo: r.algo || '',
+    plugin: r.plugin || '',
     actif: r.actif || '',
     nbEmails: Number(r.nbEmails ?? 0),
   }));
   for (const row of expected) {
     const found = actual.find((a) => a.emailExpéditeur === row.emailExpéditeur);
     expect(found).toBeDefined();
-    expect(normaliserAlgo(found?.algo ?? '')).toBe(normaliserAlgo(row.algo));
+    expect(normaliserPlugin(found?.plugin ?? '')).toBe(normaliserPlugin(row.plugin));
     expect(normaliserActif(found?.actif ?? '')).toBe(normaliserActif(row.actif));
     expect(found?.nbEmails).toBe(row.nbEmails);
   }

@@ -244,7 +244,7 @@ function extractAgentIaScriptContent(html: string): string | undefined {
 &nbsp;
 export function createHelloworkOfferFetchPlugin(): SourceOfferFetchPlugin {
   return {
-    algo: 'HelloWork',
+    plugin: 'HelloWork',
     stage2Implemented: true,
     async recupererContenuOffre(url: string): Promise&lt;ResultatEnrichissementOffre&gt; {
       const u = (url ?? <span class="branch-1 cbranch-no" title="branch not covered" >'')</span>.trim();

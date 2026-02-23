@@ -26,7 +26,7 @@ describe('runAuditSources - audit seul des sources', () => {
         {
           sourceId: 'src_linkedin',
           emailExpéditeur: ' Jobs@Linkedin.com ',
-          algo: 'Linkedin',
+          plugin: 'Linkedin',
           actif: true,
         },
       ]),
@@ -67,13 +67,13 @@ describe('runAuditSources - audit seul des sources', () => {
       synthese: [
         {
           emailExpéditeur: 'jobs@linkedin.com',
-          algo: 'Linkedin',
+          plugin: 'Linkedin',
           actif: 'Oui',
           nbEmails: 2,
         },
         {
           emailExpéditeur: 'alerte@emails.hellowork.com',
-          algo: 'Inconnu',
+          plugin: 'Inconnu',
           actif: 'Non',
           nbEmails: 2,
         },
@@ -85,7 +85,7 @@ describe('runAuditSources - audit seul des sources', () => {
     });
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'alerte@emails.hellowork.com',
-      algo: 'Inconnu',
+      plugin: 'Inconnu',
       actif: false,
     });
     expect(deplacer).not.toHaveBeenCalled();
@@ -99,7 +99,7 @@ describe('runAuditSources - audit seul des sources', () => {
         {
           sourceId: 'rec_existing',
           emailExpéditeur: 'alertes@unknown-source.test',
-          algo: 'Inconnu',
+          plugin: 'Inconnu',
           actif: false,
         },
       ]),
@@ -132,7 +132,7 @@ describe('runAuditSources - audit seul des sources', () => {
       synthese: [
         {
           emailExpéditeur: 'alertes@unknown-source.test',
-          algo: 'Inconnu',
+          plugin: 'Inconnu',
           actif: 'Non',
           nbEmails: 1,
         },
@@ -181,7 +181,7 @@ describe('runAuditSources - audit seul des sources', () => {
       synthese: [
         {
           emailExpéditeur: 'hr@example.org',
-          algo: 'Inconnu',
+          plugin: 'Inconnu',
           actif: 'Non',
           nbEmails: 1,
         },
@@ -193,7 +193,7 @@ describe('runAuditSources - audit seul des sources', () => {
     });
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'hr@example.org',
-      algo: 'Inconnu',
+      plugin: 'Inconnu',
       actif: false,
     });
   });
@@ -270,7 +270,7 @@ describe('runAuditSources - audit seul des sources', () => {
       synthese: [
         {
           emailExpéditeur: 'jobs-noreply@linkedin.com',
-          algo: 'Linkedin',
+          plugin: 'Linkedin',
           actif: 'Oui',
           nbEmails: 1,
         },
@@ -282,7 +282,7 @@ describe('runAuditSources - audit seul des sources', () => {
     });
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'jobs-noreply@linkedin.com',
-      algo: 'Linkedin',
+      plugin: 'Linkedin',
       actif: true,
     });
   });
@@ -317,12 +317,12 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(result.ok).toBe(true);
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'jobs-listings@linkedin.com',
-      algo: 'Linkedin',
+      plugin: 'Linkedin',
       actif: true,
     });
   });
 
-  it('US-1.10: source absente WTTJ -> crée avec algo "Welcome to the Jungle" et actif=true', async () => {
+  it('US-1.10: source absente WTTJ -> crée avec plugin "Welcome to the Jungle" et actif=true', async () => {
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([]),
       creerSource: jest.fn().mockImplementation(async (source) => ({
@@ -357,7 +357,7 @@ describe('runAuditSources - audit seul des sources', () => {
       synthese: [
         {
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          algo: 'Welcome to the Jungle',
+          plugin: 'Welcome to the Jungle',
           actif: 'Oui',
           nbEmails: 1,
         },
@@ -369,19 +369,19 @@ describe('runAuditSources - audit seul des sources', () => {
     });
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'alerts@welcometothejungle.com',
-      algo: 'Welcome to the Jungle',
+      plugin: 'Welcome to the Jungle',
       actif: true,
     });
   });
 
-  it('US-1.10: source WTTJ préexistante incohérente -> corrigée en algo WTTJ + actif=true', async () => {
+  it('US-1.10: source WTTJ préexistante incohérente -> corrigée en plugin WTTJ uniquement (actif inchangé)', async () => {
     const mettreAJourSource = jest.fn().mockResolvedValue(undefined);
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([
         {
           sourceId: 'rec_wttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          algo: 'Inconnu',
+          plugin: 'Inconnu',
           actif: false,
         },
       ]),
@@ -414,31 +414,28 @@ describe('runAuditSources - audit seul des sources', () => {
       synthese: [
         {
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          algo: 'Welcome to the Jungle',
-          actif: 'Oui',
+          plugin: 'Welcome to the Jungle',
+          actif: 'Non',
           nbEmails: 1,
         },
       ],
       sousTotauxPrevisionnels: {
-        emailsÀArchiver: 1,
-        emailsÀAnalyser: 1,
+        emailsÀArchiver: 0,
+        emailsÀAnalyser: 0,
       },
     });
-    expect(mettreAJourSource).toHaveBeenCalledWith('rec_wttj', {
-      algo: 'Welcome to the Jungle',
-      actif: true,
-    });
+    expect(mettreAJourSource).toHaveBeenCalledWith('rec_wttj', { plugin: 'Welcome to the Jungle' });
     expect(driverReleve.creerSource).not.toHaveBeenCalled();
   });
 
-  it('US-1.10: source WTTJ préexistante est corrigée même sans email WTTJ dans le dossier', async () => {
+  it('US-1.10: source WTTJ préexistante est corrigée (plugin uniquement) même sans email WTTJ dans le dossier', async () => {
     const mettreAJourSource = jest.fn().mockResolvedValue(undefined);
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([
         {
           sourceId: 'rec_wttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          algo: 'Inconnu',
+          plugin: 'Inconnu',
           actif: false,
         },
       ]),
@@ -464,14 +461,11 @@ describe('runAuditSources - audit seul des sources', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(mettreAJourSource).toHaveBeenCalledWith('rec_wttj', {
-      algo: 'Welcome to the Jungle',
-      actif: true,
-    });
+    expect(mettreAJourSource).toHaveBeenCalledWith('rec_wttj', { plugin: 'Welcome to the Jungle' });
     expect(driverReleve.creerSource).not.toHaveBeenCalled();
   });
 
-  it('US-1.11: source absente JTMS -> crée algo "Job That Make Sense" actif=true', async () => {
+  it('US-1.11: source absente JTMS -> crée plugin "Job That Make Sense" actif=true', async () => {
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([]),
       creerSource: jest.fn().mockImplementation(async (source) => ({
@@ -493,19 +487,19 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(result.ok).toBe(true);
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'jobs@makesense.org',
-      algo: 'Job That Make Sense',
+      plugin: 'Job That Make Sense',
       actif: true,
     });
   });
 
-  it('US-1.12: source préexistante cadreemploi incohérente -> corrigée algo+actif', async () => {
+  it('US-1.12: source préexistante Cadre Emploi incohérente -> corrigée plugin uniquement (actif inchangé)', async () => {
     const mettreAJourSource = jest.fn().mockResolvedValue(undefined);
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([
         {
           sourceId: 'rec_ce',
           emailExpéditeur: 'offres@alertes.cadremploi.fr',
-          algo: 'Inconnu',
+          plugin: 'Inconnu',
           actif: false,
         },
       ]),
@@ -523,9 +517,6 @@ describe('runAuditSources - audit seul des sources', () => {
       deps: { compte, airtable, motDePasse: 'x', driverReleve: driverReleve as never, lecteurEmails: lecteurEmails as never },
     });
     expect(result.ok).toBe(true);
-    expect(mettreAJourSource).toHaveBeenCalledWith('rec_ce', {
-      algo: 'cadreemploi',
-      actif: true,
-    });
+    expect(mettreAJourSource).toHaveBeenCalledWith('rec_ce', { plugin: 'Cadre Emploi' });
   });
 });

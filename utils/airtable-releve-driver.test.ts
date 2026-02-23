@@ -25,7 +25,7 @@ describe('createAirtableReleveDriver', () => {
     }
   });
 
-  it('getSourceLinkedIn retourne found: true avec actif et emailExpéditeur quand un enregistrement algo=Linkedin existe', async () => {
+  it('getSourceLinkedIn retourne found: true avec actif et emailExpéditeur quand un enregistrement plugin=Linkedin existe', async () => {
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -34,7 +34,7 @@ describe('createAirtableReleveDriver', () => {
           {
             id: 'recLinkedIn',
             fields: {
-              algo: 'Linkedin',
+              plugin: 'Linkedin',
               emailExpéditeur: 'jobs-noreply@linkedin.com',
               actif: true,
             },
@@ -65,7 +65,7 @@ describe('createAirtableReleveDriver', () => {
           {
             id: 'recX',
             fields: {
-              algo: 'Linkedin',
+              plugin: 'Linkedin',
               emailExpéditeur: 'j@l.com',
               actif: false,
             },
@@ -104,7 +104,7 @@ describe('createAirtableReleveDriver', () => {
             idOffre: '123',
             url: 'https://www.linkedin.com/jobs/view/123/',
             dateAjout: '2025-01-15T10:00:00.000Z',
-            statut: 'Annonce à récupérer',
+            statut: 'A compléter',
             poste: 'Dev',
             entreprise: 'Acme',
             ville: 'Paris',
@@ -124,7 +124,7 @@ describe('createAirtableReleveDriver', () => {
         'Id offre': '123',
         URL: 'https://www.linkedin.com/jobs/view/123/',
         DateAjout: '2025-01-15T10:00:00.000Z',
-        Statut: 'Annonce à récupérer',
+        Statut: 'A compléter',
         'email expéditeur': ['recLinkedIn'],
         Poste: 'Dev',
         Entreprise: 'Acme',
@@ -153,7 +153,7 @@ describe('createAirtableReleveDriver', () => {
             idOffre: '124',
             url: 'https://www.linkedin.com/jobs/view/124/',
             dateAjout: '2025-01-15T10:00:00.000Z',
-            statut: 'Annonce à récupérer',
+            statut: 'A compléter',
             lieu: 'Lyon',
           },
         ],
@@ -197,7 +197,7 @@ describe('createAirtableReleveDriver', () => {
             idOffre: '123',
             url: 'https://www.linkedin.com/jobs/view/123/',
             dateAjout: '2025-01-15T10:00:00.000Z',
-            statut: 'Annonce à récupérer',
+            statut: 'A compléter',
             poste: 'Dev',
             entreprise: 'Acme',
             ville: 'Paris',
@@ -235,7 +235,7 @@ describe('createAirtableReleveDriver', () => {
             idOffre: '123',
             url: 'https://www.linkedin.com/jobs/view/123/',
             dateAjout: '2025-01-15T10:00:00.000Z',
-            statut: 'Annonce à récupérer',
+            statut: 'A compléter',
             poste: '',
             entreprise: '',
           },
@@ -250,13 +250,13 @@ describe('createAirtableReleveDriver', () => {
       expect(fields).not.toHaveProperty('Poste');
       expect(fields).not.toHaveProperty('Entreprise');
       expect(fields).toHaveProperty('URL', 'https://www.linkedin.com/jobs/view/123/');
-      expect(fields).toHaveProperty('Statut', 'Annonce à récupérer');
+      expect(fields).toHaveProperty('Statut', 'A compléter');
     } finally {
       globalThis.fetch = globalFetch;
     }
   });
 
-  it('listerSources lit emailExpéditeur lowercase + algo + actif', async () => {
+  it('listerSources lit emailExpéditeur lowercase + plugin + actif', async () => {
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -266,7 +266,7 @@ describe('createAirtableReleveDriver', () => {
             id: 'rec1',
             fields: {
               emailExpéditeur: 'Jobs@LinkedIn.com',
-              algo: 'Linkedin',
+              plugin: 'Linkedin',
               actif: true,
             },
           },
@@ -280,7 +280,7 @@ describe('createAirtableReleveDriver', () => {
         {
           sourceId: 'rec1',
           emailExpéditeur: 'jobs@linkedin.com',
-          algo: 'Linkedin',
+          plugin: 'Linkedin',
           actif: true,
         },
       ]);
@@ -289,7 +289,7 @@ describe('createAirtableReleveDriver', () => {
     }
   });
 
-  it('creerSource écrit emailExpéditeur/algo/actif', async () => {
+  it('creerSource écrit emailExpéditeur/plugin/actif', async () => {
     let capturedBody: unknown = null;
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockImplementation((_url: string, opts?: RequestInit) => {
@@ -300,13 +300,13 @@ describe('createAirtableReleveDriver', () => {
       const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
       await driver.creerSource({
         emailExpéditeur: 'Alertes@Unknown.test',
-        algo: 'Inconnu',
+        plugin: 'Inconnu',
         actif: false,
       });
       const body = capturedBody as { records: Array<{ fields: Record<string, unknown> }> };
       expect(body.records[0].fields).toMatchObject({
         emailExpéditeur: 'alertes@unknown.test',
-        algo: 'Inconnu',
+        plugin: 'Inconnu',
         actif: false,
       });
     } finally {
@@ -314,7 +314,7 @@ describe('createAirtableReleveDriver', () => {
     }
   });
 
-  it('mettreAJourSource patch algo/actif', async () => {
+  it('mettreAJourSource patch plugin/actif', async () => {
     let capturedBody: unknown = null;
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockImplementation((_url: string, opts?: RequestInit) => {
@@ -323,15 +323,15 @@ describe('createAirtableReleveDriver', () => {
     });
     try {
       const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
-      await driver.mettreAJourSource('rec1', { algo: 'Inconnu', actif: false });
+      await driver.mettreAJourSource('rec1', { plugin: 'Inconnu', actif: false });
       const body = capturedBody as { records: Array<{ id: string; fields: Record<string, unknown> }> };
-      expect(body.records).toEqual([{ id: 'rec1', fields: { algo: 'Inconnu', actif: false } }]);
+      expect(body.records).toEqual([{ id: 'rec1', fields: { plugin: 'Inconnu', actif: false } }]);
     } finally {
       globalThis.fetch = globalFetch;
     }
   });
 
-  it('creerSource auto-ajoute option algo manquante puis retente', async () => {
+  it('creerSource auto-ajoute option plugin manquante puis retente', async () => {
     const calls: Array<{ url: string; method: string; body: unknown }> = [];
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest
@@ -368,8 +368,8 @@ describe('createAirtableReleveDriver', () => {
                 name: 'Sources',
                 fields: [
                   {
-                    id: 'fldAlgo',
-                    name: 'algo',
+                    id: 'fldPlugin',
+                    name: 'plugin',
                     type: 'singleSelect',
                     options: { choices: [{ name: 'Linkedin' }, { name: 'Inconnu' }] },
                   },
@@ -379,7 +379,7 @@ describe('createAirtableReleveDriver', () => {
           }),
         });
       })
-      // 4) PATCH meta field algo choices
+      // 4) PATCH meta field plugin choices
       .mockImplementationOnce((url: string, opts?: RequestInit) => {
         calls.push({ url, method: opts?.method ?? 'GET', body: opts?.body ? JSON.parse(opts.body as string) : null });
         return Promise.resolve({ ok: true, text: async () => '' });
@@ -394,7 +394,7 @@ describe('createAirtableReleveDriver', () => {
       const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
       await driver.creerSource({
         emailExpéditeur: 'alerts@welcometothejungle.com',
-        algo: 'Welcome to the Jungle',
+        plugin: 'Welcome to the Jungle',
         actif: true,
       });
       expect(calls).toHaveLength(5);

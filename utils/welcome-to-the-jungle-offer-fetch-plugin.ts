@@ -1,5 +1,6 @@
 import type { ResultatEnrichissementOffre } from '../types/offres-releve.js';
 import type { SourceOfferFetchPlugin } from './source-plugins.js';
+import { BROWSER_LIKE_HEADERS } from './fetch-offre-headers.js';
 
 function decodeHtmlEntities(input: string): string {
   return input
@@ -28,6 +29,7 @@ function firstNonEmpty(values: Array<string | undefined>): string | undefined {
   return undefined;
 }
 
+/** Aligné sur wttj.js : premier bloc application/ld+json, puis description/title (JobPosting ou objet racine). */
 function parseFirstJsonLd(html: string): Record<string, unknown> | undefined {
   const scripts = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
   for (const script of scripts) {
@@ -38,6 +40,8 @@ function parseFirstJsonLd(html: string): Record<string, unknown> | undefined {
       if (Array.isArray(parsed)) {
         const jobPosting = parsed.find((x) => x && typeof x === 'object' && (x as Record<string, unknown>)['@type'] === 'JobPosting');
         if (jobPosting && typeof jobPosting === 'object') return jobPosting as Record<string, unknown>;
+        const withDesc = parsed.find((x) => x && typeof x === 'object' && (x as Record<string, unknown>).description);
+        if (withDesc && typeof withDesc === 'object') return withDesc as Record<string, unknown>;
       }
       if (parsed && typeof parsed === 'object') {
         const obj = parsed as Record<string, unknown>;
@@ -57,7 +61,7 @@ function extractFromMeta(html: string, property: string): string | undefined {
 
 export function createWelcomeToTheJungleOfferFetchPlugin(): SourceOfferFetchPlugin {
   return {
-    algo: 'Welcome to the Jungle',
+    plugin: 'Welcome to the Jungle',
     stage2Implemented: true,
     async recupererContenuOffre(url: string): Promise<ResultatEnrichissementOffre> {
       const u = (url ?? '').trim();
@@ -65,9 +69,7 @@ export function createWelcomeToTheJungleOfferFetchPlugin(): SourceOfferFetchPlug
 
       try {
         const res = await fetch(u, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 analyse-offres/wttj',
-          },
+          headers: BROWSER_LIKE_HEADERS,
         });
         if (!res.ok) {
           const antiCrawler = res.status === 403 || res.status === 429;

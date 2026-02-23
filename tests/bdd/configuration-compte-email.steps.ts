@@ -373,6 +373,14 @@ function isParametresPath(pathRel: string): boolean {
 }
 
 Then('le fichier {string} existe', async ({ page }, pathRel: string) => {
+  const logFilename = pathRel.replace(/^.*[/\\]/, '');
+  if (/^\d{4}-\d{2}-\d{2}\.json$/.test(logFilename)) {
+    const res = await fetch(`${API_BASE}/api/test/list-log-appels`);
+    expect(res.ok).toBe(true);
+    const list = (await res.json()) as string[];
+    expect(list).toContain(logFilename);
+    return;
+  }
   if (!isParametresPath(pathRel)) throw new Error('BDD ne vérifie que data/parametres.json (ou compte.json) via l’API');
   const res = await fetch(`${API_BASE}/api/compte`);
   const data = (await res.json()) as { adresseEmail?: string; cheminDossier?: string };

@@ -6,11 +6,12 @@ import '../utils/load-env-local.js';
 import { randomBytes } from 'node:crypto';
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { existsSync, readdirSync, readFileSync, rmSync, unlinkSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getPageParametres } from './page-html.js';
 import { getPageTableauDeBord } from './layout-html.js';
-import type { AlgoSource } from '../utils/gouvernance-sources-emails.js';
+import type { PluginSource } from '../utils/gouvernance-sources-emails.js';
 import {
   handleGetCompte,
   handleGetAirtable,
@@ -25,15 +26,37 @@ import {
   handleGetEnrichissementWorkerStatus,
   handlePostEnrichissementWorkerStart,
   handlePostEnrichissementWorkerStop,
+  restoreWorkerStateIfNeeded,
   handleGetTableauSyntheseOffres,
+  handleGetConsommationApi,
   setBddMockEmailsGouvernance,
   setBddMockSources,
   setBddMockTableauSynthese,
+  setBddMockOffreTest,
+  setBddMockTestClaudecode,
+  getOffreTestHasOffre,
+  handleGetOffreTest,
+  handlePostTestClaudecode,
 } from './api-handlers.js';
 import { ecrireCompte, lireCompte, resetCompteStoreForTest, getCompteStoreForTest } from '../utils/compte-io.js';
-import { ecrireAirTable } from '../utils/parametres-airtable.js';
+import { ecrireAirTable, lireAirTable } from '../utils/parametres-airtable.js';
+import { ensureAirtableEnums } from '../utils/airtable-ensure-enums.js';
+import { normaliserBaseId } from '../utils/airtable-url.js';
 import { evaluerParametragesComplets } from '../utils/parametrages-complets.js';
-import { appliquerCallbackMicrosoft, lireParametres } from '../utils/parametres-io.js';
+import {
+  appliquerCallbackMicrosoft,
+  ecrireParametrageIA,
+  ecrirePartieModifiablePrompt,
+  lireParametres,
+  ecrireParametres,
+  getDefaultParametres,
+  lirePartieModifiablePrompt,
+} from '../utils/parametres-io.js';
+import {
+  getPartieModifiablePromptDefaut,
+  getPartieFixePromptIA,
+} from '../utils/prompt-ia.js';
+import { lireClaudeCode, ecrireClaudeCode } from '../utils/parametres-claudecode.js';
 import { getConnecteurEmail } from '../utils/connecteur-email-factory.js';
 import {
   microsoftTokenDisponible,
@@ -45,6 +68,7 @@ import {
   clearMicrosoftTokenCache,
 } from '../utils/auth-microsoft.js';
 import { getUrlOuvertureBase } from '../utils/airtable-url.js';
+import { enregistrerAppel } from '../utils/log-appels-api.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..');
@@ -186,6 +210,11 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, headers);
     const parametres = lireParametres(DATA_DIR);
     const tokenObtainedAt = parametres?.connexionBoiteEmail?.microsoft?.tokenObtainedAt;
+    const claudecode = lireClaudeCode(DATA_DIR);
+    const promptIAModifiable = lirePartieModifiablePrompt(DATA_DIR);
+    const promptIAPartieModifiable =
+      promptIAModifiable !== '' ? promptIAModifiable : getPartieModifiablePromptDefaut();
+    const offreTestHasOffre = await getOffreTestHasOffre(DATA_DIR);
     res.end(
       await getPageParametres(DATA_DIR, {
         microsoftAvailable: microsoftTokenDisponible(),
@@ -194,6 +223,11 @@ const server = createServer(async (req, res) => {
         tokenObtainedAt,
         configComplète: complet,
         flashConfigManque: flashConfig ?? undefined,
+        parametrageIA: parametres?.parametrageIA ?? undefined,
+        claudecodeHasApiKey: claudecode?.hasApiKey ?? false,
+        promptIAPartieModifiable,
+        promptIAPartieFixe: getPartieFixePromptIA(parametres?.parametrageIA ?? null),
+        offreTestHasOffre,
       })
     );
     return;
@@ -263,13 +297,36 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pathname === '/styles/site.css') {
-    try {
-      const css = await readFile(join(__dirname, 'site.css'), 'utf-8');
-      res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8', 'Cache-Control': 'no-cache' });
-      res.end(css);
-    } catch {
-      notFound(res);
+    const isDev = process.env.NODE_ENV !== 'production';
+    let css: string;
+    if (isDev) {
+      try {
+        const [globals, contentStyles] = await Promise.all([
+          readFile(join(PROJECT_ROOT, 'app', 'globals.css'), 'utf-8'),
+          readFile(join(PROJECT_ROOT, 'app', 'content-styles.css'), 'utf-8'),
+        ]);
+        css = `${globals}\n\n${contentStyles}`;
+      } catch {
+        try {
+          css = await readFile(join(__dirname, 'site.css'), 'utf-8');
+        } catch {
+          notFound(res);
+          return;
+        }
+      }
+    } else {
+      try {
+        css = await readFile(join(__dirname, 'site.css'), 'utf-8');
+      } catch {
+        notFound(res);
+        return;
+      }
     }
+    res.writeHead(200, {
+      'Content-Type': 'text/css; charset=utf-8',
+      'Cache-Control': 'no-store, max-age=0',
+    });
+    res.end(css);
     return;
   }
 
@@ -378,6 +435,28 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/consommation-api') {
+    try {
+      handleGetConsommationApi(DATA_DIR, res);
+    } catch (err) {
+      console.error('GET /api/consommation-api error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/offre-test') {
+    try {
+      await handleGetOffreTest(DATA_DIR, res);
+    } catch (err) {
+      console.error('GET /api/offre-test error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
   if (req.method === 'POST' && pathname === '/api/test-connexion') {
     try {
       const body = await parseBody(req);
@@ -409,6 +488,142 @@ const server = createServer(async (req, res) => {
       console.error('POST /api/configuration-airtable error', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, status: 'Erreur avec AirTable : requête invalide' }));
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/parametrage-ia') {
+    try {
+      const parametres = lireParametres(DATA_DIR);
+      const ia = parametres?.parametrageIA ?? {
+        rehibitoires: Array(4).fill(null).map(() => ({ titre: '', description: '' })),
+        scoresIncontournables: { localisation: '', salaire: '', culture: '', qualiteOffre: '' },
+        scoresOptionnels: Array(4).fill(null).map(() => ({ titre: '', attente: '' })),
+        autresRessources: '',
+      };
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(ia));
+    } catch (err) {
+      console.error('GET /api/parametrage-ia error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/parametrage-ia') {
+    try {
+      const body = (await parseBody(req)) as Record<string, unknown>;
+      const rehibitoires = Array.isArray(body.rehibitoires)
+        ? (body.rehibitoires as Array<{ titre?: string; description?: string }>).slice(0, 4).map((r) => ({
+            titre: String(r?.titre ?? '').trim(),
+            description: String(r?.description ?? '').trim(),
+          }))
+        : Array(4).fill(null).map(() => ({ titre: '', description: '' }));
+      const scoresIncontournables = body.scoresIncontournables && typeof body.scoresIncontournables === 'object'
+        ? {
+            localisation: String((body.scoresIncontournables as Record<string, unknown>).localisation ?? '').trim(),
+            salaire: String((body.scoresIncontournables as Record<string, unknown>).salaire ?? '').trim(),
+            culture: String((body.scoresIncontournables as Record<string, unknown>).culture ?? '').trim(),
+            qualiteOffre: String((body.scoresIncontournables as Record<string, unknown>).qualiteOffre ?? '').trim(),
+          }
+        : { localisation: '', salaire: '', culture: '', qualiteOffre: '' };
+      const scoresOptionnels = Array.isArray(body.scoresOptionnels)
+        ? (body.scoresOptionnels as Array<{ titre?: string; attente?: string }>).slice(0, 4).map((s) => ({
+            titre: String(s?.titre ?? '').trim(),
+            attente: String(s?.attente ?? '').trim(),
+          }))
+        : Array(4).fill(null).map(() => ({ titre: '', attente: '' }));
+      const autresRessources = String(body.autresRessources ?? '').trim();
+      ecrireParametrageIA(DATA_DIR, {
+        rehibitoires,
+        scoresIncontournables,
+        scoresOptionnels,
+        autresRessources,
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+      console.error('POST /api/parametrage-ia error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/claudecode') {
+    try {
+      const claudecode = lireClaudeCode(DATA_DIR);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ hasApiKey: claudecode?.hasApiKey ?? false }));
+    } catch (err) {
+      console.error('GET /api/claudecode error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/claudecode') {
+    try {
+      const body = (await parseBody(req)) as { apiKey?: string };
+      const apiKey = typeof body.apiKey === 'string' ? body.apiKey.trim() : undefined;
+      ecrireClaudeCode(DATA_DIR, apiKey ? { apiKey } : {});
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+      console.error('POST /api/claudecode error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/prompt-ia') {
+    try {
+      const parametres = lireParametres(DATA_DIR);
+      const stored = lirePartieModifiablePrompt(DATA_DIR);
+      const partieModifiable =
+        stored !== '' ? stored : getPartieModifiablePromptDefaut();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          partieModifiable,
+          partieFixe: getPartieFixePromptIA(parametres?.parametrageIA ?? null),
+          partieModifiableDefaut: getPartieModifiablePromptDefaut(),
+        })
+      );
+    } catch (err) {
+      console.error('GET /api/prompt-ia error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/prompt-ia') {
+    try {
+      const body = (await parseBody(req)) as { partieModifiable?: string };
+      const texte = typeof body.partieModifiable === 'string' ? body.partieModifiable : '';
+      ecrirePartieModifiablePrompt(DATA_DIR, texte);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+      console.error('POST /api/prompt-ia error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/test-claudecode') {
+    try {
+      const body = (await parseBody(req)) as Record<string, unknown>;
+      await handlePostTestClaudecode(DATA_DIR, body, res);
+    } catch (err) {
+      console.error('POST /api/test-claudecode error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
     }
     return;
   }
@@ -506,7 +721,7 @@ const server = createServer(async (req, res) => {
 
   if (req.method === 'POST' && pathname === '/api/enrichissement-worker/stop') {
     try {
-      handlePostEnrichissementWorkerStop(res);
+      handlePostEnrichissementWorkerStop(DATA_DIR, res);
     } catch (err) {
       console.error('POST /api/enrichissement-worker/stop error', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -562,12 +777,12 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && pathname === '/api/test/set-mock-sources') {
       try {
         const body = (await parseBody(req)) as {
-          sources?: Array<{ emailExpéditeur: string; algo: string; actif: boolean }>;
+          sources?: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>;
         };
         const raw = Array.isArray(body?.sources) ? body.sources : [];
-        const sources: Array<{ emailExpéditeur: string; algo: AlgoSource; actif: boolean }> = raw.map((s) => ({
+        const sources: Array<{ emailExpéditeur: string; plugin: PluginSource; actif: boolean }> = raw.map((s) => ({
           ...s,
-          algo: s.algo as AlgoSource,
+          plugin: s.plugin as PluginSource,
         }));
         setBddMockSources(sources);
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -585,6 +800,157 @@ const server = createServer(async (req, res) => {
         setBddMockTableauSynthese(lignes);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/set-mock-offre-test') {
+      try {
+        const body = (await parseBody(req)) as { hasOffre?: boolean; texte?: string };
+        const hasOffre = typeof body?.hasOffre === 'boolean' ? body.hasOffre : false;
+        const texte = typeof body?.texte === 'string' ? body.texte : undefined;
+        setBddMockOffreTest({ hasOffre, ...(texte !== undefined && { texte }) });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/set-mock-test-claudecode') {
+      try {
+        const body = (await parseBody(req)) as { ok?: boolean; texte?: string; code?: string; message?: string };
+        if (body?.ok === true && typeof body.texte === 'string') {
+          setBddMockTestClaudecode({ ok: true, texte: body.texte });
+        } else if (body?.ok === false && typeof body.code === 'string') {
+          setBddMockTestClaudecode({
+            ok: false,
+            code: body.code,
+            ...(typeof body.message === 'string' && { message: body.message }),
+          });
+        } else {
+          setBddMockTestClaudecode(null);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/set-claudecode') {
+      try {
+        const body = (await parseBody(req)) as { apiKey?: string };
+        const apiKey = typeof body.apiKey === 'string' ? body.apiKey.trim() : '';
+        if (apiKey) {
+          ecrireClaudeCode(DATA_DIR, { apiKey });
+        } else {
+          const p = lireParametres(DATA_DIR) ?? getDefaultParametres();
+          const pMut = p as unknown as Record<string, unknown>;
+          delete pMut.claudecode;
+          ecrireParametres(DATA_DIR, p);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/log-appel') {
+      try {
+        const body = (await parseBody(req)) as { api?: string; succes?: boolean; codeErreur?: string; dateISO?: string };
+        const api = typeof body.api === 'string' ? body.api.trim() : 'Claude';
+        const succes = body.succes === true || body.succes === false ? body.succes : true;
+        const codeErreur = typeof body.codeErreur === 'string' ? body.codeErreur : undefined;
+        const dateISO = typeof body.dateISO === 'string' ? body.dateISO.trim() : undefined;
+        if (!dateISO || dateISO.length !== 10) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, message: 'dateISO requis (AAAA-MM-JJ)' }));
+          return;
+        }
+        enregistrerAppel(DATA_DIR, { api, succes, codeErreur }, dateISO);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/clear-log-appel') {
+      try {
+        const body = (await parseBody(req)) as { dateISO?: string };
+        const dateISO = typeof body.dateISO === 'string' ? body.dateISO.trim() : '';
+        if (!dateISO || dateISO.length !== 10) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, message: 'dateISO requis' }));
+          return;
+        }
+        const logDir = join(DATA_DIR, 'log-appels-api');
+        const filePath = join(logDir, `${dateISO}.json`);
+        if (existsSync(filePath)) unlinkSync(filePath);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/clear-all-log-appels') {
+      try {
+        const logDir = join(DATA_DIR, 'log-appels-api');
+        if (existsSync(logDir)) rmSync(logDir, { recursive: true });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'GET' && pathname === '/api/test/log-appel') {
+      try {
+        const u = new URL(req.url ?? '/', getBaseUrl(req));
+        const dateISO = (u.searchParams.get('dateISO') ?? '').trim();
+        if (!dateISO || dateISO.length !== 10) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, message: 'dateISO requis' }));
+          return;
+        }
+        const filePath = join(DATA_DIR, 'log-appels-api', `${dateISO}.json`);
+        if (!existsSync(filePath)) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify([]));
+          return;
+        }
+        const raw = readFileSync(filePath, 'utf-8');
+        const entries = JSON.parse(raw);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(Array.isArray(entries) ? entries : []));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'GET' && pathname === '/api/test/list-log-appels') {
+      try {
+        const logDir = join(DATA_DIR, 'log-appels-api');
+        if (!existsSync(logDir)) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify([]));
+          return;
+        }
+        const files = readdirSync(logDir).filter((f) => f.endsWith('.json'));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(files));
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, message: String(err) }));
@@ -617,7 +983,34 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 server.listen(
   { port: PORT, host: '127.0.0.1', reuseAddress: true },
   () => {
+    // Restaurer l'état du worker tout de suite, avant toute requête : évite "bouton blanc puis bleu" au premier poll.
+    restoreWorkerStateIfNeeded(DATA_DIR);
     console.log(`Server listening on http://127.0.0.1:${PORT}`);
     console.log(`Paramètres (parametres.json): ${join(DATA_DIR, 'parametres.json')}`);
+    // Énumérations Airtable en arrière-plan (ne bloque pas).
+    (async () => {
+      try {
+        const airtable = lireAirTable(DATA_DIR);
+        if (
+          airtable?.apiKey?.trim() &&
+          airtable?.base?.trim() &&
+          airtable?.sources?.trim() &&
+          airtable?.offres?.trim()
+        ) {
+          const baseId = normaliserBaseId(airtable.base.trim());
+          const result = await ensureAirtableEnums(
+            airtable.apiKey.trim(),
+            baseId,
+            airtable.sources.trim(),
+            airtable.offres.trim()
+          );
+          if (!result.plugin || !result.statut) {
+            console.warn('[Airtable] Énumérations: plugin=%s statut=%s', result.plugin, result.statut);
+          }
+        }
+      } catch (e) {
+        console.error('[Airtable] Vérification énumérations au démarrage:', e);
+      }
+    })();
   }
 );

@@ -33,7 +33,7 @@ describe('createAirtableEnrichissementDriver', () => {
             id: 'rec1',
             fields: {
               URL: 'https://linkedin.com/jobs/view/1/',
-              Statut: 'Annonce à récupérer',
+              Statut: 'A compléter',
               Poste: 'PO',
               Entreprise: 'Acme',
               Ville: 'Paris',
@@ -47,17 +47,18 @@ describe('createAirtableEnrichissementDriver', () => {
       const driver = createAirtableEnrichissementDriver({ apiKey, baseId, offresId });
       const r = await driver.getOffresARecuperer();
       expect(r).toHaveLength(1);
-      expect(r[0]).toEqual({
+      expect(r[0]).toMatchObject({
         id: 'rec1',
         url: 'https://linkedin.com/jobs/view/1/',
-        statut: 'Annonce à récupérer',
+        statut: 'A compléter',
         poste: 'PO',
         entreprise: 'Acme',
         ville: 'Paris',
         département: '75',
-        salaire: undefined,
-        dateOffre: undefined,
       });
+      expect(r[0].salaire).toBeUndefined();
+      expect(r[0].dateOffre).toBeUndefined();
+      expect(r[0].emailExpéditeur).toBeUndefined();
     } finally {
       globalThis.fetch = globalFetch;
     }
@@ -83,7 +84,62 @@ describe('createAirtableEnrichissementDriver', () => {
           Poste: 'Dev',
           Statut: 'À analyser',
         },
+        typecast: true,
       });
+    } finally {
+      globalThis.fetch = globalFetch;
+    }
+  });
+
+  it('getOffresARecuperer filtre par sources actives quand sourcesId est fourni', async () => {
+    const sourcesId = 'tblSources';
+    const callUrls: string[] = [];
+    const globalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockImplementation((url: string, _opts?: RequestInit) => {
+      callUrls.push(url);
+      if (url.includes(sourcesId)) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            records: [
+              { id: 'recHW', fields: { actif: true, plugin: 'HelloWork', emailExpéditeur: 'notification@emails.hellowork.com' } },
+              { id: 'recLinkedIn', fields: { actif: false, plugin: 'Linkedin', emailExpéditeur: 'jobs@linkedin.com' } },
+            ],
+          }),
+        });
+      }
+      if (url.includes(offresId)) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            records: [
+              {
+                id: 'recOffre1',
+                fields: {
+                  URL: 'https://www.hellowork.com/fr-fr/emplois/1.html',
+                  Statut: 'A compléter',
+                  'email expéditeur': ['recHW'],
+                },
+              },
+            ],
+          }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ records: [] }) });
+    });
+    try {
+      const driver = createAirtableEnrichissementDriver({
+        apiKey,
+        baseId,
+        offresId,
+        sourcesId,
+      });
+      const r = await driver.getOffresARecuperer();
+      expect(r).toHaveLength(1);
+      expect(r[0].id).toBe('recOffre1');
+      expect(r[0].url).toContain('hellowork');
+      expect(r[0].emailExpéditeur).toBe('notification@emails.hellowork.com');
+      expect(callUrls.some((u) => u.includes(sourcesId))).toBe(true);
     } finally {
       globalThis.fetch = globalFetch;
     }

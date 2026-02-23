@@ -573,63 +573,133 @@ export function extractJobThatMakeSenseOffresFromHtml(html: string): OffreExtrai
   return offres;
 }
 
-function decodeCadreemploiTrackingUrl(trackingUrl: string): string | undefined {
-  try {
-    const parsed = new URL(trackingUrl);
-    for (const key of ['url', 'target', 'redirect', 'destination']) {
-      const value = parsed.searchParams.get(key);
-      if (!value) continue;
-      const decoded = safeDecodeURIComponent(value);
-      if (/^https?:\/\//i.test(decoded)) return decoded;
-    }
-  } catch {
-    // Ignore malformed tracking URLs.
-  }
-  return undefined;
-}
+/** Bouton "Voir l'offre" Cadremploi (insensible à la casse). */
+const CADREMPLOI_BOUTON = /^\s*voir\s+l['']offre\s*$/i;
 
-function extractCadreemploiId(url: string): string {
-  const fromOffreId = (url ?? '').match(/[?&]offreId=(\d+)/i)?.[1];
-  if (fromOffreId) return fromOffreId;
-  return buildStableId('cadreemploi', url);
+/** Lien cadremploi (site ou tracking). */
+const CADREMPLOI_LINK = /cadremploi\.fr|emails\d*\.alertes\.cadremploi\.fr/i;
+
+/**
+ * Normalise un champ pour l’ID : trim, espaces multiples → un seul.
+ */
+function normalizeField(s: string): string {
+  return (s ?? '').trim().replace(/\s+/g, ' ').trim();
 }
 
 /**
- * Extraction cadreemploi (US-1.12) depuis les liens de tracking emails.
+ * ID Cadremploi = MD5(Titre|Entreprise|Ville|Type de contrat).
+ * Même offre dans plusieurs emails → même ID.
+ */
+function buildCadreemploiOfferId(titre: string, entreprise: string, ville: string, typeContrat: string): string {
+  const seed = [titre, entreprise, ville, typeContrat].map(normalizeField).join('|');
+  const hash = createHash('md5').update(seed, 'utf8').digest('hex');
+  return `cadreemploi-${hash}`;
+}
+
+/**
+ * Extraction Cadremploi from scratch :
+ * - Repère chaque bloc contenant le bouton "Voir l'offre".
+ * - Dans le bloc : Titre du poste, Entreprise, Ville, Type de contrat.
+ * - ID = MD5(titre|entreprise|ville|type). URL = href du bouton (inchangée, même encodée).
  */
 export function extractCadreemploiOffresFromHtml(html: string): OffreExtraite[] {
   const source = String(html ?? '');
   const offres: OffreExtraite[] = [];
   const seen = new Set<string>();
-  const anchorRegex = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+
+  const anchorRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let m: RegExpExecArray | null;
 
   while ((m = anchorRegex.exec(source)) !== null) {
-    const hrefRaw = (m[1] ?? '').replace(/&amp;/g, '&').trim();
-    if (!hrefRaw || (!/cadremploi\.fr/i.test(hrefRaw) && !/emails\d*\.alertes\.cadremploi\.fr/i.test(hrefRaw))) continue;
+    const linkText = toReadableText(m[2] ?? '').replace(/\s+/g, ' ').trim();
+    if (!CADREMPLOI_BOUTON.test(linkText)) continue;
 
-    const finalUrl = decodeCadreemploiTrackingUrl(hrefRaw) ?? hrefRaw;
-    const anchorText = toReadableText(m[2] ?? '').replace(/\s+/g, ' ').trim();
-    if (!anchorText) continue;
-    if (/^(voir l'offre|voir toutes les offres|cadremploi|facebook|instagram|youtube|x)$/i.test(anchorText)) continue;
+    const url = (m[1] ?? '').replace(/&amp;/g, '&').trim();
+    if (!url || !CADREMPLOI_LINK.test(url)) continue;
 
-    const around = source.slice(m.index, Math.min(source.length, m.index + 1200));
-    const entrepriseVilleLine = toReadableText(
-      around.match(/<span[^>]*font-weight:bold;[^>]*>([\s\S]*?)<\/span>/i)?.[1] ?? ''
-    );
-    const entreprise = entrepriseVilleLine.split('•')[0]?.trim() || undefined;
-    const ville = entrepriseVilleLine.split('•')[1]?.trim() || undefined;
-    const id = extractCadreemploiId(finalUrl);
+    const blocStart = Math.max(0, m.index - 1200);
+    const blocEnd = Math.min(source.length, m.index + 200);
+    const bloc = source.slice(blocStart, blocEnd);
 
+    let titre = '';
+    let entreprise = '';
+    let ville = '';
+    let typeContrat = '';
+
+    const titleCandidates = [...bloc.matchAll(/title=["']([^"']+)["']/gi)];
+    for (const cap of titleCandidates) {
+      const t = toReadableText(cap[1] ?? '').trim();
+      if (t && t.length > 2 && t.length < 200 && !CADREMPLOI_BOUTON.test(t) && t !== 'Cadremploi') {
+        const before = bloc.slice(0, cap.index);
+        if (before.includes('/tr/cl/') && before.includes('<a')) {
+          titre = t;
+          break;
+        }
+      }
+    }
+    if (!titre) {
+      const linkWithContent = bloc.match(/<a[^>]+href=["'][^"']*\/tr\/cl\/[^"']*["'][^>]*>([\s\S]*?)<\/a>/i);
+      if (linkWithContent) {
+        const t = toReadableText(linkWithContent[1] ?? '').replace(/\s+/g, ' ').trim();
+        if (t && t.length > 2 && t.length < 300 && !CADREMPLOI_BOUTON.test(t)) titre = t;
+      }
+    }
+    if (!titre) {
+      const firstLinkContent = bloc.match(/<a[^>]+href=["'][^"']*["'][^>]*>([\s\S]*?)<\/a>/i);
+      const content = firstLinkContent?.[1];
+      if (content) {
+        const t = toReadableText(content).replace(/\s+/g, ' ').trim();
+        if (t && t.length > 2 && t.length < 300 && !CADREMPLOI_BOUTON.test(t)) titre = t;
+      }
+    }
+
+    const spanCandidates = [...bloc.matchAll(/<span[^>]*>([\s\S]*?•[\s\S]*?)<\/span>/gi)];
+    for (const m of spanCandidates) {
+      const raw = m[1] ?? '';
+      const line = toReadableText(raw).replace(/\s+/g, ' ').trim();
+      if (line.length > 120) continue;
+      const parts = line.split('•').map((p) => p.trim());
+      if (parts.length >= 3 && parts.every((p) => p.length > 0 && p.length < 80)) {
+        entreprise = parts[0] ?? '';
+        ville = parts[1] ?? '';
+        typeContrat = parts[2] ?? '';
+        break;
+      }
+      if (parts.length === 1 && line.includes(',') && line.length < 200) {
+        const byComma = line.split(',').map((p) => p.trim());
+        if (byComma.length >= 3) {
+          titre = titre || (byComma[0] ?? '');
+          ville = byComma[1] ?? '';
+          typeContrat = byComma[2] ?? '';
+          break;
+        }
+      }
+    }
+
+    const oneLiner = bloc.match(/<td[^>]*class="[^"]*poppins[^"]*"[^>]*>([\s\S]*?)<\/td>/i);
+    if (oneLiner && !titre && !entreprise) {
+      const line = toReadableText(oneLiner[1] ?? '').replace(/\s+/g, ' ').trim();
+      if (line.includes(',') && line.length < 200) {
+        const parts = line.split(',').map((p) => p.trim());
+        if (parts.length >= 3) {
+          titre = parts[0] ?? '';
+          ville = parts[1] ?? '';
+          typeContrat = parts[2] ?? '';
+        }
+      }
+    }
+
+    const id = buildCadreemploiOfferId(titre, entreprise, ville, typeContrat);
     if (seen.has(id)) continue;
     seen.add(id);
+
     offres.push({
       id,
-      url: finalUrl,
-      titre: anchorText,
-      entreprise,
-      ville,
-      lieu: ville,
+      url,
+      titre: titre || undefined,
+      entreprise: entreprise || undefined,
+      ville: ville || undefined,
+      lieu: ville || undefined,
     });
   }
 

@@ -82,8 +82,8 @@ describe('getPageTableauDeBord', () => {
   it('affiche un bouton worker enrichissement avec libellés explicites', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('e2eid="e2eid-bouton-worker-enrichissement"');
-    expect(html).toContain('Ouvrir et récupérer les annonces');
-    expect(html).toContain('Arrêter d\\\'ouvrir et récupérer les annonces');
+    expect(html).toContain('Ouvrir, récupérer et analyser les annonces');
+    expect(html).toContain('Arrêter d\\\'ouvrir, récupérer et analyser les annonces');
     expect(html).toContain('/api/enrichissement-worker/status');
     expect(html).toContain('/api/enrichissement-worker/start');
     expect(html).toContain('/api/enrichissement-worker/stop');
@@ -138,7 +138,7 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('<div class="auditSynthese" data-layout="table" hidden>');
     expect(html).toContain('<table class="auditSyntheseTable"');
     expect(html).toContain('<th scope="col">emailExpéditeur</th>');
-    expect(html).toContain('<th scope="col">algo</th>');
+    expect(html).toContain('<th scope="col">plugin</th>');
     expect(html).toContain('<th scope="col">actif</th>');
     expect(html).toContain('<th scope="col">nbEmails</th>');
   });
@@ -182,13 +182,15 @@ describe('getPageTableauDeBord', () => {
     expect(html.indexOf('syntheseOffres')).not.toBe(html.indexOf('auditSynthese'));
   });
 
-  it('affiche les colonnes fixes du tableau synthèse offres : email expéditeur, phase 1, phase 2, actif', () => {
+  it('affiche les colonnes fixes du tableau synthèse offres : email expéditeur, plugin, phase 1, phase 2', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('renderTableauSyntheseHead');
     expect(html).toContain("'<th scope=\"col\">email expéditeur</th>'");
+    expect(html).toContain("'<th scope=\"col\">plugin</th>'");
     expect(html).toContain("Phase 1 : Extraction de l\\'URL des offres dans les emails");
     expect(html).toContain("Phase 2 : Ouverture des offres pour en récupérer le texte complet");
-    expect(html).toContain("'<th scope=\"col\">actif</th>'");
+    expect(html).toContain('synthesePluginCapsule');
+    expect(html).not.toContain("'<th scope=\"col\">actif</th>'");
   });
 
   it('rend les colonnes statut dynamiquement depuis statutsOrdre API', () => {
@@ -209,13 +211,14 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('renderTableauSyntheseOffres');
   });
 
-  it('renderTableauSyntheseOffres rend expéditeur, états de phases, actif et compteurs par statut', () => {
+  it('renderTableauSyntheseOffres rend expéditeur, états de phases (emoji) et compteurs par statut', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('ligne.emailExpéditeur');
     expect(html).toContain('phaseEtat--ok');
     expect(html).toContain('phaseEtat--ko');
     expect(html).toContain('ligne.statuts');
-    expect(html).toContain('actifStr');
+    expect(html).toContain('phase1Html');
+    expect(html).toContain('phase2Html');
   });
 
   it('ajoute une info-bulle qui décrit les phases 1, 2 et 3', () => {
@@ -241,5 +244,45 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('class="auditSynthese"');
     expect(html).toContain('class="syntheseOffres"');
     expect(html.indexOf('audit-synthese-body')).not.toBe(html.indexOf('synthese-offres-body'));
+  });
+
+  // --- US-1.13 : Totaux (colonne et ligne) ---
+  it('le script reçoit totauxColonnes, totalParLigne, totalGeneral depuis l’API et les passe au rendu', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('data.totauxColonnes');
+    expect(html).toContain('data.totalParLigne');
+    expect(html).toContain('data.totalGeneral');
+  });
+
+  it('le script ajoute une colonne Totaux dans le thead à droite des colonnes de statut', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('Totaux');
+    expect(html).toContain('e2eid-synthese-offres-col-totaux');
+  });
+
+  it('le script affiche pour chaque ligne une cellule Totaux avec totalParLigne et une ligne Totaux en bas avec totauxColonnes et totalGeneral', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('syntheseOffresCellTotaux');
+    expect(html).toContain('e2eid-synthese-offres-ligne-totaux');
+    expect(html).toContain('e2eid-synthese-offres-cellule-totaux-generaux');
+  });
+
+  // --- US-2.5 : Consommation API (container, tableau, bouton Calculer) ---
+  it('contient un bloc Consommation API avec titre et bouton Calculer', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('Consommation API');
+    expect(html).toContain('e2eid="e2eid-bouton-calculer-consommation-api"');
+    expect(html).toContain('Calculer');
+    expect(html).toContain('data-layout="consommation-api"');
+  });
+
+  it('le container Consommation API comporte un tableau avec colonnes Date, Claude, Airtable', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('consommationApiTable');
+    expect(html).toContain('consommation-api-body');
+    const idx = html.indexOf('data-layout="consommation-api"');
+    expect(idx).toBeGreaterThan(-1);
+    const slice = html.slice(idx, idx + 1200);
+    expect(slice).toMatch(/Date|Claude|Airtable/);
   });
 });

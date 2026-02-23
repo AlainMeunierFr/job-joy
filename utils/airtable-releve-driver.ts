@@ -7,20 +7,14 @@ import type { RelèveOffresDriver } from './relève-offres-linkedin.js';
 import type { SourceLinkedInResult } from '../types/offres-releve.js';
 import type { OffreInsert, ResultatCreerOffres } from '../types/offres-releve.js';
 import type { SourceEmail } from './gouvernance-sources-emails.js';
-import type { AlgoSource } from './gouvernance-sources-emails.js';
+import type { PluginSource } from './gouvernance-sources-emails.js';
 import { normaliserBaseId } from './airtable-url.js';
+import { PLUGINS_SOURCES_AIRTABLE } from './plugins-sources-airtable.js';
+import { ensureSingleSelectOption } from './airtable-ensure-enums.js';
 
 export type { ResultatCreerOffres };
 
 const API_BASE = 'https://api.airtable.com/v0';
-const ALGO_CHOICES = [
-  'Linkedin',
-  'Inconnu',
-  'HelloWork',
-  'Welcome to the Jungle',
-  'Job That Make Sense',
-  'cadreemploi',
-] as const;
 
 export interface AirtableReleveDriverOptions {
   apiKey: string;
@@ -40,59 +34,21 @@ function headers(apiKey: string): Record<string, string> {
   };
 }
 
-type TableSchema = {
-  id: string;
-  name: string;
-  fields?: Array<{
-    id: string;
-    name: string;
-    type: string;
-    options?: {
-      choices?: Array<{ id?: string; name?: string }>;
-    };
-  }>;
-};
-
-async function getBaseSchema(baseId: string, h: Record<string, string>): Promise<TableSchema[]> {
-  const res = await fetch(`${API_BASE}/meta/bases/${baseId}/tables`, { method: 'GET', headers: h });
-  if (!res.ok) return [];
-  const json = (await res.json()) as { tables?: TableSchema[] } | TableSchema[];
-  const tables = Array.isArray(json) ? json : json.tables ?? [];
-  return tables.map((t) => ({ id: t.id, name: t.name, fields: t.fields ?? [] }));
-}
-
-async function ensureAlgoChoice(
+/** Fallback : ajoute la valeur plugin manquante dans Sources.plugin puis retourne true. */
+async function ensurePluginChoice(
   baseId: string,
   sourcesId: string,
-  h: Record<string, string>,
+  apiKey: string,
   required: string
 ): Promise<boolean> {
-  const schema = await getBaseSchema(baseId, h);
-  const sourcesIdNormalized = (sourcesId ?? '').trim().toLowerCase();
-  const sourcesTable =
-    schema.find((t) => t.id === sourcesId) ??
-    schema.find((t) => (t.name ?? '').trim().toLowerCase() === sourcesIdNormalized) ??
-    schema.find((t) => (t.name ?? '').trim().toLowerCase() === 'sources');
-  const algoField = sourcesTable?.fields?.find(
-    (f) => (f.name ?? '').trim().toLowerCase() === 'algo' && f.type === 'singleSelect'
+  return ensureSingleSelectOption(
+    baseId,
+    sourcesId,
+    'plugin',
+    required,
+    PLUGINS_SOURCES_AIRTABLE,
+    apiKey
   );
-  if (!sourcesTable?.id || !algoField?.id) return false;
-  const current = (algoField.options?.choices ?? [])
-    .map((c) => (c.name ?? '').trim())
-    .filter(Boolean);
-  const seed = [...ALGO_CHOICES];
-  const merged = [...new Set([...current, ...seed, required])];
-  if (current.includes(required)) return true;
-  const updateUrl = `${API_BASE}/meta/bases/${baseId}/tables/${sourcesTable.id}/fields/${algoField.id}`;
-  const updateRes = await fetch(updateUrl, {
-    method: 'PATCH',
-    headers: h,
-    body: JSON.stringify({
-      type: 'singleSelect',
-      options: { choices: merged.map((name) => ({ name })) },
-    }),
-  });
-  return updateRes.ok;
 }
 
 /**
@@ -103,29 +59,20 @@ export function createAirtableReleveDriver(
 ): RelèveOffresDriver & {
   listerSources(): Promise<SourceAirtable[]>;
   creerSource(source: SourceEmail): Promise<SourceAirtable>;
-  mettreAJourSource(sourceId: string, patch: Partial<Pick<SourceEmail, 'algo' | 'actif'>>): Promise<void>;
+  mettreAJourSource(sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>): Promise<void>;
 } {
   const baseId = normaliserBaseId(options.baseId.trim());
   const { apiKey, sourcesId, offresId } = options;
 
-  function toAlgo(fields: Record<string, unknown>): AlgoSource {
-    const algo = typeof fields.algo === 'string' ? fields.algo.trim() : '';
-    if (
-      algo === 'Linkedin' ||
-      algo === 'Inconnu' ||
-      algo === 'HelloWork' ||
-      algo === 'Welcome to the Jungle' ||
-      algo === 'Job That Make Sense' ||
-      algo === 'cadreemploi'
-    ) {
-      return algo;
-    }
+  function toPlugin(fields: Record<string, unknown>): PluginSource {
+    const plugin = typeof fields.plugin === 'string' ? fields.plugin.trim() : '';
+    if ((PLUGINS_SOURCES_AIRTABLE as readonly string[]).includes(plugin)) return plugin as PluginSource;
     return 'Inconnu';
   }
 
   return {
     async getSourceLinkedIn(): Promise<SourceLinkedInResult> {
-      const formula = encodeURIComponent('{algo} = "Linkedin"');
+      const formula = encodeURIComponent('{plugin} = "Linkedin"');
       const url = `${API_BASE}/${baseId}/${sourcesId}?filterByFormula=${formula}&maxRecords=1`;
       const res = await fetch(url, { method: 'GET', headers: headers(apiKey) });
       if (!res.ok) {
@@ -154,7 +101,7 @@ export function createAirtableReleveDriver(
       if (!trimmed || !idValide) {
         throw new Error(
           `creerOffres: sourceId invalide (attendu: ID d'enregistrement Airtable type recXXX). Reçu: ${JSON.stringify(sourceId)}. ` +
-          `Vérifie que les sources viennent bien de listerSources() (table Sources, algo Linkedin / email expéditeur).`
+          `Vérifie que les sources viennent bien de listerSources() (table Sources, plugin Linkedin / email expéditeur).`
         );
       }
       if (offres.length === 0) {
@@ -301,7 +248,7 @@ export function createAirtableReleveDriver(
         return {
           sourceId: rec.id,
           emailExpéditeur,
-          algo: toAlgo(fields),
+          plugin: toPlugin(fields),
           actif: Boolean(fields.actif),
         };
       });
@@ -314,7 +261,7 @@ export function createAirtableReleveDriver(
           {
             fields: {
               emailExpéditeur: source.emailExpéditeur.trim().toLowerCase(),
-              algo: source.algo,
+              plugin: source.plugin,
               actif: source.actif,
             },
           },
@@ -329,7 +276,7 @@ export function createAirtableReleveDriver(
       if (!res.ok) {
         const body = await res.text();
         const invalidChoice = res.status === 422 && body.includes('INVALID_MULTIPLE_CHOICE_OPTIONS');
-        if (invalidChoice && source.algo) {
+        if (invalidChoice && source.plugin) {
           // 1) Tentative sans meta API: typecast=true peut créer l'option singleSelect.
           res = await fetch(url, {
             method: 'POST',
@@ -337,8 +284,8 @@ export function createAirtableReleveDriver(
             body: JSON.stringify({ ...payload, typecast: true }),
           });
           if (!res.ok) {
-            // 2) Fallback meta API: patch explicite des choices du champ algo.
-            const patched = await ensureAlgoChoice(baseId, sourcesId, h, source.algo);
+            // 2) Fallback meta API: patch explicite des choices du champ plugin.
+            const patched = await ensurePluginChoice(baseId, sourcesId, apiKey, source.plugin);
             if (patched) {
               res = await fetch(url, {
                 method: 'POST',
@@ -347,7 +294,7 @@ export function createAirtableReleveDriver(
               });
             } else {
               throw new Error(
-                `Airtable Sources: option "${source.algo}" absente dans l'énum "algo" et auto-ajout impossible (typecast+meta indisponibles).`
+                `Airtable Sources: option "${source.plugin}" absente dans l'énum "plugin" et auto-ajout impossible (typecast+meta indisponibles).`
               );
             }
           }
@@ -365,17 +312,17 @@ export function createAirtableReleveDriver(
       return {
         sourceId: rec.id,
         emailExpéditeur: source.emailExpéditeur.trim().toLowerCase(),
-        algo: source.algo,
+        plugin: source.plugin,
         actif: source.actif,
       };
     },
 
     async mettreAJourSource(
       sourceId: string,
-      patch: Partial<Pick<SourceEmail, 'algo' | 'actif'>>
+      patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>
     ): Promise<void> {
       const fields: Record<string, unknown> = {};
-      if (patch.algo) fields.algo = patch.algo;
+      if (patch.plugin) fields.plugin = patch.plugin;
       if (typeof patch.actif === 'boolean') fields.actif = patch.actif;
       const url = `${API_BASE}/${baseId}/${sourcesId}`;
       const h = headers(apiKey);
@@ -388,7 +335,7 @@ export function createAirtableReleveDriver(
       if (!res.ok) {
         const body = await res.text();
         const invalidChoice = res.status === 422 && body.includes('INVALID_MULTIPLE_CHOICE_OPTIONS');
-        if (invalidChoice && typeof patch.algo === 'string' && patch.algo.trim()) {
+        if (invalidChoice && typeof patch.plugin === 'string' && patch.plugin.trim()) {
           // 1) Tentative sans meta API via typecast=true.
           res = await fetch(url, {
             method: 'PATCH',
@@ -397,7 +344,7 @@ export function createAirtableReleveDriver(
           });
           if (!res.ok) {
             // 2) Fallback meta API.
-            const patched = await ensureAlgoChoice(baseId, sourcesId, h, patch.algo);
+            const patched = await ensurePluginChoice(baseId, sourcesId, apiKey, patch.plugin);
             if (patched) {
               res = await fetch(url, {
                 method: 'PATCH',
@@ -406,7 +353,7 @@ export function createAirtableReleveDriver(
               });
             } else {
               throw new Error(
-                `Airtable Sources: option "${patch.algo}" absente dans l'énum "algo" et auto-ajout impossible (typecast+meta indisponibles).`
+                `Airtable Sources: option "${patch.plugin}" absente dans l'énum "plugin" et auto-ajout impossible (typecast+meta indisponibles).`
               );
             }
           }

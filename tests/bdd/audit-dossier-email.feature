@@ -19,12 +19,12 @@ Fonctionnalité: Audit du dossier email avant traitement
     6) jobs@linkedin.com
     7) jobs@linkedin.com
     """
-    Et que la source "jobs@linkedin.com" est reconnue avec l'algo "linkedin" et le statut actif "Oui"
+    Et que la source "jobs@linkedin.com" est reconnue avec l'plugin "linkedin" et le statut actif "Oui"
     Et que les sources "alerte@emails.hellowork.com" et "alerte@wttj.com" ne sont pas reconnues
     Quand je clique sur le bouton "Auditer le dossier de la boite aux lettres"
     Alors le tableau de synthèse affiche les colonnes suivantes
     """
-    emailExpéditeur | algo | actif | nbEmails
+    emailExpéditeur | plugin | actif | nbEmails
     """
     Et le tableau de synthèse affiche les lignes suivantes
     """

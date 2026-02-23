@@ -6,7 +6,7 @@
 import type { SourceLinkedInResult } from '../types/offres-releve.js';
 import { executerReleveOffresLinkedIn } from './relève-offres-linkedin.js';
 
-const STATUT_ANNONCE_A_RECUPERER = 'Annonce à récupérer';
+const STATUT_A_COMPLETER = 'A compléter';
 
 describe('executerReleveOffresLinkedIn (CA1)', () => {
   it('retourne source_absente quand la source LinkedIn est absente', async () => {
@@ -117,7 +117,7 @@ describe('executerReleveOffresLinkedIn (CA1)', () => {
     expect(offres[0]).toMatchObject({
       idOffre: '12345',
       url: 'https://www.linkedin.com/jobs/view/12345/',
-      statut: STATUT_ANNONCE_A_RECUPERER,
+      statut: STATUT_A_COMPLETER,
     });
     expect(offres[0].dateAjout).toBeDefined();
     expect(offres[0].poste).toBeDefined();
