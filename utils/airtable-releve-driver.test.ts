@@ -25,7 +25,7 @@ describe('createAirtableReleveDriver', () => {
     }
   });
 
-  it('getSourceLinkedIn retourne found: true avec actif et emailExpéditeur quand un enregistrement plugin=Linkedin existe', async () => {
+  it('getSourceLinkedIn retourne found: true avec activerCreation et emailExpéditeur quand un enregistrement plugin=Linkedin existe', async () => {
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -36,7 +36,7 @@ describe('createAirtableReleveDriver', () => {
             fields: {
               plugin: 'Linkedin',
               emailExpéditeur: 'jobs-noreply@linkedin.com',
-              actif: true,
+              'Activer la création': true,
             },
           },
         ],
@@ -48,7 +48,7 @@ describe('createAirtableReleveDriver', () => {
       expect(r.found).toBe(true);
       if (r.found) {
         expect(r.sourceId).toBe('recLinkedIn');
-        expect(r.actif).toBe(true);
+        expect(r.activerCreation).toBe(true);
         expect(r.emailExpéditeur).toBe('jobs-noreply@linkedin.com');
       }
     } finally {
@@ -56,7 +56,7 @@ describe('createAirtableReleveDriver', () => {
     }
   });
 
-  it('getSourceLinkedIn retourne actif: false quand le champ actif est false', async () => {
+  it('getSourceLinkedIn retourne activerCreation: false quand la case est décochée', async () => {
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -67,7 +67,7 @@ describe('createAirtableReleveDriver', () => {
             fields: {
               plugin: 'Linkedin',
               emailExpéditeur: 'j@l.com',
-              actif: false,
+              'Activer la création': false,
             },
           },
         ],
@@ -77,7 +77,7 @@ describe('createAirtableReleveDriver', () => {
       const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
       const r = await driver.getSourceLinkedIn();
       expect(r.found).toBe(true);
-      if (r.found) expect(r.actif).toBe(false);
+      if (r.found) expect(r.activerCreation).toBe(false);
     } finally {
       globalThis.fetch = globalFetch;
     }
@@ -256,7 +256,7 @@ describe('createAirtableReleveDriver', () => {
     }
   });
 
-  it('listerSources lit emailExpéditeur lowercase + plugin + actif', async () => {
+  it('listerSources lit emailExpéditeur lowercase + plugin + type + 3 checkboxes', async () => {
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -267,7 +267,10 @@ describe('createAirtableReleveDriver', () => {
             fields: {
               emailExpéditeur: 'Jobs@LinkedIn.com',
               plugin: 'Linkedin',
-              actif: true,
+              type: 'email',
+              'Activer la création': true,
+              "Activer l'enrichissement": true,
+              "Activer l'analyse par IA": true,
             },
           },
         ],
@@ -281,7 +284,10 @@ describe('createAirtableReleveDriver', () => {
           sourceId: 'rec1',
           emailExpéditeur: 'jobs@linkedin.com',
           plugin: 'Linkedin',
-          actif: true,
+          type: 'email',
+          activerCreation: true,
+          activerEnrichissement: true,
+          activerAnalyseIA: true,
         },
       ]);
     } finally {
@@ -289,7 +295,7 @@ describe('createAirtableReleveDriver', () => {
     }
   });
 
-  it('creerSource écrit emailExpéditeur/plugin/actif', async () => {
+  it('creerSource écrit emailExpéditeur/plugin/type/3 checkboxes', async () => {
     let capturedBody: unknown = null;
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockImplementation((_url: string, opts?: RequestInit) => {
@@ -301,20 +307,26 @@ describe('createAirtableReleveDriver', () => {
       await driver.creerSource({
         emailExpéditeur: 'Alertes@Unknown.test',
         plugin: 'Inconnu',
-        actif: false,
+        type: 'email',
+        activerCreation: false,
+        activerEnrichissement: false,
+        activerAnalyseIA: true,
       });
       const body = capturedBody as { records: Array<{ fields: Record<string, unknown> }> };
       expect(body.records[0].fields).toMatchObject({
         emailExpéditeur: 'alertes@unknown.test',
         plugin: 'Inconnu',
-        actif: false,
+        type: 'email',
+        'Activer la création': false,
+        "Activer l'enrichissement": false,
+        "Activer l'analyse par IA": true,
       });
     } finally {
       globalThis.fetch = globalFetch;
     }
   });
 
-  it('mettreAJourSource patch plugin/actif', async () => {
+  it('mettreAJourSource patch plugin/type/3 checkboxes', async () => {
     let capturedBody: unknown = null;
     const globalFetch = globalThis.fetch;
     globalThis.fetch = jest.fn().mockImplementation((_url: string, opts?: RequestInit) => {
@@ -323,9 +335,16 @@ describe('createAirtableReleveDriver', () => {
     });
     try {
       const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
-      await driver.mettreAJourSource('rec1', { plugin: 'Inconnu', actif: false });
+      await driver.mettreAJourSource('rec1', {
+        plugin: 'Inconnu',
+        activerEnrichissement: false,
+      });
       const body = capturedBody as { records: Array<{ id: string; fields: Record<string, unknown> }> };
-      expect(body.records).toEqual([{ id: 'rec1', fields: { plugin: 'Inconnu', actif: false } }]);
+      expect(body.records[0].id).toBe('rec1');
+      expect(body.records[0].fields).toMatchObject({
+        plugin: 'Inconnu',
+        "Activer l'enrichissement": false,
+      });
     } finally {
       globalThis.fetch = globalFetch;
     }
@@ -395,7 +414,10 @@ describe('createAirtableReleveDriver', () => {
       await driver.creerSource({
         emailExpéditeur: 'alerts@welcometothejungle.com',
         plugin: 'Welcome to the Jungle',
-        actif: true,
+        type: 'email',
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
       });
       expect(calls).toHaveLength(5);
       const typecastCall = calls[1];

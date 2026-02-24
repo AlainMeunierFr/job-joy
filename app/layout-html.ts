@@ -35,12 +35,13 @@ export function getLayoutHtml(
   mainContent: string,
   options?: HeaderOptions
 ): string {
+  const APP_TITLE = 'Job-Joy';
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escapeHtml(title)}</title>
+  <title>${escapeHtml(APP_TITLE + ' - ' + title)}</title>
   <link rel="stylesheet" href="/styles/site.css">
 </head>
 <body class="appLayout">
@@ -73,44 +74,14 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   return `
   <div class="pageTableauDeBord">
     <h1>Tableau de bord</h1>
-    <section class="dossierBoiteContainer" aria-labelledby="titre-dossier-bal">
-    <h2 id="titre-dossier-bal">Dossier de la boite aux lettres</h2>
-    <button type="button" class="boutonAuditerDossier" e2eid="e2eid-bouton-auditer-dossier">Auditer le dossier</button>
-    <div class="thermometreAudit" aria-hidden="true">
-      <div id="thermometre-audit-bar" class="thermometreAuditBar" style="width:0%"></div>
-    </div>
-    <div id="resultat-audit" class="resultatAudit" role="status" aria-live="polite"></div>
-    <div class="auditSynthese" data-layout="table" hidden>
-      <table class="auditSyntheseTable" aria-label="Synthèse audit">
-        <thead>
-          <tr>
-            <th scope="col">emailExpéditeur</th>
-            <th scope="col">plugin</th>
-            <th scope="col">actif</th>
-            <th scope="col">nbEmails</th>
-          </tr>
-        </thead>
-        <tbody id="audit-synthese-body"></tbody>
-      </table>
-    </div>
-    <div id="audit-sous-totaux" class="auditSousTotaux" hidden>
-      <p id="audit-ligne-archivage">0 email sera archivé.</p>
-      <p id="audit-ligne-subsistance">0 email subsistera dans le dossier à analyser.</p>
-    </div>
-    <button type="button" class="boutonLancerTraitement" e2eid="e2eid-bouton-lancer-traitement">Lancer le traitement</button>
-    <div class="thermometreTraitement" aria-hidden="true">
-      <div id="thermometre-traitement-bar" class="thermometreTraitementBar" style="width:0%"></div>
-    </div>
-    <div id="resultat-traitement" class="resultatTraitement" role="status" aria-live="polite"></div>
-    </section>
 
-    <section class="syntheseOffres" aria-labelledby="titre-synthese-offres" data-layout="table">
+    <section class="syntheseOffres" aria-labelledby="titre-synthese-offres" data-layout="synthese-offres">
       <h2 id="titre-synthese-offres">
         Synthèse des offres
         <span
           class="syntheseOffresInfoBulle"
           aria-label="Aide sur les phases (plugin)"
-          title="Phase 1 : Extraction de l'URL des offres dans les emails&#10;Phase 2 : Ouverture des offres pour en récupérer le texte complet&#10;Phase 3 : Analyse et calcule d'un score par l'IA"
+          title="Phase 1 : Extraction de l'URL des offres dans les emails&#10;Phase 2 : Ouverture des offres pour en récupérer le texte complet&#10;Phase 3 : Analyse et calcul d'un score par l'IA"
         >ⓘ</span>
       </h2>
       <table class="syntheseOffresTable" aria-label="Synthèse des offres par expéditeur et statut">
@@ -119,19 +90,42 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       </table>
       <div class="syntheseOffresActions syntheseOffresActionsOneLine">
         <button type="button" class="btnSecondary boutonRafraichirSynthese" e2eid="e2eid-bouton-rafraichir-synthese-offres">Mise à jour</button>
-        <button type="button" class="boutonWorkerEnrichissement" e2eid="e2eid-bouton-worker-enrichissement">Ouvrir, récupérer et analyser les annonces</button>
         <button type="button" class="boutonOuvrirAirtable" e2eid="e2eid-bouton-ouvrir-airtable" data-airtable-url="${airtableUrlAttr}"${boutonOuvrirAirtableDisabled}>Ouvrir Airtable</button>
-        <div class="syntheseOffresThermo syntheseOffresThermoEnrichissement">
-          <div class="thermometreWorkerEnrichissement" aria-hidden="true" hidden>
-            <div id="thermometre-worker-enrichissement-bar" class="thermometreWorkerEnrichissementBar" style="width:0%"></div>
+      </div>
+    </section>
+
+    <section class="traitementsBloc" aria-labelledby="titre-traitements" data-layout="traitements">
+      <h2 id="titre-traitements">Traitements</h2>
+      <div class="traitementsBlocActions">
+        <button type="button" class="boutonWorkerEnrichissement" e2eid="e2eid-bouton-worker-enrichissement">Lancer les traitements</button>
+      </div>
+      <div class="traitementsBlocPhases" data-layout="lignes-phase">
+        <div class="traitementsLignePhase" data-layout="ligne-phase" data-phase="creation">
+          <span class="traitementsLignePhaseNom">Création</span>
+          <div class="syntheseOffresThermo syntheseOffresThermoPhase1" data-layout="thermometre-phase1" aria-label="Progression phase 1 création">
+            <div class="thermometreWorkerPhase1" aria-hidden="true" hidden>
+              <div id="thermometre-worker-phase1-bar" class="thermometreWorkerPhase1Bar" style="width:0%"></div>
+            </div>
+            <div id="resultat-worker-phase1" class="resultatWorkerEnrichissement" role="status" aria-live="polite"></div>
           </div>
-          <div id="resultat-worker-enrichissement" class="resultatWorkerEnrichissement" role="status" aria-live="polite"></div>
         </div>
-        <div class="syntheseOffresThermo syntheseOffresThermoAnalyseIA">
-          <div class="thermometreWorkerAnalyseIA" aria-hidden="true" hidden>
-            <div id="thermometre-worker-analyse-ia-bar" class="thermometreWorkerEnrichissementBar" style="width:0%"></div>
+        <div class="traitementsLignePhase" data-layout="ligne-phase" data-phase="enrichissement">
+          <span class="traitementsLignePhaseNom">Enrichissement</span>
+          <div class="syntheseOffresThermo syntheseOffresThermoEnrichissement">
+            <div class="thermometreWorkerEnrichissement" aria-hidden="true" hidden>
+              <div id="thermometre-worker-enrichissement-bar" class="thermometreWorkerEnrichissementBar" style="width:0%"></div>
+            </div>
+            <div id="resultat-worker-enrichissement" class="resultatWorkerEnrichissement" role="status" aria-live="polite"></div>
           </div>
-          <div id="resultat-worker-analyse-ia" class="resultatWorkerEnrichissement" role="status" aria-live="polite"></div>
+        </div>
+        <div class="traitementsLignePhase" data-layout="ligne-phase" data-phase="analyse-ia">
+          <span class="traitementsLignePhaseNom">Analyse IA</span>
+          <div class="syntheseOffresThermo syntheseOffresThermoAnalyseIA">
+            <div class="thermometreWorkerAnalyseIA" aria-hidden="true" hidden>
+              <div id="thermometre-worker-analyse-ia-bar" class="thermometreWorkerEnrichissementBar" style="width:0%"></div>
+            </div>
+            <div id="resultat-worker-analyse-ia" class="resultatWorkerEnrichissement" role="status" aria-live="polite"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -161,171 +155,6 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     </section>
     <script>
 (function() {
-  var btnAudit = null;
-  var zoneAudit = null;
-  var barAudit = null;
-  var auditSynthese = null;
-  var auditSousTotaux = null;
-  var syntheseBody = null;
-  var ligneArchivage = null;
-  var ligneSubsistance = null;
-  var pollTimerAudit = null;
-
-  function afficherAudit(texte, isError) {
-    if (!zoneAudit) return;
-    zoneAudit.textContent = texte;
-    zoneAudit.className = 'resultatAudit' + (isError ? ' resultatAudit--erreur' : '');
-  }
-
-  function setPercentAudit(p) {
-    if (!barAudit) return;
-    var v = Number(p);
-    if (!isFinite(v)) v = 0;
-    if (v < 0) v = 0;
-    if (v > 100) v = 100;
-    barAudit.style.width = v + '%';
-  }
-
-  function stopPollingAudit() {
-    if (pollTimerAudit) {
-      clearInterval(pollTimerAudit);
-      pollTimerAudit = null;
-    }
-  }
-
-  function afficherSectionsAudit() {
-    if (auditSynthese) auditSynthese.hidden = false;
-    if (auditSousTotaux) auditSousTotaux.hidden = false;
-  }
-
-  function escapeHtmlClient(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  function renderAuditSynthese(st) {
-    if (!syntheseBody) return;
-    if (!st || !st.result || !Array.isArray(st.result.synthese)) {
-      syntheseBody.innerHTML = '';
-      return;
-    }
-    if (st.result.synthese.length === 0) {
-      syntheseBody.innerHTML = '<tr><td colspan="4">Aucune source trouvée dans ce dossier.</td></tr>';
-      return;
-    }
-    syntheseBody.innerHTML = st.result.synthese.map(function(ligne) {
-      return '<tr>'
-        + '<td>' + escapeHtmlClient((ligne && ligne['emailExpéditeur']) || '') + '</td>'
-        + '<td>' + escapeHtmlClient((ligne && ligne.plugin) || '') + '</td>'
-        + '<td>' + escapeHtmlClient((ligne && ligne.actif) || '') + '</td>'
-        + '<td>' + escapeHtmlClient((ligne && ligne.nbEmails != null) ? ligne.nbEmails : '') + '</td>'
-        + '</tr>';
-    }).join('');
-  }
-
-  function renderAuditSousTotaux(st) {
-    if (!ligneArchivage || !ligneSubsistance) return;
-    if (!st || !st.result || !st.result.sousTotauxPrevisionnels) {
-      ligneArchivage.textContent = '0 email sera archivé.';
-      ligneSubsistance.textContent = '0 email subsistera dans le dossier à analyser.';
-      return;
-    }
-    var nbEmailsScannes = Number(st.result.nbEmailsScannes || 0);
-    var emailsAArchiver = Number(st.result.sousTotauxPrevisionnels.emailsÀArchiver || 0);
-    var emailsQuiSubsistent = Math.max(0, nbEmailsScannes - emailsAArchiver);
-    ligneArchivage.textContent = emailsAArchiver + (emailsAArchiver > 1 ? ' emails seront archivés.' : ' email sera archivé.');
-    ligneSubsistance.textContent = emailsQuiSubsistent + (emailsQuiSubsistent > 1
-      ? ' emails subsisteront dans le dossier à analyser.'
-      : ' email subsistera dans le dossier à analyser.');
-  }
-
-  function lancerAuditTableauDeBord(options) {
-    var relanceApresTraitement = !!(options && options.relanceApresTraitement);
-    afficherAudit(relanceApresTraitement ? 'Audit en cours (mise à jour après traitement)…' : 'Audit en cours…');
-    setPercentAudit(0);
-    if (btnAudit) btnAudit.disabled = true;
-    fetch('/api/audit/start', { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (!data || !data.ok || !data.taskId) {
-            afficherAudit((data && data.message) ? data.message : 'Erreur inconnue', true);
-            if (btnAudit) btnAudit.disabled = false;
-            return;
-          }
-          var taskId = data.taskId;
-          stopPollingAudit();
-          pollTimerAudit = setInterval(function() {
-            fetch('/api/audit/status?taskId=' + encodeURIComponent(taskId))
-              .then(function(r) { return r.json(); })
-              .then(function(st) {
-                if (!st || !st.ok) {
-                  afficherAudit((st && st.message) ? st.message : 'Erreur de suivi', true);
-                  stopPollingAudit();
-                  if (btnAudit) btnAudit.disabled = false;
-                  return;
-                }
-
-                if (st.percent != null) setPercentAudit(st.percent);
-                if (st.message) afficherAudit(st.message, st.status === 'error');
-
-                if (st.status === 'done' || st.status === 'error') {
-                  stopPollingAudit();
-                  if (st.result && st.result.ok) {
-                    afficherSectionsAudit();
-                    var msg = 'Audit terminé.';
-                    if (st.result.nbEmailsScannes != null) msg += ' Emails scannés : ' + st.result.nbEmailsScannes + '.';
-                    if (st.result.nbSourcesCreees != null) msg += ' Sources créées : ' + st.result.nbSourcesCreees + '.';
-                    if (st.result.nbSourcesExistantes != null) msg += ' Sources existantes : ' + st.result.nbSourcesExistantes + '.';
-                    if (st.result.messages && st.result.messages.length) msg += ' ' + st.result.messages.join(' ');
-                    afficherAudit(msg);
-                    renderAuditSynthese(st);
-                    renderAuditSousTotaux(st);
-                  }
-                  if (btnAudit) btnAudit.disabled = false;
-                }
-              })
-              .catch(function(err) {
-                afficherAudit('Erreur de suivi : ' + (err && err.message ? err.message : 'réseau'), true);
-                stopPollingAudit();
-                if (btnAudit) btnAudit.disabled = false;
-              });
-          }, 500);
-        })
-        .catch(function(err) {
-          afficherAudit('Erreur : ' + (err && err.message ? err.message : 'réseau'), true);
-          stopPollingAudit();
-          if (btnAudit) btnAudit.disabled = false;
-        });
-  }
-
-  window.__lancerAuditTableauDeBord = lancerAuditTableauDeBord;
-
-  function initAudit() {
-    btnAudit = document.querySelector('[e2eid="e2eid-bouton-auditer-dossier"]');
-    zoneAudit = document.getElementById('resultat-audit');
-    barAudit = document.getElementById('thermometre-audit-bar');
-    auditSynthese = document.querySelector('.auditSynthese');
-    auditSousTotaux = document.getElementById('audit-sous-totaux');
-    syntheseBody = document.getElementById('audit-synthese-body');
-    ligneArchivage = document.getElementById('audit-ligne-archivage');
-    ligneSubsistance = document.getElementById('audit-ligne-subsistance');
-    if (btnAudit) {
-      btnAudit.addEventListener('click', function() {
-        lancerAuditTableauDeBord();
-      });
-    }
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAudit);
-  } else {
-    initAudit();
-  }
-})();
-
-(function() {
   var syntheseOffresSection = null;
   var syntheseOffresHead = null;
   var syntheseOffresBody = null;
@@ -346,14 +175,16 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     var status = Array.isArray(statutsOrder) && statutsOrder.length > 0 ? statutsOrder : DEFAULT_STATUTS_ORDER;
     STATUTS_ORDER = status.slice();
     var fixed = ''
-      + '<th scope="col">email expéditeur</th>'
-      + '<th scope="col">plugin</th>'
-      + '<th scope="col" title="Phase 1 : Extraction de l\\'URL des offres dans les emails">Phase 1</th>'
-      + '<th scope="col" title="Phase 2 : Ouverture des offres pour en récupérer le texte complet">Phase 2</th>';
+      + '<th scope="col" title="Adresse email de l\\'expéditeur des messages relevés">email expéditeur</th>'
+      + '<th scope="col" title="Source ou plateforme (LinkedIn, HelloWork, etc.)">plugin</th>'
+      + '<th scope="col" title="Phase 1 : Extraction de l\\'URL des offres dans les emails">création</th>'
+      + '<th scope="col" title="Phase 2 : Ouverture des offres pour en récupérer le texte complet">enrichissement</th>'
+      + '<th scope="col" title="Phase 3 : Analyse et calcul d\\'un score par l\\'IA">analyse</th>'
+      + '<th scope="col" class="syntheseOffresColAImporter" title="Nombre d\\'emails en attente d\\'extraction (phase 1)">A importer</th>';
     var dyn = STATUTS_ORDER.map(function(statut) {
-      return '<th scope="col" class="syntheseOffresStatutCol"><span>' + escapeHtmlSynthese(statut) + '</span></th>';
+      return '<th scope="col" class="syntheseOffresStatutCol" title="Nombre d\\'offres au statut « ' + escapeHtmlSynthese(statut) + ' »"><span>' + escapeHtmlSynthese(statut) + '</span></th>';
     }).join('');
-    var colTotaux = '<th scope="col" class="syntheseOffresColTotaux" e2eid="e2eid-synthese-offres-col-totaux">Totaux</th>';
+    var colTotaux = '<th scope="col" class="syntheseOffresColTotaux" e2eid="e2eid-synthese-offres-col-totaux" title="Total des offres pour cette ligne">Totaux</th>';
     syntheseOffresHead.innerHTML = '<tr>' + fixed + dyn + colTotaux + '</tr>';
   }
 
@@ -388,9 +219,16 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     var totalParLigne = (totaux && Array.isArray(totaux.totalParLigne)) ? totaux.totalParLigne : [];
     var totauxColonnes = (totaux && totaux.totauxColonnes && typeof totaux.totauxColonnes === 'object') ? totaux.totauxColonnes : {};
     var totalGeneral = (totaux && typeof totaux.totalGeneral === 'number') ? totaux.totalGeneral : 0;
-    var workerEnCours = !!(typeof window !== 'undefined' && window.__workerEnCours);
+    var totalAImporter = lignes.reduce(function(s, l) { return s + ((l && typeof l.aImporter === 'number') ? l.aImporter : 0); }, 0);
+    var totalACompleter = (totauxColonnes && typeof totauxColonnes['A compléter'] === 'number') ? totauxColonnes['A compléter'] : 0;
+    var totalAAnalyser = (totauxColonnes && typeof totauxColonnes['À analyser'] === 'number') ? totauxColonnes['À analyser'] : 0;
+    var workerCreationEnCours = !!(typeof window !== 'undefined' && window.__workerCreationEnCours);
+    var workerEnrichissementEnCours = !!(typeof window !== 'undefined' && window.__workerEnrichissementEnCours);
+    var workerAnalyseIAEnCours = !!(typeof window !== 'undefined' && window.__workerAnalyseIAEnCours);
     var rowsHtml = lignes.map(function(ligne, i) {
-      var actif = !!(ligne && ligne.actif === true);
+      var actifCreation = !!(ligne && ligne.activerCreation === true);
+      var actifEnrichissement = !!(ligne && ligne.activerEnrichissement === true);
+      var actifAnalyseIA = !!(ligne && ligne.activerAnalyseIA === true);
       var phase1Impl = !!(ligne && ligne.phase1Implemented === true);
       if (ligne && ligne.phase1Implemented == null) {
         phase1Impl = !!(ligne && ligne.pluginEtape1 && ligne.pluginEtape1 !== 'Inconnu');
@@ -399,23 +237,43 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       if (ligne && ligne.phase2Implemented == null) {
         phase2Impl = !!(ligne && ligne.pluginEtape2 && ligne.pluginEtape2 !== 'Inconnu');
       }
+      var phase3Impl = !!(ligne && ligne.phase3Implemented === true);
+      if (ligne && ligne.phase3Implemented == null) phase3Impl = phase2Impl;
       var phase1Html;
       if (!phase1Impl) {
         phase1Html = '<span class="phaseEtat phaseEtat--ko" title="Phase 1 non implémentée">❌</span>';
-      } else if (!actif) {
+      } else if (!actifCreation) {
         phase1Html = '<span class="phaseEtat phaseEtat--inactive" title="Phase 1 implémentée, source désactivée">😴</span>';
+      } else if (workerCreationEnCours && totalAImporter > 0) {
+        phase1Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 1 activée – worker en cours">🏃</span>';
+      } else if (workerCreationEnCours) {
+        phase1Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 1 activée">✅</span>';
       } else {
         phase1Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 1 activée">✅</span>';
       }
       var phase2Html;
       if (!phase2Impl) {
         phase2Html = '<span class="phaseEtat phaseEtat--ko" title="Phase 2 non implémentée">❌</span>';
-      } else if (!actif) {
+      } else if (!actifEnrichissement) {
         phase2Html = '<span class="phaseEtat phaseEtat--inactive" title="Phase 2 implémentée, source désactivée">😴</span>';
-      } else if (workerEnCours) {
+      } else if (workerEnrichissementEnCours && totalACompleter > 0) {
         phase2Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 2 activée – worker en cours">🏃</span>';
+      } else if (workerEnrichissementEnCours) {
+        phase2Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 2 activée">✅</span>';
       } else {
         phase2Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 2 activée">✅</span>';
+      }
+      var phase3Html;
+      if (!phase3Impl) {
+        phase3Html = '<span class="phaseEtat phaseEtat--ko" title="Phase 3 non implémentée">❌</span>';
+      } else if (!actifAnalyseIA) {
+        phase3Html = '<span class="phaseEtat phaseEtat--inactive" title="Phase 3 implémentée, source désactivée">😴</span>';
+      } else if (workerAnalyseIAEnCours && totalAAnalyser > 0) {
+        phase3Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 3 activée – worker en cours">🏃</span>';
+      } else if (workerAnalyseIAEnCours) {
+        phase3Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 3 activée">✅</span>';
+      } else {
+        phase3Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 3 activée">✅</span>';
       }
       var pluginLabel = (ligne && (ligne.pluginEtape2 || ligne.pluginEtape1)) ? (ligne.pluginEtape2 || ligne.pluginEtape1) : 'Inconnu';
       var pluginLabelLower = String(pluginLabel).trim().toLowerCase();
@@ -428,6 +286,8 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       else if (pluginSlug === 'hellowork') pluginSlug = 'hellowork';
       else if (pluginSlug === 'cadre-emploi' || pluginSlug === 'cadreemploi') pluginSlug = 'cadreemploi';
       var pluginCapsule = '<span class="synthesePluginCapsule synthesePluginCapsule--' + escapeHtmlSynthese(pluginSlug) + '">' + escapeHtmlSynthese(pluginLabel) + '</span>';
+      var aImporter = (ligne && typeof ligne.aImporter === 'number') ? ligne.aImporter : 0;
+      var cellAImporter = '<td class="syntheseOffresCellAImporter">' + escapeHtmlSynthese(String(aImporter)) + '</td>';
       var statutsCells = STATUTS_ORDER.map(function(statut) {
         var n = (ligne && ligne.statuts && ligne.statuts[statut] != null) ? ligne.statuts[statut] : 0;
         return '<td>' + escapeHtmlSynthese(String(n)) + '</td>';
@@ -439,12 +299,14 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
         + '<td>' + pluginCapsule + '</td>'
         + '<td>' + phase1Html + '</td>'
         + '<td>' + phase2Html + '</td>'
+        + '<td>' + phase3Html + '</td>'
+        + cellAImporter
         + statutsCells
         + cellTotaux
         + '</tr>';
     }).join('');
     var ligneTotauxHtml = '<tr class="syntheseOffresLigneTotaux" e2eid="e2eid-synthese-offres-ligne-totaux">'
-      + '<td>Totaux</td><td></td><td></td><td></td>';
+      + '<td>Totaux</td><td></td><td></td><td></td><td></td><td></td>';
     STATUTS_ORDER.forEach(function(statut) {
       var n = (totauxColonnes[statut] != null) ? totauxColonnes[statut] : 0;
       ligneTotauxHtml += '<td>' + escapeHtmlSynthese(String(n)) + '</td>';
@@ -463,7 +325,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     var idxAnnonce = STATUTS_ORDER.indexOf(STATUT_ANNONCE);
     var idxAnalyser = STATUTS_ORDER.indexOf(STATUT_ANALYSER);
     if (idxAnnonce === -1 || idxAnalyser === -1) return;
-    var firstStatutCol = 5;
+    var firstStatutCol = 6;
     var lignesByEmail = {};
     for (var i = 0; i < lignes.length; i++) {
       var email = (lignes[i] && lignes[i].emailExpéditeur) ? String(lignes[i].emailExpéditeur).trim().toLowerCase() : '';
@@ -496,6 +358,35 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
         renderTableauSyntheseOffres(data && data.lignes, statutsOrdre, totaux);
       })
       .catch(function() {});
+  }
+
+  /** Audit puis chargement du tableau (colonne "A importer" à jour). Réutilisé au chargement et sur clic "Mise à jour". */
+  function loadTableauAvecAudit() {
+    return fetch('/api/tableau-synthese-offres/refresh', { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function() {
+        return fetch('/api/tableau-synthese-offres', { cache: 'no-store' });
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var statutsOrdre = data && Array.isArray(data.statutsOrdre) && data.statutsOrdre.length > 0
+          ? data.statutsOrdre
+          : DEFAULT_STATUTS_ORDER;
+        var totaux = (data && (data.totalParLigne != null || data.totauxColonnes != null || data.totalGeneral != null))
+          ? { totauxColonnes: data.totauxColonnes || {}, totalParLigne: Array.isArray(data.totalParLigne) ? data.totalParLigne : [], totalGeneral: typeof data.totalGeneral === 'number' ? data.totalGeneral : 0 }
+          : null;
+        renderTableauSyntheseOffres(data && data.lignes, statutsOrdre, totaux);
+      });
+  }
+
+  /** Mise à jour (US-3.3 CA2, US-3.5 CA4) : un clic déclenche l'audit puis le chargement du tableau. */
+  function onMiseAJourSyntheseClick() {
+    if (btnRefreshSynthese) btnRefreshSynthese.disabled = true;
+    loadTableauAvecAudit()
+      .catch(function() {})
+      .finally(function() {
+        if (btnRefreshSynthese) btnRefreshSynthese.disabled = false;
+      });
   }
 
   /** Rafraîchit les données du tableau (statuts et totaux). À appeler après un enrichissement. */
@@ -532,9 +423,9 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     syntheseOffresBody = document.getElementById('synthese-offres-body');
     btnRefreshSynthese = document.querySelector('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]');
     renderTableauSyntheseHead(DEFAULT_STATUTS_ORDER);
-    refreshTableauSyntheseOffres();
+    loadTableauAvecAudit().catch(function() {});
     if (btnRefreshSynthese) {
-      btnRefreshSynthese.addEventListener('click', refreshTableauSyntheseOffres);
+      btnRefreshSynthese.addEventListener('click', onMiseAJourSyntheseClick);
     }
   }
   if (document.readyState === 'loading') {
@@ -550,6 +441,9 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   var btnOuvrirAirtable = document.querySelector('[e2eid="e2eid-bouton-ouvrir-airtable"]');
   var zone = document.getElementById('resultat-traitement');
   var bar = document.getElementById('thermometre-traitement-bar');
+  var barWorkerPhase1 = document.getElementById('thermometre-worker-phase1-bar');
+  var zoneWorkerPhase1 = document.getElementById('resultat-worker-phase1');
+  var thermometreWorkerPhase1 = document.querySelector('.thermometreWorkerPhase1');
   var barWorker = document.getElementById('thermometre-worker-enrichissement-bar');
   var zoneWorker = document.getElementById('resultat-worker-enrichissement');
   var thermometreWorker = document.querySelector('.thermometreWorkerEnrichissement');
@@ -591,10 +485,22 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   }
   function setWorkerButton(running) {
     if (!btnWorker) return;
-    btnWorker.textContent = running
-      ? 'Arrêter d\\'ouvrir, récupérer et analyser les annonces'
-      : 'Ouvrir, récupérer et analyser les annonces';
+    btnWorker.textContent = running ? 'Arrêter les traitements' : 'Lancer les traitements';
     btnWorker.setAttribute('data-running', running ? '1' : '0');
+  }
+  function setWorkerProgressPhase1(percent, message, isError) {
+    if (thermometreWorkerPhase1) thermometreWorkerPhase1.hidden = false;
+    if (barWorkerPhase1) {
+      var v = Number(percent);
+      if (!isFinite(v)) v = 0;
+      if (v < 0) v = 0;
+      if (v > 100) v = 100;
+      barWorkerPhase1.style.width = v + '%';
+    }
+    if (zoneWorkerPhase1) {
+      zoneWorkerPhase1.textContent = message || '';
+      zoneWorkerPhase1.className = 'resultatWorkerEnrichissement' + (isError ? ' resultatWorkerEnrichissement--erreur' : '');
+    }
   }
   function setWorkerProgress(percent, message, isError) {
     if (thermometreWorker) thermometreWorker.hidden = false;
@@ -624,6 +530,10 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       zoneWorkerAnalyseIA.className = 'resultatWorkerEnrichissement' + (isError ? ' resultatWorkerEnrichissement--erreur' : '');
     }
   }
+  function hideWorkerProgressPhase1() {
+    if (thermometreWorkerPhase1) thermometreWorkerPhase1.hidden = true;
+    if (barWorkerPhase1) barWorkerPhase1.style.width = '0%';
+  }
   function hideWorkerProgress() {
     if (thermometreWorker) thermometreWorker.hidden = true;
     if (barWorker) barWorker.style.width = '0%';
@@ -638,7 +548,12 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       .then(function(data) {
         if (!data || !data.ok) return;
         var running = !!data.running;
+        var enrich = data.enrichissement || {};
+        var analyseIA = data.analyseIA || {};
         window.__workerEnCours = running;
+        window.__workerCreationEnCours = !!(data.creation && data.creation.running) || !!(enrich.running);
+        window.__workerEnrichissementEnCours = !!(enrich.running);
+        window.__workerAnalyseIAEnCours = !!(analyseIA.running) || (running && !enrich.running);
         if (typeof window.__updateTableauSyntheseWorkerState === 'function') {
           window.__updateTableauSyntheseWorkerState();
         }
@@ -651,7 +566,14 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
               window.__refreshTableauSyntheseOffresStatutsOnly();
             }, 20000);
           }
-          var enrich = data.enrichissement || {};
+          var creation = data.creation || {};
+          var pCreation = creation.currentProgress;
+          if (pCreation && pCreation.total > 0) {
+            var percentCreation = Math.round(((pCreation.index + 1) / pCreation.total) * 100);
+            setWorkerProgressPhase1(percentCreation, (pCreation.index + 1) + '/' + pCreation.total + ' — création…', false);
+          } else {
+            setWorkerProgressPhase1(0, (creation.running ? 'Création en cours…' : ''), false);
+          }
           var p = enrich.currentProgress || data.currentProgress;
           if (p && p.total > 0) {
             var percent = Math.round(((p.index + 1) / p.total) * 100);
@@ -660,7 +582,6 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
           } else {
             setWorkerProgress(0, enrich.running ? 'Enrichissement en cours…' : '', false);
           }
-          var analyseIA = data.analyseIA || {};
           var pIA = analyseIA.currentProgress;
           var stateAnalyseIA = data.stateAnalyseIA || {};
           var nbCandidates = stateAnalyseIA.nbCandidates;
@@ -679,6 +600,9 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
             setWorkerProgressAnalyseIA(0, msgIA, false);
           }
         } else {
+          window.__workerCreationEnCours = false;
+          window.__workerEnrichissementEnCours = false;
+          window.__workerAnalyseIAEnCours = false;
           if (syntheseRefreshWhenWorkerRunning) {
             clearInterval(syntheseRefreshWhenWorkerRunning);
             syntheseRefreshWhenWorkerRunning = null;
@@ -687,9 +611,24 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
             workerWasRunning = false;
             if (window.__refreshTableauSyntheseOffresStatutsOnly) window.__refreshTableauSyntheseOffresStatutsOnly();
           }
+          hideWorkerProgressPhase1();
           hideWorkerProgress();
           hideWorkerProgressAnalyseIA();
+          var creation = data.creation || {};
           var enrich = data.enrichissement || {};
+          if (zoneWorkerPhase1) {
+            var resCreation = creation.lastResult || data.creationLastResult;
+            if (resCreation && resCreation.ok) {
+              zoneWorkerPhase1.textContent = 'Terminé : ' + (resCreation.nbCreees ?? 0) + ' créée(s), ' + (resCreation.nbEchecs ?? 0) + ' échec(s).';
+              zoneWorkerPhase1.className = 'resultatWorkerEnrichissement';
+            } else if (creation.lastError) {
+              zoneWorkerPhase1.textContent = creation.lastError;
+              zoneWorkerPhase1.className = 'resultatWorkerEnrichissement resultatWorkerEnrichissement--erreur';
+            } else {
+              zoneWorkerPhase1.textContent = 'Terminé : 0 créée(s).';
+              zoneWorkerPhase1.className = 'resultatWorkerEnrichissement';
+            }
+          }
           if (zoneWorker) {
             var res = enrich.lastResult || data.lastResult;
             if (res && res.ok) {
@@ -725,13 +664,13 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   if (btnWorker) {
     btnWorker.addEventListener('click', function() {
       var isRunning = btnWorker.getAttribute('data-running') === '1';
-      if (isRunning && !window.confirm('Arrêter le traitement en cours ?')) return;
       var endpoint = isRunning ? '/api/enrichissement-worker/stop' : '/api/enrichissement-worker/start';
       fetch(endpoint, { method: 'POST' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (!data || !data.ok) return;
           setWorkerButton(!!data.running);
+          refreshWorkerStatus();
         })
         .catch(function() {});
     });
@@ -747,66 +686,6 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
         return;
       }
       window.open(url, '_blank', 'noopener,noreferrer');
-    });
-  }
-  if (btn) {
-    btn.addEventListener('click', function() {
-      afficher('Traitement en cours…');
-      setPercent(0);
-      if (btn) btn.disabled = true;
-      fetch('/api/traitement/start', { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (!data || !data.ok || !data.taskId) {
-            afficher((data && data.message) ? data.message : 'Erreur inconnue', true);
-            return;
-          }
-          var taskId = data.taskId;
-          stopPolling();
-          pollTimer = setInterval(function() {
-            fetch('/api/traitement/status?taskId=' + encodeURIComponent(taskId))
-              .then(function(r) { return r.json(); })
-              .then(function(st) {
-                if (!st || !st.ok) {
-                  afficher((st && st.message) ? st.message : 'Erreur de suivi', true);
-                  stopPolling();
-                  return;
-                }
-                if (st.percent != null) setPercent(st.percent);
-                if (st.message) afficher(st.message, st.status === 'error');
-                if (st.status === 'done' || st.status === 'error') {
-                  stopPolling();
-                  if (st.result && st.result.ok) {
-                    var msg = 'Traitement terminé.';
-                    if (st.result.nbOffresCreees != null) msg += ' Offres créées : ' + st.result.nbOffresCreees + '.';
-                    if (st.result.nbOffresDejaPresentes != null && st.result.nbOffresDejaPresentes > 0) msg += ' Offres déjà présentes (mises à jour) : ' + st.result.nbOffresDejaPresentes + '.';
-                    if (st.result.nbEnrichies != null) msg += ' Enrichies : ' + st.result.nbEnrichies + '.';
-                    if (st.result.messages && st.result.messages.length) msg += ' ' + st.result.messages.join(' ');
-                    afficher(msg);
-                    if (window.__lancerAuditTableauDeBord) {
-                      window.__lancerAuditTableauDeBord({ relanceApresTraitement: true });
-                    }
-                    if (window.__refreshTableauSyntheseOffres) {
-                      var refreshSynthese = window.__refreshTableauSyntheseOffres;
-                      setTimeout(function() { refreshSynthese(); }, 400);
-                    }
-                  }
-                  if (btn) btn.disabled = false;
-                }
-              })
-              .catch(function(err) {
-                afficher('Erreur de suivi : ' + (err && err.message ? err.message : 'réseau'), true);
-                stopPolling();
-                if (btn) btn.disabled = false;
-              });
-          }, 500);
-        })
-        .catch(function(err) {
-          afficher('Erreur : ' + (err && err.message ? err.message : 'réseau'), true);
-          stopPolling();
-          if (btn) btn.disabled = false;
-        })
-        .finally(function() {});
     });
   }
 })();
@@ -966,14 +845,19 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       drawConsommationHistogram(null);
       return;
     }
-    var dates = Object.keys(data).sort().reverse();
+    var dataForTable = data;
+    if (Object.prototype.hasOwnProperty.call(data, 'parIntention')) {
+      dataForTable = {};
+      for (var k in data) if (k !== 'parIntention') dataForTable[k] = data[k];
+    }
+    var dates = Object.keys(dataForTable).sort().reverse();
     if (dates.length === 0) {
       tbodyConsommation.innerHTML = '<tr><td colspan="3">Aucun log pour la période.</td></tr>';
-      drawConsommationHistogram(data);
+      drawConsommationHistogram(dataForTable);
       return;
     }
     tbodyConsommation.innerHTML = dates.map(function(date) {
-      var row = data[date] || {};
+      var row = dataForTable[date] || {};
       var claude = (row.Claude != null) ? Number(row.Claude) : 0;
       var airtable = (row.Airtable != null) ? Number(row.Airtable) : 0;
       return '<tr data-date="' + escapeConsommation(date) + '">'
@@ -982,7 +866,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
         + '<td data-api="Airtable">' + escapeConsommation(String(airtable)) + '</td>'
         + '</tr>';
     }).join('');
-    drawConsommationHistogram(data);
+    drawConsommationHistogram(dataForTable);
   }
   if (btnCalculer) {
     btnCalculer.addEventListener('click', function() {

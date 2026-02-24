@@ -61,7 +61,7 @@ export async function executerReleveOffresLinkedIn(
         "La source LinkedIn est absente ou indisponible dans la table Sources. L'utilisateur doit être informé.",
     };
   }
-  if (!source.actif) {
+  if (!source.activerCreation) {
     return {
       ok: false,
       raison: 'source_inactive',

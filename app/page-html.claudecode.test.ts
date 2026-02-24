@@ -99,5 +99,14 @@ describe('page Paramètres - section Configuration ClaudeCode (US-2.2)', () => {
       expect(html).toContain('id="zone-resultat-test-claudecode"');
       expect(html).toContain('zoneResultatTestClaudecode');
     });
+
+    it('US-3.2 : le script construit la section Réhibitoires avec justifications quand jv.valid et jv.json', async () => {
+      const html = await getParametresContent(dataDir);
+      expect(html).toContain('zoneResultatRehibitoires');
+      expect(html).toContain('data-layout="zone-resultat-rehibitoires"');
+      expect(html).toContain('blocResultatRehibitoireJustification');
+      expect(html).toContain('Réhibitoires');
+      expect(html).toContain('escapeHtml(justif)');
+    });
   });
 });

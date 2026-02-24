@@ -77,9 +77,12 @@ export function validerConformiteJsonIA(
     }
   }
 
+  const MAX_LONGUEUR_JUSTIFICATION = 500;
+
   for (const key of attendues) {
     const v = json[key];
     if (v === undefined) {
+      if (key.startsWith('Réhibitoire')) continue; // optionnel : absent = critère non rédhibitoire
       errors.push(`Clé manquante : "${key}".`);
       continue;
     }
@@ -90,8 +93,10 @@ export function validerConformiteJsonIA(
       continue;
     }
     if (key.startsWith('Réhibitoire')) {
-      if (typeof v !== 'boolean') {
-        errors.push(`"${key}" doit être un booléen (reçu: ${typeof v}).`);
+      if (typeof v !== 'string') {
+        errors.push(`"${key}" doit être une chaîne (justification, reçu: ${typeof v}).`);
+      } else if (v.length > MAX_LONGUEUR_JUSTIFICATION) {
+        errors.push(`"${key}" ne doit pas dépasser ${MAX_LONGUEUR_JUSTIFICATION} caractères (reçu: ${v.length}).`);
       }
       continue;
     }

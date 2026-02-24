@@ -27,7 +27,10 @@ describe('runAuditSources - audit seul des sources', () => {
           sourceId: 'src_linkedin',
           emailExpéditeur: ' Jobs@Linkedin.com ',
           plugin: 'Linkedin',
-          actif: true,
+          type: 'email',
+          activerCreation: true,
+          activerEnrichissement: true,
+          activerAnalyseIA: true,
         },
       ]),
       creerSource: jest.fn().mockImplementation(async (source) => ({
@@ -86,7 +89,10 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'alerte@emails.hellowork.com',
       plugin: 'Inconnu',
-      actif: false,
+      type: 'email',
+      activerCreation: false,
+      activerEnrichissement: false,
+      activerAnalyseIA: true,
     });
     expect(deplacer).not.toHaveBeenCalled();
     expect(createOffres).not.toHaveBeenCalled();
@@ -100,7 +106,10 @@ describe('runAuditSources - audit seul des sources', () => {
           sourceId: 'rec_existing',
           emailExpéditeur: 'alertes@unknown-source.test',
           plugin: 'Inconnu',
-          actif: false,
+          type: 'email',
+          activerCreation: false,
+          activerEnrichissement: false,
+          activerAnalyseIA: true,
         },
       ]),
       creerSource: jest.fn(),
@@ -194,7 +203,10 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'hr@example.org',
       plugin: 'Inconnu',
-      actif: false,
+      type: 'email',
+      activerCreation: false,
+      activerEnrichissement: false,
+      activerAnalyseIA: true,
     });
   });
 
@@ -283,7 +295,10 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'jobs-noreply@linkedin.com',
       plugin: 'Linkedin',
-      actif: true,
+      type: 'email',
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
     });
   });
 
@@ -318,7 +333,10 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'jobs-listings@linkedin.com',
       plugin: 'Linkedin',
-      actif: true,
+      type: 'email',
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
     });
   });
 
@@ -370,7 +388,10 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'alerts@welcometothejungle.com',
       plugin: 'Welcome to the Jungle',
-      actif: true,
+      type: 'email',
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
     });
   });
 
@@ -382,7 +403,10 @@ describe('runAuditSources - audit seul des sources', () => {
           sourceId: 'rec_wttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
           plugin: 'Inconnu',
-          actif: false,
+          type: 'email',
+          activerCreation: false,
+          activerEnrichissement: false,
+          activerAnalyseIA: true,
         },
       ]),
       creerSource: jest.fn(),
@@ -436,7 +460,10 @@ describe('runAuditSources - audit seul des sources', () => {
           sourceId: 'rec_wttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
           plugin: 'Inconnu',
-          actif: false,
+          type: 'email',
+          activerCreation: false,
+          activerEnrichissement: false,
+          activerAnalyseIA: true,
         },
       ]),
       creerSource: jest.fn(),
@@ -488,7 +515,10 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(driverReleve.creerSource).toHaveBeenCalledWith({
       emailExpéditeur: 'jobs@makesense.org',
       plugin: 'Job That Make Sense',
-      actif: true,
+      type: 'email',
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
     });
   });
 
@@ -500,7 +530,10 @@ describe('runAuditSources - audit seul des sources', () => {
           sourceId: 'rec_ce',
           emailExpéditeur: 'offres@alertes.cadremploi.fr',
           plugin: 'Inconnu',
-          actif: false,
+          type: 'email',
+          activerCreation: false,
+          activerEnrichissement: false,
+          activerAnalyseIA: true,
         },
       ]),
       creerSource: jest.fn(),

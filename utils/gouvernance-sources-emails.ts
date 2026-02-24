@@ -6,10 +6,15 @@ export type PluginSource =
   | 'Job That Make Sense'
   | 'Cadre Emploi';
 
+export type TypeSource = 'email' | 'liste html' | 'liste csv';
+
 export interface SourceEmail {
   emailExpéditeur: string;
   plugin: PluginSource;
-  actif: boolean;
+  type: TypeSource;
+  activerCreation: boolean;
+  activerEnrichissement: boolean;
+  activerAnalyseIA: boolean;
 }
 
 export interface EmailAAnalyser {
@@ -27,7 +32,17 @@ export interface SchemaSourceEmail {
     type: string;
     options: string[];
   };
-  actif?: {
+  type?: {
+    type: string;
+    options?: string[];
+  };
+  activerCreation?: {
+    type: string;
+  };
+  activerEnrichissement?: {
+    type: string;
+  };
+  activerAnalyseIA?: {
     type: string;
   };
 }
@@ -87,8 +102,22 @@ export function preparerMigrationSources(schema: SchemaSourceEmail): { ok: true 
   if (!schema.plugin || schema.plugin.type !== 'singleSelect') {
     return { ok: false, message: 'Le champ plugin doit être un single select.' };
   }
-  if (!schema.actif || schema.actif.type !== 'checkbox') {
-    return { ok: false, message: 'Le champ actif doit être une case à cocher.' };
+  if (!schema.type || schema.type.type !== 'singleSelect') {
+    return { ok: false, message: 'Le champ type doit être une sélection unique.' };
+  }
+  const typeOptions = [...(schema.type.options ?? [])];
+  const typeAttendu = ['email', 'liste html', 'liste csv'];
+  if (typeOptions.length !== typeAttendu.length || typeAttendu.some((v, i) => typeOptions[i] !== v)) {
+    return { ok: false, message: 'Le champ type doit contenir exactement : email, liste html, liste csv.' };
+  }
+  if (!schema.activerCreation || schema.activerCreation.type !== 'checkbox') {
+    return { ok: false, message: 'Le champ activerCreation doit être une case à cocher.' };
+  }
+  if (!schema.activerEnrichissement || schema.activerEnrichissement.type !== 'checkbox') {
+    return { ok: false, message: 'Le champ activerEnrichissement doit être une case à cocher.' };
+  }
+  if (!schema.activerAnalyseIA || schema.activerAnalyseIA.type !== 'checkbox') {
+    return { ok: false, message: 'Le champ activerAnalyseIA doit être une case à cocher.' };
   }
   const options = [...schema.plugin.options];
   const attendu = [...PLUGINS_ATTENDUS];
@@ -119,7 +148,10 @@ export function auditerSourcesDepuisEmails(options: {
     const source: SourceEmail = {
       emailExpéditeur: key,
       plugin,
-      actif: pluginActifParDefaut(plugin),
+      type: 'email',
+      activerCreation: pluginActifParDefaut(plugin),
+      activerEnrichissement: pluginActifParDefaut(plugin),
+      activerAnalyseIA: true,
     };
     creees.push(source);
     sourcesConnues.add(key);
@@ -183,7 +215,10 @@ export async function traiterEmailsSelonStatutSource(
       source = {
         emailExpéditeur: key,
         plugin,
-        actif: pluginActifParDefaut(plugin),
+        type: 'email',
+        activerCreation: pluginActifParDefaut(plugin),
+        activerEnrichissement: pluginActifParDefaut(plugin),
+        activerAnalyseIA: true,
       };
       sourcesMap.set(key, source);
       creees.push(source);
@@ -217,14 +252,14 @@ export async function traiterEmailsSelonStatutSource(
         await options.capturerHtmlExemple?.(source.emailExpéditeur, email.html);
         capturesParExpediteur.set(key, dejaCaptures + 1);
       }
-      if (source.actif) {
+      if (source.activerCreation) {
         await options.deplacerVersTraite?.(email, source);
         deplacementsEffectués += 1;
       }
       continue;
     }
 
-    if (!source.actif) {
+    if (!source.activerCreation) {
       continue;
     }
 

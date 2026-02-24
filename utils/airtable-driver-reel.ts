@@ -80,7 +80,28 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
                 choices: PLUGINS_SOURCES_AIRTABLE.map((name) => ({ name })),
               },
             },
-            { name: 'actif', type: 'checkbox' as const, options: { icon: 'check', color: 'greenBright' } },
+            {
+              name: 'type',
+              type: 'singleSelect' as const,
+              options: {
+                choices: [{ name: 'email' }, { name: 'liste html' }, { name: 'liste csv' }],
+              },
+            },
+            {
+              name: 'Activer la création',
+              type: 'checkbox' as const,
+              options: { icon: 'check', color: 'greenBright' },
+            },
+            {
+              name: 'Activer l\'enrichissement',
+              type: 'checkbox' as const,
+              options: { icon: 'check', color: 'greenBright' },
+            },
+            {
+              name: 'Activer l\'analyse par IA',
+              type: 'checkbox' as const,
+              options: { icon: 'check', color: 'greenBright' },
+            },
           ],
         };
         const createSourcesRes = await fetch(tablesUrl, {
@@ -105,7 +126,7 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
           description: 'Offres récupérées',
           fields: [
             { name: 'Id offre', type: 'singleLineText' as const },
-            { name: 'URL', type: 'singleLineText' as const },
+            { name: 'URL', type: 'url' as const },
             { name: 'Texte de l\'offre', type: 'multilineText' as const },
             { name: 'Poste', type: 'singleLineText' as const },
             { name: 'Entreprise', type: 'singleLineText' as const },
@@ -138,10 +159,10 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
               },
             },
             { name: 'Résumé', type: 'multilineText' as const },
-            { name: 'CritèreRéhibitoire1', type: 'checkbox' as const, options: { icon: 'check', color: 'redBright' } },
-            { name: 'CritèreRéhibitoire2', type: 'checkbox' as const, options: { icon: 'check', color: 'redBright' } },
-            { name: 'CritèreRéhibitoire3', type: 'checkbox' as const, options: { icon: 'check', color: 'redBright' } },
-            { name: 'CritèreRéhibitoire4', type: 'checkbox' as const, options: { icon: 'check', color: 'redBright' } },
+            { name: 'CritèreRéhibitoire1', type: 'singleLineText' as const },
+            { name: 'CritèreRéhibitoire2', type: 'singleLineText' as const },
+            { name: 'CritèreRéhibitoire3', type: 'singleLineText' as const },
+            { name: 'CritèreRéhibitoire4', type: 'singleLineText' as const },
             { name: 'ScoreCritère1', type: 'number' as const, options: { precision: 0 } },
             { name: 'ScoreCritère2', type: 'number' as const, options: { precision: 0 } },
             { name: 'ScoreCritère3', type: 'number' as const, options: { precision: 0 } },

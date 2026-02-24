@@ -9,12 +9,18 @@ Fonctionnalité: Gouvernance des sources email pour le traitement des offres
     Et que le dossier email à traiter est configuré
     Et que le dossier "Traité" est configuré
 
-  # --- CA1 : Migration Airtable Sources ---
-  Scénario: Migration du modèle de source vers le champ Statut
+  # --- CA1 : Schéma Sources (US-3.1 : type + 3 checkboxes, actif supprimé) ---
+  Scénario: La table Sources utilise type et les trois cases à cocher d'activation par phase
     Étant donné qu'une migration des sources est exécutée
     Quand la table Sources est préparée pour cette version
     Alors le champ "actif" n'est plus utilisé
-    Et le champ "Statut" est un choix unique avec les valeurs "Inconnu", "Inactif" et "Actif"
+    Et la table Sources comporte le champ "type" (sélection : email, liste html, liste csv)
+    Et la table Sources comporte "Activer la création", "Activer l'enrichissement", "Activer l'analyse par IA" (cases à cocher)
+  Scénario: Migration du modèle de source vers le champ Statut (si conservé)
+    Étant donné qu'une migration des sources est exécutée
+    Quand la table Sources est préparée pour cette version
+    Et que le champ "Statut" est conservé dans le schéma
+    Alors le champ "Statut" est un choix unique avec les valeurs "Inconnu", "Inactif" et "Actif"
 
   Scénario: Initialisation des sources avec la seule source connue par le code
     Étant donné qu'aucune source n'existe encore dans Airtable

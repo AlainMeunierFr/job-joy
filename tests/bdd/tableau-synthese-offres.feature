@@ -24,12 +24,12 @@ Fonctionnalité: Tableau de synthèse des offres
     | jobs@linkedin.com                 | Linkedin     | Linkedin     | 2                   | 1         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
     | notification@emails.hellowork.com | HelloWork    | HelloWork    | 1                   | 0         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
     Quand le tableau de synthèse des offres est chargé
-    Alors le tableau affiche les colonnes fixes dans l'ordre : email expéditeur, plugin, Phase 1, Phase 2
+    Alors le tableau affiche les colonnes fixes dans l'ordre : email expéditeur, plugin, création, enrichissement, analyse
     Et le tableau affiche une colonne par statut d'offre dans l'ordre de l'énum Airtable
     Et le tableau affiche les lignes suivantes
-    | emailExpéditeur                    | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À analyser | À traiter | Candidaté | Refusé | Traité | Ignoré | Expiré | Autre |
-    | jobs@linkedin.com                 | ✅          | ✅          | 2                   | 1         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
-    | notification@emails.hellowork.com | ✅          | ✅          | 1                   | 0         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
+    | emailExpéditeur                    | plugin étape 1 | plugin étape 2 | création | enrichissement | analyse | Annonce à récupérer | À analyser | À traiter | Candidaté | Refusé | Traité | Ignoré | Expiré | Autre |
+    | jobs@linkedin.com                 | Linkedin     | Linkedin     | ✅       | ✅             | ✅      | 2                   | 1         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
+    | notification@emails.hellowork.com | HelloWork    | HelloWork    | ✅       | ✅             | ✅      | 1                   | 0         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
 
   Scénario: Les colonnes statut utilisent toutes les valeurs de l'énum Airtable dans le même ordre
     Étant donné que le tableau de synthèse des offres est chargé avec au moins une offre
@@ -116,6 +116,55 @@ Fonctionnalité: Tableau de synthèse des offres
     Étant donné que les données du tableau de synthèse sont mises à jour en base avec les comptages suivants
     | emailExpéditeur   | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À traiter | Traité | Ignoré | À analyser |
     | first@source.com  | PluginA        | PluginA        | 2                   | 1         | 0      | 0      | 0         |
-    Quand je rafraîchis le tableau de synthèse des offres
+    Quand je clique sur le bouton "Mise à jour" du bloc Traitements
     Alors pour la ligne de la source "first@source.com" la cellule Totaux affiche "3"
     Et la cellule Totaux×Totaux affiche "3"
+
+  # --- US-3.3 : Tableau de bord unifié ---
+  # CA1 : Colonne "A importer" dans la Synthèse des offres (une API, cache RAM)
+  @us-3.3
+  Scénario: Le tableau Synthèse des offres affiche une colonne "A importer" avec les valeurs du cache audit
+    Étant donné que les sources et offres suivantes existent en base
+    | emailExpéditeur                    | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À analyser | À traiter |
+    | jobs@linkedin.com                 | Linkedin     | Linkedin     | 2                   | 1         | 0      |
+    | notification@emails.hellowork.com | HelloWork    | HelloWork    | 1                   | 0         | 0      |
+    Et que le cache RAM du dernier audit contient les nombres à importer suivants
+    | emailExpéditeur                    | A importer |
+    | jobs@linkedin.com                 | 3          |
+    | notification@emails.hellowork.com | 0          |
+    Quand le tableau de synthèse des offres est chargé
+    Alors le tableau affiche une colonne "A importer"
+    Et la cellule (jobs@linkedin.com × "A importer") affiche "3"
+    Et la cellule (notification@emails.hellowork.com × "A importer") affiche "0"
+    Et les données du tableau (lignes et colonne "A importer") proviennent d'une seule API
+
+  @us-3.3
+  Scénario: La colonne "A importer" affiche zéro quand le cache audit n'a pas encore été exécuté pour une source
+    Étant donné que la source "nouvelle@source.com" a 1 offre en base
+    Et que le cache RAM du dernier audit ne contient pas d'entrée pour "nouvelle@source.com"
+    Quand le tableau de synthèse des offres est chargé
+    Alors la cellule (nouvelle@source.com × "A importer") affiche "0"
+
+  # CA2 : Bouton "Mise à jour" déclenche audit puis rafraîchissement côté serveur
+  @us-3.3
+  Scénario: Le bouton "Mise à jour" déclenche l'audit puis le rafraîchissement et le tableau se met à jour
+    Étant donné que les sources et offres suivantes existent en base
+    | emailExpéditeur   | plugin étape 1 | plugin étape 2 | Annonce à récupérer | À traiter |
+    | source@test.com   | PluginA        | PluginA        | 1                   | 0         |
+    Et que le tableau de synthèse des offres est chargé
+    Et que le cache RAM du dernier audit contient pour "source@test.com" le nombre à importer "0"
+    Quand je clique sur le bouton "Mise à jour" du bloc Traitements
+    Alors le serveur exécute l'audit puis le rafraîchissement des statuts
+    Et le tableau affiche la colonne "A importer" et les statuts cohérents avec le résultat de cet enchaînement
+    Et la cellule (source@test.com × "A importer") reflète le résultat du dernier audit
+
+  # CA3 US-3.3 / US-3.5 : Thermomètres dans le bloc Traitements (réorganisation US-3.5)
+  @us-3.3
+  @us-3.5
+  Scénario: Les thermomètres des trois phases sont affichés dans le bloc Traitements
+    Étant donné que le tableau de bord est affiché
+    Et que le bloc "Traitements" est visible
+    Quand j'observe la zone des phases dans le bloc Traitements
+    Alors un thermomètre de progression de la phase 1 (création) est affiché
+    Et un thermomètre pour la phase 2 (enrichissement) est affiché
+    Et un thermomètre pour la phase 3 (analyse IA) est affiché

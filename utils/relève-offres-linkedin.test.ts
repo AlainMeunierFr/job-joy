@@ -31,11 +31,11 @@ describe('executerReleveOffresLinkedIn (CA1)', () => {
     }
   });
 
-  it('retourne source_inactive quand la source LinkedIn existe mais actif est false', async () => {
+  it('retourne source_inactive quand la source LinkedIn existe mais activerCreation est false', async () => {
     const driver = {
       getSourceLinkedIn: async (): Promise<SourceLinkedInResult> => ({
         found: true,
-        actif: false,
+        activerCreation: false,
         emailExpéditeur: 'jobs@linkedin.com',
         sourceId: 'recX',
       }),
@@ -62,7 +62,7 @@ describe('executerReleveOffresLinkedIn (CA1)', () => {
     const driver = {
       getSourceLinkedIn: async (): Promise<SourceLinkedInResult> => ({
         found: true,
-        actif: true,
+        activerCreation: true,
         emailExpéditeur: 'jobs@linkedin.com',
         sourceId: 'recLinkedIn',
       }),
@@ -87,7 +87,7 @@ describe('executerReleveOffresLinkedIn (CA1)', () => {
     const driver = {
       getSourceLinkedIn: async (): Promise<SourceLinkedInResult> => ({
         found: true,
-        actif: true,
+        activerCreation: true,
         emailExpéditeur: 'jobs-noreply@linkedin.com',
         sourceId: 'recLinkedIn',
       }),
@@ -127,7 +127,7 @@ describe('executerReleveOffresLinkedIn (CA1)', () => {
     const driver = {
       getSourceLinkedIn: async (): Promise<SourceLinkedInResult> => ({
         found: true,
-        actif: true,
+        activerCreation: true,
         emailExpéditeur: 'j@l.com',
         sourceId: 'recX',
       }),

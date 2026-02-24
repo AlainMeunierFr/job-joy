@@ -91,7 +91,7 @@ describe('createAirtableEnrichissementDriver', () => {
     }
   });
 
-  it('getOffresARecuperer filtre par sources actives quand sourcesId est fourni', async () => {
+  it('getOffresARecuperer filtre par Activer l\'enrichissement quand sourcesId est fourni', async () => {
     const sourcesId = 'tblSources';
     const callUrls: string[] = [];
     const globalFetch = globalThis.fetch;
@@ -102,8 +102,22 @@ describe('createAirtableEnrichissementDriver', () => {
           ok: true,
           json: async () => ({
             records: [
-              { id: 'recHW', fields: { actif: true, plugin: 'HelloWork', emailExpéditeur: 'notification@emails.hellowork.com' } },
-              { id: 'recLinkedIn', fields: { actif: false, plugin: 'Linkedin', emailExpéditeur: 'jobs@linkedin.com' } },
+              {
+                id: 'recHW',
+                fields: {
+                  'Activer l\'enrichissement': true,
+                  plugin: 'HelloWork',
+                  emailExpéditeur: 'notification@emails.hellowork.com',
+                },
+              },
+              {
+                id: 'recLinkedIn',
+                fields: {
+                                    "Activer l'enrichissement": false,
+                  plugin: 'Linkedin',
+                  emailExpéditeur: 'jobs@linkedin.com',
+                },
+              },
             ],
           }),
         });
@@ -140,6 +154,106 @@ describe('createAirtableEnrichissementDriver', () => {
       expect(r[0].url).toContain('hellowork');
       expect(r[0].emailExpéditeur).toBe('notification@emails.hellowork.com');
       expect(callUrls.some((u) => u.includes(sourcesId))).toBe(true);
+    } finally {
+      globalThis.fetch = globalFetch;
+    }
+  });
+
+  it('US-2.1 / US-3.2 : updateOffre envoie CritèreRéhibitoire1..4 (texte) dans le body PATCH', async () => {
+    let capturedBody: unknown = null;
+    const globalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockImplementation((_url: string, opts?: RequestInit) => {
+      capturedBody = opts?.body ? JSON.parse(opts.body as string) : null;
+      return Promise.resolve({ ok: true });
+    });
+    try {
+      const driver = createAirtableEnrichissementDriver({ apiKey, baseId, offresId });
+      await driver.updateOffre('rec1', {
+        Poste: 'Dev',
+        Statut: 'À traiter',
+        CritèreRéhibitoire1: 'Télétravail non mentionné.',
+        CritèreRéhibitoire2: 'Salaire non indiqué.',
+      });
+      const body = capturedBody as { fields: Record<string, unknown> };
+      expect(body.fields.CritèreRéhibitoire1).toBe('Télétravail non mentionné.');
+      expect(body.fields.CritèreRéhibitoire2).toBe('Salaire non indiqué.');
+    } finally {
+      globalThis.fetch = globalFetch;
+    }
+  });
+
+  it('getOffresAAnalyser ne retourne que les offres dont la source a Activer l\'analyse par IA coché', async () => {
+    const sourcesId = 'tblSources';
+    const globalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockImplementation((url: string, _opts?: RequestInit) => {
+      if (url.includes(sourcesId)) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            records: [
+              {
+                id: 'recAvecIA',
+                fields: {
+                  "Activer l'analyse par IA": true,
+                  plugin: 'Linkedin',
+                  emailExpéditeur: 'avec-ia@test.com',
+                },
+              },
+              {
+                id: 'recSansIA',
+                fields: {
+                  "Activer l'analyse par IA": false,
+                  plugin: 'HelloWork',
+                  emailExpéditeur: 'sans-ia@test.com',
+                },
+              },
+            ],
+          }),
+        });
+      }
+      if (url.includes(offresId)) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            records: [
+              {
+                id: 'recOffre1',
+                fields: {
+                  Statut: 'À analyser',
+                  Poste: 'Dev',
+                  Ville: 'Paris',
+                  "Texte de l'offre": 'Desc',
+                  'email expéditeur': ['recAvecIA'],
+                },
+              },
+              {
+                id: 'recOffre2',
+                fields: {
+                  Statut: 'À analyser',
+                  Poste: 'PO',
+                  Ville: 'Lyon',
+                  "Texte de l'offre": 'Desc2',
+                  'email expéditeur': ['recSansIA'],
+                },
+              },
+            ],
+          }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ records: [] }) });
+    });
+    try {
+      const driver = createAirtableEnrichissementDriver({
+        apiKey,
+        baseId,
+        offresId,
+        sourcesId,
+      });
+      expect(driver.getOffresAAnalyser).toBeDefined();
+      const r = await driver.getOffresAAnalyser!();
+      expect(r).toHaveLength(1);
+      expect(r[0].id).toBe('recOffre1');
+      expect(r[0].poste).toBe('Dev');
     } finally {
       globalThis.fetch = globalFetch;
     }

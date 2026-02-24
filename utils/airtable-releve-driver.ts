@@ -6,7 +6,7 @@
 import type { RelèveOffresDriver } from './relève-offres-linkedin.js';
 import type { SourceLinkedInResult } from '../types/offres-releve.js';
 import type { OffreInsert, ResultatCreerOffres } from '../types/offres-releve.js';
-import type { SourceEmail } from './gouvernance-sources-emails.js';
+import type { SourceEmail, TypeSource } from './gouvernance-sources-emails.js';
 import type { PluginSource } from './gouvernance-sources-emails.js';
 import { normaliserBaseId } from './airtable-url.js';
 import { PLUGINS_SOURCES_AIRTABLE } from './plugins-sources-airtable.js';
@@ -15,6 +15,11 @@ import { ensureSingleSelectOption } from './airtable-ensure-enums.js';
 export type { ResultatCreerOffres };
 
 const API_BASE = 'https://api.airtable.com/v0';
+
+/** Noms des champs Airtable table Sources (US-3.1). */
+const AIRTABLE_FIELD_ACTIVER_CREATION = 'Activer la création';
+const AIRTABLE_FIELD_ACTIVER_ENRICHISSEMENT = "Activer l'enrichissement";
+const AIRTABLE_FIELD_ACTIVER_ANALYSE_IA = "Activer l'analyse par IA";
 
 export interface AirtableReleveDriverOptions {
   apiKey: string;
@@ -59,7 +64,15 @@ export function createAirtableReleveDriver(
 ): RelèveOffresDriver & {
   listerSources(): Promise<SourceAirtable[]>;
   creerSource(source: SourceEmail): Promise<SourceAirtable>;
-  mettreAJourSource(sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>): Promise<void>;
+  mettreAJourSource(
+    sourceId: string,
+    patch: Partial<
+      Pick<
+        SourceEmail,
+        'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'
+      >
+    >
+  ): Promise<void>;
 } {
   const baseId = normaliserBaseId(options.baseId.trim());
   const { apiKey, sourcesId, offresId } = options;
@@ -85,11 +98,13 @@ export function createAirtableReleveDriver(
         return { found: false };
       }
       const fields = rec.fields ?? {};
-      const actif = Boolean(fields.actif);
+      const activerCreation = Boolean(
+        fields[AIRTABLE_FIELD_ACTIVER_CREATION] ?? fields.actif
+      );
       const emailExpéditeur = typeof fields.emailExpéditeur === 'string' ? fields.emailExpéditeur.trim() : '';
       return {
         found: true,
-        actif,
+        activerCreation,
         emailExpéditeur,
         sourceId: rec.id,
       };
@@ -241,6 +256,10 @@ export function createAirtableReleveDriver(
         offset = json.offset ?? '';
       } while (offset);
 
+      const toTypeSource = (v: unknown): TypeSource => {
+        if (v === 'email' || v === 'liste html' || v === 'liste csv') return v;
+        return 'email';
+      };
       return records.map((rec) => {
         const fields = rec.fields ?? {};
         const emailExpéditeurRaw = typeof fields.emailExpéditeur === 'string' ? fields.emailExpéditeur : '';
@@ -249,7 +268,12 @@ export function createAirtableReleveDriver(
           sourceId: rec.id,
           emailExpéditeur,
           plugin: toPlugin(fields),
-          actif: Boolean(fields.actif),
+          type: toTypeSource(fields.type),
+          activerCreation: Boolean(
+            fields[AIRTABLE_FIELD_ACTIVER_CREATION] ?? fields.actif
+          ),
+          activerEnrichissement: Boolean(fields[AIRTABLE_FIELD_ACTIVER_ENRICHISSEMENT]),
+          activerAnalyseIA: Boolean(fields[AIRTABLE_FIELD_ACTIVER_ANALYSE_IA]),
         };
       });
     },
@@ -262,7 +286,10 @@ export function createAirtableReleveDriver(
             fields: {
               emailExpéditeur: source.emailExpéditeur.trim().toLowerCase(),
               plugin: source.plugin,
-              actif: source.actif,
+              type: source.type ?? 'email',
+              [AIRTABLE_FIELD_ACTIVER_CREATION]: source.activerCreation,
+              [AIRTABLE_FIELD_ACTIVER_ENRICHISSEMENT]: source.activerEnrichissement,
+              [AIRTABLE_FIELD_ACTIVER_ANALYSE_IA]: source.activerAnalyseIA,
             },
           },
         ],
@@ -313,17 +340,31 @@ export function createAirtableReleveDriver(
         sourceId: rec.id,
         emailExpéditeur: source.emailExpéditeur.trim().toLowerCase(),
         plugin: source.plugin,
-        actif: source.actif,
+        type: source.type ?? 'email',
+        activerCreation: source.activerCreation,
+        activerEnrichissement: source.activerEnrichissement,
+        activerAnalyseIA: source.activerAnalyseIA,
       };
     },
 
     async mettreAJourSource(
       sourceId: string,
-      patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>
+      patch: Partial<
+        Pick<
+          SourceEmail,
+          'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'
+        >
+      >
     ): Promise<void> {
       const fields: Record<string, unknown> = {};
       if (patch.plugin) fields.plugin = patch.plugin;
-      if (typeof patch.actif === 'boolean') fields.actif = patch.actif;
+      if (patch.type) fields.type = patch.type;
+      if (typeof patch.activerCreation === 'boolean')
+        fields[AIRTABLE_FIELD_ACTIVER_CREATION] = patch.activerCreation;
+      if (typeof patch.activerEnrichissement === 'boolean')
+        fields[AIRTABLE_FIELD_ACTIVER_ENRICHISSEMENT] = patch.activerEnrichissement;
+      if (typeof patch.activerAnalyseIA === 'boolean')
+        fields[AIRTABLE_FIELD_ACTIVER_ANALYSE_IA] = patch.activerAnalyseIA;
       const url = `${API_BASE}/${baseId}/${sourcesId}`;
       const h = headers(apiKey);
       const payload = { records: [{ id: sourceId, fields }] };

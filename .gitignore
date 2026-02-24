@@ -5,7 +5,6 @@ dist/
 data/parametres.json
 data/compte.json
 data/microsoft-tokens.json
-data/worker-running.json
 *.log
 test-results/
 playwright-report/

@@ -11,7 +11,9 @@ const ORDRE_TRI_PLUGIN: PluginSource[] = ['HelloWork', 'Linkedin', 'Inconnu'];
 export interface SourcePourTableau {
   emailExpéditeur: string;
   plugin: PluginSource;
-  actif: boolean;
+  activerCreation: boolean;
+  activerEnrichissement: boolean;
+  activerAnalyseIA: boolean;
 }
 
 export interface OffrePourTableau {
@@ -23,8 +25,12 @@ export interface LigneTableauSynthese {
   emailExpéditeur: string;
   pluginEtape1: string;
   pluginEtape2: string;
-  actif: boolean;
+  activerCreation: boolean;
+  activerEnrichissement: boolean;
+  activerAnalyseIA: boolean;
   statuts: Record<string, number>;
+  /** Nombre d'offres à importer pour cette source (US-3.3, issu du cache audit). */
+  aImporter: number;
 }
 
 /** Totaux du tableau de synthèse (US-1.13) : par ligne, par colonne (statut), et général. */
@@ -97,8 +103,11 @@ export function construireTableauSynthese(options: OptionsTableauSynthese): Lign
       emailExpéditeur: source.emailExpéditeur,
       pluginEtape1: source.plugin,
       pluginEtape2: source.plugin,
-      actif: source.actif,
+      activerCreation: source.activerCreation,
+      activerEnrichissement: source.activerEnrichissement,
+      activerAnalyseIA: source.activerAnalyseIA,
       statuts: { ...statuts },
+      aImporter: 0,
     };
   });
 
@@ -114,6 +123,20 @@ export function construireTableauSynthese(options: OptionsTableauSynthese): Lign
     return a.emailExpéditeur.localeCompare(b.emailExpéditeur);
   });
   return lignes;
+}
+
+/**
+ * Fusionne le cache audit (nombre à importer par email) dans les lignes du tableau (US-3.3).
+ * Pour chaque ligne, définit aImporter = cache[email normalisé] ?? 0.
+ */
+export function mergeCacheDansLignes(
+  lignes: LigneTableauSynthese[],
+  cache: Record<string, number>
+): LigneTableauSynthese[] {
+  return lignes.map((ligne) => ({
+    ...ligne,
+    aImporter: cache[normaliserEmail(ligne.emailExpéditeur)] ?? 0,
+  }));
 }
 
 /**

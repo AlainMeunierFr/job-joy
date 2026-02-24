@@ -3,9 +3,7 @@
  * Reçoivent les ports (ex. ConnecteurEmail) par injection — pas d'import des implémentations.
  */
 import { randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { ServerResponse } from 'node:http';
-import { join } from 'node:path';
 import { validerParametresCompte } from '../utils/validation-compte.js';
 import { ecrireCompte, lireCompte } from '../utils/compte-io.js';
 import { executerTestConnexion } from '../utils/test-connexion-compte.js';
@@ -17,7 +15,7 @@ import {
 import { createAirtableDriverReel } from '../utils/airtable-driver-reel.js';
 import { airtableDriverParDefaut } from '../utils/airtable-driver-par-defaut.js';
 import { lireAirTable } from '../utils/parametres-airtable.js';
-import { runTraitement, type ResultatTraitement } from '../scripts/run-traitement.js';
+import { runCreation, type ResultatTraitement } from '../scripts/run-traitement.js';
 import { runAuditSources, type ResultatAuditSources } from '../scripts/run-audit-sources.js';
 import {
   runEnrichissementBackground,
@@ -34,9 +32,14 @@ import { maskEmail } from '../utils/mask-email.js';
 import { chargerEnvLocal } from '../utils/load-env-local.js';
 import { lireParametres } from '../utils/parametres-io.js';
 import { createLecteurEmailsMock } from '../utils/lecteur-emails-mock.js';
-import type { SourceEmail } from '../utils/gouvernance-sources-emails.js';
-import { produireTableauSynthese, calculerTotauxTableauSynthese } from '../utils/tableau-synthese-offres.js';
+import type { SourceEmail, TypeSource } from '../utils/gouvernance-sources-emails.js';
+import {
+  produireTableauSynthese,
+  calculerTotauxTableauSynthese,
+  mergeCacheDansLignes,
+} from '../utils/tableau-synthese-offres.js';
 import type { LigneTableauSynthese } from '../utils/tableau-synthese-offres.js';
+import { getDernierAudit, setDernierAudit } from '../utils/cache-audit-ram.js';
 import { createAirtableReleveDriver } from '../utils/airtable-releve-driver.js';
 import { normaliserBaseId } from '../utils/airtable-url.js';
 import { createSourcePluginsRegistry } from '../utils/source-plugins.js';
@@ -49,7 +52,17 @@ import { appelerClaudeCode, type ResultatAppelClaude } from '../utils/appeler-cl
 import { parseJsonReponseIA, validerConformiteJsonIA } from '../utils/parse-json-reponse-ia.js';
 import { construirePromptComplet } from '../utils/prompt-ia.js';
 import { lireClaudeCode } from '../utils/parametres-claudecode.js';
-import { agregerConsommationParJourEtApi, enregistrerAppel } from '../utils/log-appels-api.js';
+import {
+  agregerConsommationParJourEtApi,
+  agregerConsommationParJourEtIntention,
+  enregistrerAppel,
+} from '../utils/log-appels-api.js';
+import {
+  INTENTION_TABLEAU_SYNTHESE,
+  INTENTION_OFFRE_TEST,
+  INTENTION_TEST_CLAUDECODE,
+  INTENTION_CONFIG_AIRTABLE,
+} from '../utils/intentions-appels-api.js';
 
 /** Store BDD : tableau synthèse offres pour tests (US-1.7). */
 let bddMockTableauSyntheseStore: LigneTableauSynthese[] | null = null;
@@ -75,6 +88,26 @@ export function setBddMockTableauSynthese(lignes: LigneTableauSynthese[] | null 
   bddMockTableauSyntheseStore = Array.isArray(lignes) ? (lignes as LigneTableauSynthese[]) : null;
 }
 
+/** POST /api/test/set-mock-cache-audit : définit le cache RAM du dernier audit (US-3.3 BDD). Body: { entries?: Array<{ emailExpéditeur: string; "A importer"?: string | number }> }. */
+export function handlePostSetMockCacheAudit(
+  body: Record<string, unknown>,
+  res: ServerResponse
+): void {
+  const entries = Array.isArray(body?.entries) ? body.entries : [];
+  const record: Record<string, number> = {};
+  for (const row of entries) {
+    const r = row as Record<string, unknown>;
+    const email = typeof r?.emailExpéditeur === 'string' ? r.emailExpéditeur.trim() : '';
+    if (!email) continue;
+    const aImporter = r?.['A importer'];
+    const n = typeof aImporter === 'number' ? aImporter : parseInt(String(aImporter ?? '0'), 10);
+    record[email] = Number.isFinite(n) ? n : 0;
+  }
+  setDernierAudit(record);
+  sendJson(res, 200, { ok: true });
+}
+
+
 /** Store BDD : emails gouvernance pour le prochain audit/traitement (uniquement si BDD_MOCK_CONNECTEUR=1). */
 let bddMockEmailsGouvernance: Array<{ id: string; from: string; html: string; receivedAtIso?: string }> | null = null;
 
@@ -92,12 +125,23 @@ export function setBddMockEmailsGouvernance(
 }
 
 /** BDD : remplacer les sources mock ([] = vide, pour scénario "aucun expéditeur"; sinon source(s) existante(s)). */
-export function setBddMockSources(sources: Array<{ emailExpéditeur: string; plugin: SourceEmail['plugin']; actif: boolean }>): void {
+export function setBddMockSources(sources: Array<{
+  emailExpéditeur: string;
+  plugin: SourceEmail['plugin'];
+  type?: TypeSource;
+  activerCreation: boolean;
+  activerEnrichissement: boolean;
+  activerAnalyseIA: boolean;
+}>): void {
   bddMockSourcesStore.length = 0;
   for (const s of sources) {
     bddMockSourcesStore.push({
-      ...s,
       emailExpéditeur: s.emailExpéditeur.trim().toLowerCase(),
+      plugin: s.plugin,
+      type: s.type ?? 'email',
+      activerCreation: s.activerCreation,
+      activerEnrichissement: s.activerEnrichissement,
+      activerAnalyseIA: s.activerAnalyseIA,
       sourceId: `rec_${randomUUID().slice(0, 14)}`,
     });
   }
@@ -106,9 +150,9 @@ export function setBddMockSources(sources: Array<{ emailExpéditeur: string; plu
 function createBddMockDriverReleve(): {
   listerSources: () => Promise<SourceRuntime[]>;
   creerSource: (source: SourceEmail) => Promise<SourceRuntime>;
-  mettreAJourSource: (sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>) => Promise<void>;
+  mettreAJourSource: (sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'>>) => Promise<void>;
   creerOffres: (offres: Array<{ idOffre: string; url: string; dateAjout: string; statut: string }>, sourceId: string) => Promise<{ nbCreees: number; nbDejaPresentes: number }>;
-  getSourceLinkedIn: () => Promise<{ found: false } | { found: true; actif: boolean; emailExpéditeur: string; sourceId: string }>;
+  getSourceLinkedIn: () => Promise<{ found: false } | { found: true; activerCreation: boolean; emailExpéditeur: string; sourceId: string }>;
 } {
   return {
     async listerSources() {
@@ -123,11 +167,14 @@ function createBddMockDriverReleve(): {
       bddMockSourcesStore.push(rec);
       return rec;
     },
-    async mettreAJourSource(sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>) {
+    async mettreAJourSource(sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'>>) {
       const i = bddMockSourcesStore.findIndex((s) => s.sourceId === sourceId);
       if (i >= 0) {
         if (patch.plugin) bddMockSourcesStore[i].plugin = patch.plugin;
-        if (typeof patch.actif === 'boolean') bddMockSourcesStore[i].actif = patch.actif;
+        if (patch.type !== undefined) bddMockSourcesStore[i].type = patch.type;
+        if (typeof patch.activerCreation === 'boolean') bddMockSourcesStore[i].activerCreation = patch.activerCreation;
+        if (typeof patch.activerEnrichissement === 'boolean') bddMockSourcesStore[i].activerEnrichissement = patch.activerEnrichissement;
+        if (typeof patch.activerAnalyseIA === 'boolean') bddMockSourcesStore[i].activerAnalyseIA = patch.activerAnalyseIA;
       }
     },
     async creerOffres(offres: Array<{ idOffre: string; url: string; dateAjout: string; statut: string }>, sourceId: string) {
@@ -145,7 +192,7 @@ function createBddMockDriverReleve(): {
     async getSourceLinkedIn() {
       const linkedin = bddMockSourcesStore.find((s) => s.plugin === 'Linkedin');
       if (!linkedin) return { found: false };
-      return { found: true, actif: linkedin.actif, emailExpéditeur: linkedin.emailExpéditeur, sourceId: linkedin.sourceId };
+      return { found: true, activerCreation: linkedin.activerCreation, emailExpéditeur: linkedin.emailExpéditeur, sourceId: linkedin.sourceId };
     },
   };
 }
@@ -478,9 +525,11 @@ function updateTaskProgress(task: TraitementTask, message: string): void {
   }
 }
 
-/** GET /api/consommation-api : agrégation par jour et par API (US-2.5). */
+/** GET /api/consommation-api : agrégation par jour et par API (US-2.5), + par intention (US-3.4). */
 export function handleGetConsommationApi(dataDir: string, res: ServerResponse): void {
-  const data = agregerConsommationParJourEtApi(dataDir);
+  const parApi = agregerConsommationParJourEtApi(dataDir);
+  const parIntention = agregerConsommationParJourEtIntention(dataDir);
+  const data = { ...parApi, parIntention };
   sendJson(res, 200, data, { 'Cache-Control': 'no-store' });
 }
 
@@ -495,11 +544,44 @@ export function handleGetCompte(dataDir: string, res: ServerResponse): void {
   sendJson(res, 200, { ...rest, adresseEmail: adresseEmail ? maskEmail(adresseEmail) : '' });
 }
 
+/** POST /api/tableau-synthese-offres/refresh : exécute l'audit, met à jour le cache "A importer" (setDernierAudit), puis le client recharge le tableau (US-3.3 CA2). */
+export async function handlePostRefreshSyntheseOffres(dataDir: string, res: ServerResponse): Promise<void> {
+  const useBddMock = process.env.BDD_MOCK_CONNECTEUR === '1';
+  const compteBdd = useBddMock ? (lireCompte(dataDir) ?? { provider: 'imap' as const, adresseEmail: 'test@example.com', cheminDossier: 'inbox', cheminDossierArchive: '', imapHost: 'imap.example.com', imapPort: 993, imapSecure: true }) : null;
+  const airtableBdd = useBddMock ? (lireAirTable(dataDir) ?? { apiKey: 'patTestKeyValide123', base: 'appXyz123', sources: 'tblSourcesId', offres: 'tblOffresId' }) : null;
+  const deps = useBddMock
+    ? {
+        compte: compteBdd ?? undefined,
+        airtable: airtableBdd ?? undefined,
+        motDePasse: 'test',
+        lecteurEmails: bddMockEmailsGouvernance
+          ? createLecteurEmailsMock({ emailsGouvernance: bddMockEmailsGouvernance })
+          : createLecteurEmailsMock(),
+        driverReleve: createBddMockDriverReleve(),
+      }
+    : undefined;
+  const result = await runAuditSources(dataDir, { deps });
+  if (!result.ok) {
+    sendJson(res, 200, { ok: false, message: result.message });
+    return;
+  }
+  if (result.synthese?.length) {
+    const record: Record<string, number> = {};
+    for (const row of result.synthese) {
+      const email = (row.emailExpéditeur ?? '').trim().toLowerCase();
+      if (email) record[email] = Number(row.nbEmails) || 0;
+    }
+    setDernierAudit(record);
+  }
+  sendJson(res, 200, { ok: true });
+}
+
 /** GET /api/tableau-synthese-offres : tableau de synthèse par expéditeur et statut (US-1.7, US-1.13). 2 appels : Sources puis Offres (champ lien FK + Statut). Ordre statuts + colonne Autre depuis le code. */
 export async function handleGetTableauSyntheseOffres(dataDir: string, res: ServerResponse): Promise<void> {
   let statutsOrdre: string[] = [...STATUTS_OFFRES_AVEC_AUTRE];
   if (bddMockTableauSyntheseStore !== null) {
-    const lignes = enrichirPhasesImplementation(bddMockTableauSyntheseStore);
+    let lignes = mergeCacheDansLignes(bddMockTableauSyntheseStore, getDernierAudit());
+    lignes = enrichirPhasesImplementation(lignes);
     const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
     sendJson(res, 200, {
       lignes,
@@ -517,7 +599,9 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
         return bddMockSourcesStore.map((s) => ({
           emailExpéditeur: s.emailExpéditeur,
           plugin: s.plugin,
-          actif: s.actif,
+          activerCreation: s.activerCreation,
+          activerEnrichissement: s.activerEnrichissement,
+          activerAnalyseIA: s.activerAnalyseIA,
         }));
       },
       async listerOffres() {
@@ -532,7 +616,8 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
           });
       },
     };
-    const lignes = await produireTableauSynthese(repo, STATUTS_OFFRES_AVEC_AUTRE);
+    let lignes = await produireTableauSynthese(repo, STATUTS_OFFRES_AVEC_AUTRE);
+    lignes = mergeCacheDansLignes(lignes, getDernierAudit());
     const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
     sendJson(res, 200, {
       lignes: enrichirPhasesImplementation(lignes),
@@ -567,7 +652,7 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
       offresId,
     });
     const sources = await driver.listerSources();
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: true });
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: true, intention: INTENTION_TABLEAU_SYNTHESE });
     const sourceIdVersEmail = new Map(
       sources.map((s) => [s.sourceId, s.emailExpéditeur.trim().toLowerCase()])
     );
@@ -577,19 +662,22 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
       offresId,
       sourceIdVersEmail,
     });
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: true });
-    const lignes = await produireTableauSynthese({
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: true, intention: INTENTION_TABLEAU_SYNTHESE });
+    let lignes = await produireTableauSynthese({
       async listerSources() {
         return sources.map((s) => ({
           emailExpéditeur: s.emailExpéditeur,
           plugin: s.plugin,
-          actif: s.actif,
+          activerCreation: s.activerCreation,
+          activerEnrichissement: s.activerEnrichissement,
+          activerAnalyseIA: s.activerAnalyseIA,
         }));
       },
       async listerOffres() {
         return offres;
       },
     }, statutsOrdre);
+    lignes = mergeCacheDansLignes(lignes, getDernierAudit());
     const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
     sendJson(res, 200, {
       lignes: enrichirPhasesImplementation(lignes),
@@ -601,7 +689,7 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
       'Cache-Control': 'no-store',
     });
   } catch (err) {
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: err instanceof Error ? err.message : String(err) });
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: err instanceof Error ? err.message : String(err), intention: INTENTION_TABLEAU_SYNTHESE });
     throw err;
   }
 }
@@ -615,17 +703,19 @@ function normaliserPluginValue(value: string): SourceEmail['plugin'] {
 
 function enrichirPhasesImplementation(
   lignes: LigneTableauSynthese[]
-): Array<LigneTableauSynthese & { phase1Implemented: boolean; phase2Implemented: boolean }> {
+): Array<LigneTableauSynthese & { phase1Implemented: boolean; phase2Implemented: boolean; phase3Implemented: boolean }> {
   const registry = createSourcePluginsRegistry();
   return lignes.map((ligne) => {
     const pluginRaw = ligne.pluginEtape1 || ligne.pluginEtape2 || 'Inconnu';
     const plugin = normaliserPluginValue(pluginRaw);
     const emailPlugin = registry.getEmailPlugin(plugin);
     const offerPlugin = registry.getOfferFetchPlugin(plugin);
+    const phase2Impl = !!offerPlugin?.stage2Implemented;
     return {
       ...ligne,
       phase1Implemented: !!emailPlugin,
-      phase2Implemented: !!offerPlugin?.stage2Implemented,
+      phase2Implemented: phase2Impl,
+      phase3Implemented: phase2Impl,
     };
   });
 }
@@ -688,13 +778,13 @@ export async function handleGetOffreTest(dataDir: string, res: ServerResponse): 
       offresId: airtable.offres.trim(),
     });
     const texte = await recupererTexteOffreTest(driver);
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: true });
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: true, intention: INTENTION_OFFRE_TEST });
     sendJson(res, 200, {
       hasOffre: !!texte,
       ...(texte !== null && { texte }),
     });
   } catch (err) {
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: err instanceof Error ? err.message : String(err) });
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: err instanceof Error ? err.message : String(err), intention: INTENTION_OFFRE_TEST });
     throw err;
   }
 }
@@ -710,6 +800,7 @@ export async function handlePostTestClaudecode(
       api: 'Claude',
       succes: bddMockTestClaudecodeStore.ok,
       codeErreur: bddMockTestClaudecodeStore.ok ? undefined : bddMockTestClaudecodeStore.code,
+      intention: INTENTION_TEST_CLAUDECODE,
     });
     sendJson(res, 200, bddMockTestClaudecodeStore);
     return;
@@ -732,6 +823,7 @@ export async function handlePostTestClaudecode(
     api: 'Claude',
     succes: result.ok,
     codeErreur: result.ok ? undefined : result.code,
+    intention: INTENTION_TEST_CLAUDECODE,
   });
   const payload: Record<string, unknown> = { ...result };
   if (result.ok && typeof result.texte === 'string') {
@@ -755,7 +847,7 @@ export async function handlePostTestClaudecode(
  * Lance le traitement (relève offres LinkedIn + enrichissement) et répond en JSON (US-1.4).
  */
 export async function handlePostTraitement(dataDir: string, res: ServerResponse): Promise<void> {
-  const result = await runTraitement(dataDir);
+  const result = await runCreation(dataDir);
   if (result.ok) {
     await autoStartEnrichissementWorkerIfNeeded(dataDir);
   }
@@ -788,7 +880,7 @@ export function handlePostTraitementStart(dataDir: string, res: ServerResponse):
       }
     : undefined;
 
-  void runTraitement(dataDir, {
+  void runCreation(dataDir, {
     onProgress: (message) => {
       const t = traitementTasks.get(taskId);
       if (!t || t.status !== 'running') return;
@@ -954,44 +1046,15 @@ export function handleGetEnrichissementWorkerStatus(dataDir: string, res: Server
     });
 }
 
-const WORKER_STATE_FILENAME = 'worker-running.json';
-
-function persistWorkerRunning(dataDir: string, running: boolean): void {
-  try {
-    writeFileSync(join(dataDir, WORKER_STATE_FILENAME), JSON.stringify({ running }));
-  } catch {
-    // ignorer (dossier data absent ou droits)
-  }
-}
-
-/** À appeler au démarrage du serveur : relance les workers si ils tournaient avant un redémarrage. */
-export function restoreWorkerStateIfNeeded(dataDir: string): void {
-  try {
-    const path = join(dataDir, WORKER_STATE_FILENAME);
-    if (!existsSync(path)) return;
-    const raw = readFileSync(path, 'utf8');
-    const data = JSON.parse(raw) as { running?: boolean };
-    if (data.running === true) {
-      startEnrichissementWorker(dataDir);
-      startAnalyseIAWorker(dataDir);
-      console.log('[Worker] État relancé après redémarrage du serveur.');
-    }
-  } catch {
-    // ignorer
-  }
-}
-
 export function handlePostEnrichissementWorkerStart(dataDir: string, res: ServerResponse): void {
   startEnrichissementWorker(dataDir);
   startAnalyseIAWorker(dataDir);
-  persistWorkerRunning(dataDir, true);
   sendJson(res, 200, { ok: true, running: true });
 }
 
 export function handlePostEnrichissementWorkerStop(dataDir: string, res: ServerResponse): void {
   stopEnrichissementWorker();
   stopAnalyseIAWorker();
-  persistWorkerRunning(dataDir, false);
   sendJson(res, 200, { ok: true, running: false });
 }
 
@@ -1159,12 +1222,12 @@ export async function handlePostConfigurationAirtable(
         : airtableDriverParDefaut;
   try {
     const result = await executerConfigurationAirtable(apiKey, dataDir, driver);
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: result.ok, codeErreur: result.ok ? undefined : result.message });
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: result.ok, codeErreur: result.ok ? undefined : result.message, intention: INTENTION_CONFIG_AIRTABLE });
     const status = libelleStatutConfigurationAirtable(result);
     sendJson(res, 200, { ok: result.ok, status });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: message });
+    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: message, intention: INTENTION_CONFIG_AIRTABLE });
     sendJson(res, 200, { ok: false, status: `Erreur avec AirTable : ${message}` });
   }
 }

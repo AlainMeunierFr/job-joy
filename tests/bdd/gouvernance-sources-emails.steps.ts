@@ -26,10 +26,12 @@ let expectedPresenceSource = '';
 
 function statutVersModeleActuel(statut: string, nomSource: string): SourceEmail {
   const normalise = (statut || '').trim().toLowerCase();
-  const plugin = nomSource.includes('linkedin') ? 'Linkedin' : 'Inconnu';
-  if (normalise === 'actif') return { emailExpéditeur: nomSource, plugin, actif: true };
-  if (normalise === 'inactif') return { emailExpéditeur: nomSource, plugin, actif: false };
-  return { emailExpéditeur: nomSource, plugin: 'Inconnu', actif: false };
+  const plugin: SourceEmail['plugin'] = nomSource.includes('linkedin') ? 'Linkedin' : 'Inconnu';
+  const actif = normalise === 'actif';
+  const base: SourceEmail = { emailExpéditeur: nomSource, plugin, type: 'email', activerCreation: actif, activerEnrichissement: actif, activerAnalyseIA: actif };
+  if (normalise === 'actif') return base;
+  if (normalise === 'inactif') return { ...base, activerCreation: false, activerEnrichissement: false, activerAnalyseIA: false };
+  return { ...base, activerCreation: false, activerEnrichissement: false, activerAnalyseIA: false };
 }
 
 Given('le dossier email à traiter est configuré', async () => {
@@ -56,11 +58,13 @@ Then('le champ {string} n\'est plus utilisé', async ({ page: _page }, _champ: s
 Then(
   'le champ {string} est un choix unique avec les valeurs {string}, {string} et {string}',
   async ({ page: _page }, _champ: string, _v1: string, _v2: string, _v3: string) => {
-    // Legacy BDD: vérifie que le schéma actuel est bien valide côté implémentation.
     const ok = preparerMigrationSources({
       emailExpéditeur: { type: 'text' },
-      plugin: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle'] },
-      actif: { type: 'checkbox' },
+      plugin: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
+      type: { type: 'singleSelect', options: ['email', 'liste html', 'liste csv'] },
+      activerCreation: { type: 'checkbox' },
+      activerEnrichissement: { type: 'checkbox' },
+      activerAnalyseIA: { type: 'checkbox' },
     });
     expect(ok.ok).toBe(true);
   }
@@ -200,7 +204,9 @@ Then('le statut de cette source est {string}', async ({ page: _page }, statut: s
     const created = lastTraitement?.creees[0];
     expect(created).toBeDefined();
     expect(created?.plugin).toBe('Inconnu');
-    expect(created?.actif).toBe(false);
+    expect(created?.activerCreation).toBe(false);
+    expect(created?.activerEnrichissement).toBe(false);
+    expect(created?.activerAnalyseIA).toBe(false);
   } else {
     expect(true).toBe(true);
   }

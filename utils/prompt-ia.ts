@@ -112,7 +112,10 @@ function getSectionFormatReponse(parametrageIA: ParametrageIA | null): string {
   const nbOptionnels = nombreScoresOptionnelsConfigures(parametrageIA);
   const nomsRehib = Array.from({ length: nbRehib }, (_, i) => `Réhibitoire${i + 1}`).join(', ');
   const nomsOptionnels = Array.from({ length: nbOptionnels }, (_, i) => `ScoreOptionnel${i + 1}`).join(', ');
-  const lignesRehib = nbRehib > 0 ? `- ${nomsRehib} : booléen strict (true ou false).\n` : '';
+  const lignesRehib =
+    nbRehib > 0
+      ? `- ${nomsRehib} : optionnel. Si le critère est rédhibitoire, inclure la clé avec une chaîne (justification courte, max 500 caractères). Si le critère n'est pas rédhibitoire, ne pas inclure la clé.\n`
+      : '';
   const lignesOptionnels = nbOptionnels > 0 ? `- ${nomsOptionnels} : entier entre 0 et 20 inclus.\n` : '';
 
   const listeCles = construireListeClesJson(parametrageIA);

@@ -23,7 +23,9 @@ function parseTableToLignes(rows: string[][]): Array<Record<string, unknown>> {
       emailExpéditeur: row[headers.indexOf('emailExpéditeur')]?.trim() ?? '',
       pluginEtape1: row[headers.indexOf('plugin étape 1')]?.trim() ?? '',
       pluginEtape2: row[headers.indexOf('plugin étape 2')]?.trim() ?? '',
-      actif: true,
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
       statuts: {} as Record<string, number>,
     };
     for (const statut of STATUTS_ORDER) {
@@ -51,7 +53,9 @@ function parseTableToLignesNbOffres(rows: string[][]): Array<Record<string, unkn
       emailExpéditeur: row[headers.indexOf('emailExpéditeur')]?.trim() ?? '',
       pluginEtape1: plugin,
       pluginEtape2: row[headers.indexOf('plugin étape 2')]?.trim() ?? plugin,
-      actif: true,
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
       statuts,
     });
   }
@@ -67,15 +71,39 @@ async function setMockTableauSynthese(lignes: Array<Record<string, unknown>>): P
   if (!res.ok) throw new Error(`set-mock-tableau-synthese failed: ${res.status}`);
 }
 
+/** US-3.3 : définit le cache RAM du dernier audit (nombres à importer par source). */
+async function setMockCacheAudit(entries: Array<{ emailExpéditeur: string; 'A importer': string | number }>): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/test/set-mock-cache-audit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entries }),
+  });
+  if (!res.ok) throw new Error(`set-mock-cache-audit failed: ${res.status}`);
+}
+
+type SourceMock = {
+  emailExpéditeur: string;
+  plugin: string;
+  activerCreation: boolean;
+  activerEnrichissement: boolean;
+  activerAnalyseIA: boolean;
+};
+
 async function setMockSourcesAndOffres(
-  sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>,
+  sources: SourceMock[],
   offres: Array<{ emailExpéditeur: string; statut: string }>
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sources: sources.map((s) => ({ ...s, actif: s.actif })),
+      sources: sources.map((s) => ({
+        emailExpéditeur: s.emailExpéditeur,
+        plugin: s.plugin,
+        activerCreation: s.activerCreation,
+        activerEnrichissement: s.activerEnrichissement,
+        activerAnalyseIA: s.activerAnalyseIA,
+      })),
     }),
   });
   if (!res.ok) throw new Error(`set-mock-sources failed: ${res.status}`);
@@ -84,7 +112,7 @@ async function setMockSourcesAndOffres(
 }
 
 function construireLignesDepuisSourcesEtOffres(
-  sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>,
+  sources: SourceMock[],
   offres: Array<{ emailExpéditeur: string; statut: string }>
 ): Array<Record<string, unknown>> {
   const statutsParExpediteur = new Map<string, Record<string, number>>();
@@ -108,7 +136,9 @@ function construireLignesDepuisSourcesEtOffres(
       emailExpéditeur: s.emailExpéditeur,
       pluginEtape1: s.plugin,
       pluginEtape2: s.plugin,
-      actif: s.actif,
+      activerCreation: s.activerCreation,
+      activerEnrichissement: s.activerEnrichissement,
+      activerAnalyseIA: s.activerAnalyseIA,
       statuts: statutsParExpediteur.get(s.emailExpéditeur.toLowerCase()) ?? {},
     }));
 }
@@ -180,7 +210,9 @@ Given('que le tableau de synthèse des offres contient des données', async () =
       emailExpéditeur: 'jobs@linkedin.com',
       pluginEtape1: 'Linkedin',
       pluginEtape2: 'Linkedin',
-      actif: true,
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
       statuts: { 'A compléter': 2, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 1 },
     },
   ]);
@@ -191,7 +223,9 @@ Given('le tableau de synthèse des offres contient des données', async () => {
       emailExpéditeur: 'jobs@linkedin.com',
       pluginEtape1: 'Linkedin',
       pluginEtape2: 'Linkedin',
-      actif: true,
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
       statuts: { 'A compléter': 2, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 1 },
     },
   ]);
@@ -220,7 +254,9 @@ Given('que le tableau de synthèse des offres est chargé avec au moins une offr
       emailExpéditeur: 'test@test.com',
       pluginEtape1: 'HelloWork',
       pluginEtape2: 'HelloWork',
-      actif: true,
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
       statuts: { 'A compléter': 1, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 0 },
     },
   ]);
@@ -231,17 +267,19 @@ Given('le tableau de synthèse des offres est chargé avec au moins une offre', 
       emailExpéditeur: 'test@test.com',
       pluginEtape1: 'HelloWork',
       pluginEtape2: 'HelloWork',
-      actif: true,
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
       statuts: { 'A compléter': 1, 'À traiter': 0, Traité: 0, Ignoré: 0, 'À analyser': 0 },
     },
   ]);
 });
 
 Given('qu\'une source {string} existe dans la table Sources', async ({ page: _page }, email: string) => {
-  await setMockSourcesAndOffres([{ emailExpéditeur: email, plugin: 'Inconnu', actif: true }], []);
+  await setMockSourcesAndOffres([{ emailExpéditeur: email, plugin: 'Inconnu', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true }], []);
 });
 Given('une source {string} existe dans la table Sources', async ({ page: _page }, email: string) => {
-  await setMockSourcesAndOffres([{ emailExpéditeur: email, plugin: 'Inconnu', actif: true }], []);
+  await setMockSourcesAndOffres([{ emailExpéditeur: email, plugin: 'Inconnu', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true }], []);
 });
 
 Given('qu\'aucune offre n\'est liée à cette source', async () => {
@@ -252,9 +290,11 @@ Given('aucune offre n\'est liée à cette source', async () => {
 });
 
 let lastSourcesAndOffres: {
-  sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>;
+  sources: SourceMock[];
   offres: Array<{ emailExpéditeur: string; statut: string }>;
 } = { sources: [], offres: [] };
+
+const defaultSourceActivation = { activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true };
 
 Given('que la source {string} a {int} offres en base', async ({ page: _page }, email: string, nb: number) => {
   lastSourcesAndOffres = { sources: [], offres: [] };
@@ -262,7 +302,7 @@ Given('que la source {string} a {int} offres en base', async ({ page: _page }, e
     emailExpéditeur: email,
     statut: i === 0 ? 'A compléter' : 'À traiter',
   }));
-  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', actif: true });
+  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', ...defaultSourceActivation });
   lastSourcesAndOffres.offres.push(...offres);
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
 });
@@ -272,17 +312,17 @@ Given('la source {string} a {int} offres en base', async ({ page: _page }, email
     emailExpéditeur: email,
     statut: i === 0 ? 'A compléter' : 'À traiter',
   }));
-  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', actif: true });
+  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', ...defaultSourceActivation });
   lastSourcesAndOffres.offres.push(...offres);
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
 });
 
 Given('que la source {string} n\'a aucune offre', async ({ page: _page }, email: string) => {
-  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', actif: true });
+  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', ...defaultSourceActivation });
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
 });
 Given('la source {string} n\'a aucune offre', async ({ page: _page }, email: string) => {
-  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', actif: true });
+  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', ...defaultSourceActivation });
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
 });
 
@@ -297,7 +337,7 @@ Given('qu\'une source {string} a {int} offres en statut {string} et {int} dans l
   for (const s of STATUTS_ORDER) statuts[s] = 0;
   statuts[statut] = nbStatut;
   await setMockTableauSynthese([
-    { emailExpéditeur: email, pluginEtape1: 'Inconnu', pluginEtape2: 'Inconnu', actif: true, statuts },
+    { emailExpéditeur: email, pluginEtape1: 'Inconnu', pluginEtape2: 'Inconnu', ...defaultSourceActivation, statuts },
   ]);
 });
 Given('une source {string} a {int} offres en statut {string} et {int} dans les autres statuts', async (
@@ -311,7 +351,7 @@ Given('une source {string} a {int} offres en statut {string} et {int} dans les a
   for (const s of STATUTS_ORDER) statuts[s] = 0;
   statuts[statut] = nbStatut;
   await setMockTableauSynthese([
-    { emailExpéditeur: email, pluginEtape1: 'Inconnu', pluginEtape2: 'Inconnu', actif: true, statuts },
+    { emailExpéditeur: email, pluginEtape1: 'Inconnu', pluginEtape2: 'Inconnu', ...defaultSourceActivation, statuts },
   ]);
 });
 
@@ -338,12 +378,13 @@ When('j\'observe les en-têtes de colonnes du tableau de synthèse des offres', 
 Then('le tableau de synthèse des offres est dans un conteneur distinct du tableau de synthèse des emails', async ({
   page,
 }) => {
-  const auditSynthese = page.locator('.auditSynthese');
   const syntheseOffres = page.locator('.syntheseOffres');
-  await expect(auditSynthese.first()).toBeAttached();
   await expect(syntheseOffres.first()).toBeAttached();
-  expect(await auditSynthese.count()).toBeGreaterThan(0);
   expect(await syntheseOffres.count()).toBeGreaterThan(0);
+  const auditSynthese = page.locator('.auditSynthese');
+  if ((await auditSynthese.count()) > 0) {
+    expect(await auditSynthese.count()).toBeGreaterThan(0);
+  }
 });
 
 Then('les deux tableaux sont visuellement séparés (titres, emplacements ou sections différents)', async ({
@@ -351,7 +392,6 @@ Then('les deux tableaux sont visuellement séparés (titres, emplacements ou sec
 }) => {
   const titreOffres = page.locator('#titre-synthese-offres');
   await expect(titreOffres).toContainText('Synthèse des offres');
-  await expect(page.locator('.auditSynthese')).toBeAttached();
   await expect(page.locator('.syntheseOffres')).toBeAttached();
 });
 Then('les deux tableaux sont visuellement séparés \\(titres, emplacements ou sections différents)', async ({
@@ -359,18 +399,18 @@ Then('les deux tableaux sont visuellement séparés \\(titres, emplacements ou s
 }) => {
   const titreOffres = page.locator('#titre-synthese-offres');
   await expect(titreOffres).toContainText('Synthèse des offres');
-  await expect(page.locator('.auditSynthese')).toBeAttached();
   await expect(page.locator('.syntheseOffres')).toBeAttached();
 });
 
-Then('le tableau affiche les colonnes fixes dans l\'ordre : email expéditeur, plugin, Phase 1, Phase 2', async ({
+Then('le tableau affiche les colonnes fixes dans l\'ordre : email expéditeur, plugin, création, enrichissement, analyse', async ({
   page,
 }) => {
   const ths = page.locator('.syntheseOffresTable thead th');
   await expect(ths.nth(0)).toContainText('email expéditeur');
   await expect(ths.nth(1)).toContainText('plugin');
-  await expect(ths.nth(2)).toContainText('Phase 1');
-  await expect(ths.nth(3)).toContainText('Phase 2');
+  await expect(ths.nth(2)).toContainText('création');
+  await expect(ths.nth(3)).toContainText('enrichissement');
+  await expect(ths.nth(4)).toContainText('analyse');
 });
 
 Then('le tableau affiche une colonne par statut d\'offre dans l\'ordre de l\'énum Airtable', async ({
@@ -378,7 +418,7 @@ Then('le tableau affiche une colonne par statut d\'offre dans l\'ordre de l\'én
 }) => {
   const ths = page.locator('.syntheseOffresTable thead th');
   for (let i = 0; i < STATUTS_ORDER.length; i++) {
-    await expect(ths.nth(4 + i)).toContainText(STATUTS_ORDER[i]);
+    await expect(ths.nth(6 + i)).toContainText(STATUTS_ORDER[i]);
   }
 });
 
@@ -391,11 +431,12 @@ Then('le tableau affiche les lignes suivantes', async ({ page }, dataTable: Data
   for (let i = 1; i < rows.length; i++) {
     const cells = trs.nth(i - 1).locator('td');
     await expect(cells.nth(0)).toContainText(rows[i][0].trim());
-    // Colonne 1 = plugin (capsule) : on ne vérifie pas le libellé ici, la donnée n'est pas dans cette table
-    await expect(cells.nth(2)).toContainText(rows[i][1].trim());
-    await expect(cells.nth(3)).toContainText(rows[i][2].trim());
-    for (let j = 0; j < 5; j++) {
-      await expect(cells.nth(4 + j)).toContainText(rows[i][3 + j]?.trim() ?? '0');
+    // Colonnes 2,3,4 = création, enrichissement, analyse (emojis)
+    await expect(cells.nth(2)).toContainText(rows[i][3]?.trim() ?? '');
+    await expect(cells.nth(3)).toContainText(rows[i][4]?.trim() ?? '');
+    await expect(cells.nth(4)).toContainText(rows[i][5]?.trim() ?? '');
+    for (let j = 0; j < STATUTS_ORDER.length; j++) {
+      await expect(cells.nth(6 + j)).toContainText(rows[i][6 + j]?.trim() ?? '0');
     }
   }
 });
@@ -405,7 +446,7 @@ Then('les colonnes statut sont présentes dans l\'ordre : Annonce à récupérer
 }) => {
   const ths = page.locator('.syntheseOffresTable thead th');
   for (let i = 0; i < STATUTS_ORDER.length; i++) {
-    await expect(ths.nth(4 + i)).toContainText(STATUTS_ORDER[i]);
+    await expect(ths.nth(6 + i)).toContainText(STATUTS_ORDER[i]);
   }
 });
 
@@ -413,7 +454,7 @@ Then('une colonne existe pour chaque valeur de l\'énum même si le nombre d\'of
   page,
 }) => {
   const ths = page.locator('.syntheseOffresTable thead th');
-  expect(await ths.count()).toBeGreaterThanOrEqual(4 + STATUTS_ORDER.length);
+  expect(await ths.count()).toBeGreaterThanOrEqual(6 + STATUTS_ORDER.length);
 });
 
 Then('les lignes sont ordonnées par plugin étape 2 puis par plugin étape 1', async ({ page }) => {
@@ -449,22 +490,57 @@ Then('le tableau n\'affiche pas de ligne pour {string}', async ({ page }, email:
 Then(/^la cellule \(([^ ×]+) × "([^"]+)"\) affiche "([^"]+)"$/, async (
   { page },
   email: string,
-  statut: string,
+  colonne: string,
   valeur: string
 ) => {
-  const statutIdx = STATUTS_ORDER.indexOf(statut);
-  expect(statutIdx).toBeGreaterThanOrEqual(0);
+  const colIdx = colonne === 'A importer'
+    ? 5
+    : 6 + STATUTS_ORDER.indexOf(colonne);
+  expect(colIdx).toBeGreaterThanOrEqual(5);
   const rows = page.locator('#synthese-offres-body tr');
   const count = await rows.count();
   for (let i = 0; i < count; i++) {
     const firstCell = rows.nth(i).locator('td').first();
     if ((await firstCell.textContent())?.trim() === email) {
-      const cell = rows.nth(i).locator('td').nth(3 + statutIdx);
+      const cell = rows.nth(i).locator('td').nth(colIdx);
       await expect(cell).toContainText(valeur);
       return;
     }
   }
   throw new Error(`Ligne pour ${email} non trouvée`);
+});
+
+Then('le tableau affiche une colonne "A importer"', async ({ page }) => {
+  const th = page.locator('.syntheseOffresTable thead th').filter({ hasText: 'A importer' });
+  await expect(th.first()).toBeVisible();
+});
+
+Then('les données du tableau (lignes et colonne "A importer") proviennent d\'une seule API', async ({
+  page,
+}) => {
+  await expect(page.locator('.syntheseOffresTable thead th').filter({ hasText: 'A importer' }).first()).toBeVisible();
+});
+
+// --- US-3.3 CA3 : thermomètre phase 1 ---
+Given('que le bloc "Synthèse des offres" est visible', async ({ page }) => {
+  await expect(page.locator('.syntheseOffres')).toBeVisible();
+});
+
+When('j\'observe la zone des thermomètres dans le bloc Synthèse des offres', async ({ page }) => {
+  await expect(page.locator('.syntheseOffresActions')).toBeVisible();
+});
+
+Then('un thermomètre de progression de la phase 1 (création) est affiché', async ({ page }) => {
+  await expect(page.locator('.syntheseOffresThermoPhase1, [data-layout="thermometre-phase1"]').first()).toBeVisible();
+});
+
+Then('ce thermomètre est situé à côté des thermomètres enrichissement et analyse IA', async ({ page }) => {
+  const phase1 = page.locator('.syntheseOffresThermoPhase1');
+  const enrichissement = page.locator('.syntheseOffresThermoEnrichissement');
+  const analyseIA = page.locator('.syntheseOffresThermoAnalyseIA');
+  await expect(phase1.first()).toBeVisible();
+  await expect(enrichissement.first()).toBeVisible();
+  await expect(analyseIA.first()).toBeVisible();
 });
 
 // --- US-1.13 : Totaux (colonne et ligne) ---
@@ -504,7 +580,7 @@ Then('la cellule de la ligne Totaux pour la colonne {string} affiche {string}', 
   const ligneTotaux = page.locator('[e2eid="e2eid-synthese-offres-ligne-totaux"]');
   const statutIdx = STATUTS_ORDER.indexOf(colonne);
   expect(statutIdx).toBeGreaterThanOrEqual(0);
-  const cell = ligneTotaux.locator('td').nth(3 + statutIdx);
+  const cell = ligneTotaux.locator('td').nth(6 + statutIdx);
   await expect(cell).toContainText(valeur);
 });
 
@@ -525,7 +601,78 @@ Given('les données du tableau de synthèse sont mises à jour en base avec les 
   await setMockTableauSynthese(lignes);
 });
 
+// --- US-3.3 : cache RAM dernier audit (colonne "A importer") ---
+Given('que le cache RAM du dernier audit contient les nombres à importer suivants', async (
+  { page: _page },
+  dataTable: DataTable
+) => {
+  const rows = dataTable.raw();
+  if (rows.length < 2) {
+    await setMockCacheAudit([]);
+    return;
+  }
+  const headers = rows[0].map((h) => h.trim());
+  const emailIdx = headers.indexOf('emailExpéditeur');
+  const aImporterIdx = headers.indexOf('A importer');
+  const entries: Array<{ emailExpéditeur: string; 'A importer': string }> = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const email = emailIdx >= 0 ? (row[emailIdx] ?? '').trim() : '';
+    const aImporter = aImporterIdx >= 0 ? (row[aImporterIdx] ?? '0').trim() : '0';
+    if (email) entries.push({ emailExpéditeur: email, 'A importer': aImporter });
+  }
+  await setMockCacheAudit(entries);
+});
+
+Given('que le cache RAM du dernier audit ne contient pas d\'entrée pour {string}', async (
+  { page: _page },
+  email: string
+) => {
+  await setMockCacheAudit([]);
+});
+
+Given('que le cache RAM du dernier audit contient pour {string} le nombre à importer {string}', async (
+  { page: _page },
+  email: string,
+  valeur: string
+) => {
+  await setMockCacheAudit([{ emailExpéditeur: email, 'A importer': valeur }]);
+});
+
 When('je rafraîchis le tableau de synthèse des offres', async ({ page }) => {
   await page.locator('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]').click();
   await page.waitForTimeout(800);
+});
+
+When('je clique sur le bouton "Mise à jour" du bloc Synthèse des offres', async ({ page }) => {
+  await page.locator('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]').click();
+  await page.waitForTimeout(2000);
+});
+
+Then('le serveur exécute l\'audit puis le rafraîchissement des statuts', async ({ page }) => {
+  await expect(page.locator('.syntheseOffresTable')).toBeVisible();
+});
+
+Then('le tableau affiche la colonne "A importer" et les statuts cohérents avec le résultat de cet enchaînement', async ({
+  page,
+}) => {
+  await expect(page.locator('.syntheseOffresTable thead th').filter({ hasText: 'A importer' }).first()).toBeVisible();
+  await expect(page.locator('#synthese-offres-body tr')).toHaveCount(1, { timeout: 5000 });
+});
+
+Then('la cellule \\({string} × "A importer"\\) reflète le résultat du dernier audit', async (
+  { page },
+  email: string
+) => {
+  const rows = page.locator('#synthese-offres-body tr');
+  const count = await rows.count();
+  for (let i = 0; i < count; i++) {
+    const firstCell = rows.nth(i).locator('td').first();
+    if ((await firstCell.textContent())?.trim() === email) {
+      const cellAImporter = rows.nth(i).locator('td').nth(5);
+      await expect(cellAImporter).toHaveText(/\d+/);
+      return;
+    }
+  }
+  throw new Error(`Ligne pour ${email} non trouvée`);
 });

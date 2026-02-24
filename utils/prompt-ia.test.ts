@@ -9,6 +9,7 @@ import {
   getPartieModifiablePromptDefaut,
   construirePromptComplet,
   construireListeClesJson,
+  getClesAttenduesJson,
   PARTIE_FIXE_PROMPT_IA,
 } from './prompt-ia.js';
 import { ecrirePartieModifiablePrompt, getDefaultParametres, ecrireParametres } from './parametres-io.js';
@@ -130,5 +131,27 @@ describe('construireListeClesJson (clés explicites, uniquement configurées)', 
     expect(liste).toContain('ScoreOptionnel1, ScoreOptionnel2');
     expect(liste).not.toContain('ScoreOptionnel3');
     expect(liste).not.toContain('ScoreOptionnel4');
+  });
+
+  it('US-3.2 : getClesAttenduesJson inclut Réhibitoire1..N (optionnel string) uniquement, pas JustificationRéhibitoire', () => {
+    const parametrageIA = {
+      rehibitoires: [
+        { titre: 'A', description: 'a' },
+        { titre: 'B', description: 'b' },
+        { titre: '', description: '' },
+        { titre: '', description: '' },
+      ],
+      scoresIncontournables: { localisation: '', salaire: '', culture: '', qualiteOffre: '' },
+      scoresOptionnels: [],
+      autresRessources: '',
+    };
+    const cles = getClesAttenduesJson(parametrageIA);
+    expect(cles).toContain('Réhibitoire1');
+    expect(cles).toContain('Réhibitoire2');
+    expect(cles).not.toContain('JustificationRéhibitoire1');
+    expect(cles).not.toContain('JustificationRéhibitoire2');
+    const liste = construireListeClesJson(parametrageIA);
+    expect(liste).toContain('Réhibitoire1');
+    expect(liste).toContain('Réhibitoire2');
   });
 });

@@ -38,7 +38,7 @@ describe('createAirtableDriverReel - schéma Sources US-1.6', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('crée la table Sources avec emailExpéditeur/plugin/actif (sans import CSV)', async () => {
+  it('crée la table Sources avec emailExpéditeur/plugin/type/3 checkboxes (US-3.1)', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const globalFetch = globalThis.fetch;
     let schemaCalls = 0;
@@ -78,7 +78,14 @@ describe('createAirtableDriverReel - schéma Sources US-1.6', () => {
       );
       expect(createSourcesCall).toBeDefined();
       const fields = (createSourcesCall?.body as { fields: FieldDef[] }).fields;
-      expect(fields.map((f: FieldDef) => f.name)).toEqual(['emailExpéditeur', 'plugin', 'actif']);
+      expect(fields.map((f: FieldDef) => f.name)).toEqual([
+        'emailExpéditeur',
+        'plugin',
+        'type',
+        'Activer la création',
+        "Activer l'enrichissement",
+        "Activer l'analyse par IA",
+      ]);
       const pluginField = fields.find((f: FieldDef) => f.name === 'plugin');
       expect(pluginField?.type).toBe('singleSelect');
       expect(pluginField?.options?.choices?.map((c: { name: string }) => c.name)).toEqual([...PLUGINS_SOURCES_AIRTABLE]);
@@ -108,7 +115,10 @@ describe('createAirtableDriverReel - schéma Sources US-1.6', () => {
               fields: [
                 { id: 'fldEmail', name: 'emailExpéditeur', type: 'singleLineText' },
                 { id: 'fldPlugin', name: 'plugin', type: 'singleSelect' },
-                { id: 'fldActif', name: 'actif', type: 'checkbox' },
+                { id: 'fldType', name: 'type', type: 'singleSelect' },
+              { id: 'fldActiverCreation', name: 'Activer la création', type: 'checkbox' },
+              { id: 'fldActiverEnrichissement', name: "Activer l'enrichissement", type: 'checkbox' },
+              { id: 'fldActiverAnalyseIA', name: "Activer l'analyse par IA", type: 'checkbox' },
               ],
             },
             { id: 'tblOffres', name: 'Offres', fields: [] },

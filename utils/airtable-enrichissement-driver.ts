@@ -47,16 +47,21 @@ function headers(apiKey: string): Record<string, string> {
 
 const PLUGIN_INCONNU = 'Inconnu';
 
-/** Sources actives : actif = true et plugin ≠ Inconnu. Retourne id + email (pour identifier la ligne du tableau). */
-export async function fetchSourcesActives(
+const AIRTABLE_ACTIVER_CREATION = 'Activer la création';
+const AIRTABLE_ACTIVER_ENRICHISSEMENT = "Activer l'enrichissement";
+const AIRTABLE_ACTIVER_ANALYSE_IA = "Activer l'analyse par IA";
+
+/** Sources avec une case à cocher donnée = true et plugin ≠ Inconnu. */
+function fetchSourcesAvecCheckbox(
   apiKey: string,
   baseId: string,
-  sourcesId: string
+  sourcesId: string,
+  checkboxFieldName: string
 ): Promise<Array<{ id: string; emailExpéditeur: string }>> {
   const out: Array<{ id: string; emailExpéditeur: string }> = [];
   let offset: string | undefined;
   const baseUrl = `${API_BASE}/${baseId}/${sourcesId}`;
-  do {
+  const fetchPage = async (): Promise<void> => {
     const u = offset ? `${baseUrl}?offset=${encodeURIComponent(offset)}` : baseUrl;
     const res = await fetch(u, { method: 'GET', headers: headers(apiKey) });
     if (!res.ok) {
@@ -68,16 +73,30 @@ export async function fetchSourcesActives(
     };
     for (const rec of json.records ?? []) {
       const fields = rec.fields ?? {};
-      const actif = fields.actif;
-      if (actif !== true && actif !== 'true') continue;
+      const coché = fields[checkboxFieldName] ?? fields.actif;
+      if (coché !== true && coché !== 'true') continue;
       const plugin = typeof fields.plugin === 'string' ? fields.plugin.trim() : '';
       if (plugin === PLUGIN_INCONNU || !plugin) continue;
       const email = typeof fields.emailExpéditeur === 'string' ? fields.emailExpéditeur.trim() : '';
       if (email) out.push({ id: rec.id, emailExpéditeur: email });
     }
     offset = json.offset;
-  } while (offset);
-  return out;
+  };
+  return (async () => {
+    do {
+      await fetchPage();
+    } while (offset);
+    return out;
+  })();
+}
+
+/** Sources avec « Activer la création » = true et plugin ≠ Inconnu (phase relève). */
+export async function fetchSourcesActives(
+  apiKey: string,
+  baseId: string,
+  sourcesId: string
+): Promise<Array<{ id: string; emailExpéditeur: string }>> {
+  return fetchSourcesAvecCheckbox(apiKey, baseId, sourcesId, AIRTABLE_ACTIVER_CREATION);
 }
 
 function getLinkedSourceId(fields: Record<string, unknown>): string | undefined {
@@ -198,7 +217,10 @@ export function createAirtableEnrichissementDriver(
     },
 
     async getOffresARecuperer(): Promise<OffreARecuperer[]> {
-      const sources = await this.getSourcesActives();
+      const sources =
+        sourcesId?.trim() ?
+          await fetchSourcesAvecCheckbox(apiKey, baseId, sourcesId.trim(), AIRTABLE_ACTIVER_ENRICHISSEMENT)
+        : [];
       if (sources.length === 0) {
         const formula = encodeURIComponent(`{Statut} = "${STATUT_A_COMPLETER}"`);
         const url = `${API_BASE}/${baseId}/${offresId}?filterByFormula=${formula}`;
@@ -225,6 +247,17 @@ export function createAirtableEnrichissementDriver(
     },
 
     async getOffresAAnalyser(): Promise<OffreAAnalyser[]> {
+      let sourceIdsActifs: Set<string> | undefined;
+      if (sourcesId?.trim()) {
+        const sourcesAnalyseIA = await fetchSourcesAvecCheckbox(
+          apiKey,
+          baseId,
+          sourcesId.trim(),
+          AIRTABLE_ACTIVER_ANALYSE_IA
+        );
+        sourceIdsActifs = new Set(sourcesAnalyseIA.map((s) => s.id));
+        if (sourceIdsActifs.size === 0) return [];
+      }
       const formula = encodeURIComponent(`{Statut} = "${STATUT_A_ANALYSER}"`);
       const url = `${API_BASE}/${baseId}/${offresId}?filterByFormula=${formula}`;
       const all: OffreAAnalyser[] = [];
@@ -238,6 +271,10 @@ export function createAirtableEnrichissementDriver(
           offset?: string;
         };
         for (const rec of json.records ?? []) {
+          if (sourceIdsActifs) {
+            const sourceId = getLinkedSourceId(rec.fields ?? {});
+            if (!sourceId || !sourceIdsActifs.has(sourceId)) continue;
+          }
           const fields = rec.fields ?? {};
           all.push({
             id: rec.id,

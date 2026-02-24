@@ -142,8 +142,7 @@ export async function ensureAirtableEnums(
 }
 
 /**
- * Ajoute dans la table Offres un seul champ lookup : Source - plugin (pour afficher le plugin source dans Offres).
- * Pas de lookup emailExpéditeur (la FK est le champ lien). Pas de lookup actif.
+ * Ajoute dans la table Offres un champ lookup « plugin » (affiche le plugin de la source liée).
  */
 export async function ensureLookupsOffresFromSources(
   baseId: string,
@@ -192,7 +191,7 @@ export async function ensureLookupsOffresFromSources(
   );
 
   for (const { name, fieldId: fieldIdInLinkedTable } of sourceFieldIds) {
-    const lookupName = `Source - ${name}`;
+    const lookupName = name;
     if (existingNames.has(lookupName.toLowerCase())) continue;
     try {
       const createUrl = `${API_BASE}/meta/bases/${baseId}/tables/${tableOffres.id}/fields`;

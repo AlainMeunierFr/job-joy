@@ -69,10 +69,7 @@ describe('validerConformiteJsonIA', () => {
       Date_offre: '',
       Salaire: '',
       Résumé_IA: 'Résumé.',
-      Réhibitoire1: false,
-      Réhibitoire2: false,
-      Réhibitoire3: true,
-      Réhibitoire4: false,
+      Réhibitoire3: 'Justification critère 3.',
       ScoreLocalisation: 16,
       ScoreSalaire: 5,
       ScoreCulture: 3,
@@ -93,16 +90,107 @@ describe('validerConformiteJsonIA', () => {
   });
 
   it('signale clé non attendue', () => {
-    const json = { Poste: 'x', Entreprise: '', Ville: '', Département: '', Date_offre: '', Salaire: '', Résumé_IA: '', Réhibitoire1: false, Réhibitoire2: false, Réhibitoire3: false, Réhibitoire4: false, ScoreLocalisation: 10, ScoreSalaire: 10, ScoreCulture: 10, ScoreQualitéOffre: 10, ScoreOptionnel1: 10, ScoreOptionnel2: 10, ScoreOptionnel3: 10, ScoreOptionnel4: 10, Inconnu: true };
+    const json = { Poste: 'x', Entreprise: '', Ville: '', Département: '', Date_offre: '', Salaire: '', Résumé_IA: '', Réhibitoire1: 'x', ScoreLocalisation: 10, ScoreSalaire: 10, ScoreCulture: 10, ScoreQualitéOffre: 10, ScoreOptionnel1: 10, ScoreOptionnel2: 10, ScoreOptionnel3: 10, ScoreOptionnel4: 10, Inconnu: true };
     const r = validerConformiteJsonIA(json, param4rehib4opt);
     expect(r.conform).toBe(false);
     if (!r.conform) expect(r.errors.some((e) => e.includes('non attendue') && e.includes('Inconnu'))).toBe(true);
   });
 
-  it('signale type incorrect (Réhibitoire doit être booléen)', () => {
-    const json = { Poste: 'x', Entreprise: '', Ville: '', Département: '', Date_offre: '', Salaire: '', Résumé_IA: '', Réhibitoire1: 'false', Réhibitoire2: false, Réhibitoire3: false, Réhibitoire4: false, ScoreLocalisation: 10, ScoreSalaire: 10, ScoreCulture: 10, ScoreQualitéOffre: 10, ScoreOptionnel1: 10, ScoreOptionnel2: 10, ScoreOptionnel3: 10, ScoreOptionnel4: 10 };
+  it('signale type incorrect (Réhibitoire doit être chaîne quand présent)', () => {
+    const json = { Poste: 'x', Entreprise: '', Ville: '', Département: '', Date_offre: '', Salaire: '', Résumé_IA: '', Réhibitoire1: true, ScoreLocalisation: 10, ScoreSalaire: 10, ScoreCulture: 10, ScoreQualitéOffre: 10, ScoreOptionnel1: 10, ScoreOptionnel2: 10, ScoreOptionnel3: 10, ScoreOptionnel4: 10 };
     const r = validerConformiteJsonIA(json, param4rehib4opt);
     expect(r.conform).toBe(false);
-    if (!r.conform) expect(r.errors.some((e) => e.includes('Réhibitoire1') && e.includes('booléen'))).toBe(true);
+    if (!r.conform) expect(r.errors.some((e) => e.includes('Réhibitoire1') && e.includes('chaîne'))).toBe(true);
+  });
+
+  describe('US-3.2 RéhibitoireN optionnel (string justification si rédhibitoire, absent sinon)', () => {
+    const param2rehib: ParametrageIA | null = {
+      rehibitoires: [
+        { titre: 'A', description: 'a' },
+        { titre: 'B', description: 'b' },
+        { titre: '', description: '' },
+        { titre: '', description: '' },
+      ],
+      scoresIncontournables: { localisation: '', salaire: '', culture: '', qualiteOffre: '' },
+      scoresOptionnels: [],
+      autresRessources: '',
+    };
+
+    it('JSON avec Réhibitoire1 présent (string justification) → conform', () => {
+      const json = {
+        Poste: '',
+        Entreprise: '',
+        Ville: '',
+        Département: '',
+        Date_offre: '',
+        Salaire: '',
+        Résumé_IA: '',
+        Réhibitoire1: 'Télétravail non mentionné.',
+        ScoreLocalisation: 10,
+        ScoreSalaire: 10,
+        ScoreCulture: 10,
+        ScoreQualitéOffre: 10,
+      };
+      const r = validerConformiteJsonIA(json, param2rehib);
+      expect(r.conform).toBe(true);
+    });
+
+    it('Réhibitoire1 et Réhibitoire2 absents (optionnel) → conform', () => {
+      const json = {
+        Poste: '',
+        Entreprise: '',
+        Ville: '',
+        Département: '',
+        Date_offre: '',
+        Salaire: '',
+        Résumé_IA: '',
+        ScoreLocalisation: 10,
+        ScoreSalaire: 10,
+        ScoreCulture: 10,
+        ScoreQualitéOffre: 10,
+      };
+      const r = validerConformiteJsonIA(json, param2rehib);
+      expect(r.conform).toBe(true);
+    });
+
+    it('Réhibitoire1 non-string (ex. booléen) → erreur', () => {
+      const json = {
+        Poste: '',
+        Entreprise: '',
+        Ville: '',
+        Département: '',
+        Date_offre: '',
+        Salaire: '',
+        Résumé_IA: '',
+        Réhibitoire1: true,
+        ScoreLocalisation: 10,
+        ScoreSalaire: 10,
+        ScoreCulture: 10,
+        ScoreQualitéOffre: 10,
+      };
+      const r = validerConformiteJsonIA(json, param2rehib);
+      expect(r.conform).toBe(false);
+      if (!r.conform) expect(r.errors.some((e) => e.includes('Réhibitoire1') && e.includes('chaîne'))).toBe(true);
+    });
+
+    it('Réhibitoire1 > 500 caractères → erreur', () => {
+      const json = {
+        Poste: '',
+        Entreprise: '',
+        Ville: '',
+        Département: '',
+        Date_offre: '',
+        Salaire: '',
+        Résumé_IA: '',
+        Réhibitoire1: 'x'.repeat(501),
+        ScoreLocalisation: 10,
+        ScoreSalaire: 10,
+        ScoreCulture: 10,
+        ScoreQualitéOffre: 10,
+      };
+      const r = validerConformiteJsonIA(json, param2rehib);
+      expect(r.conform).toBe(false);
+      if (!r.conform) expect(r.errors.some((e) => e.includes('Réhibitoire1') && e.includes('500'))).toBe(true);
+    });
   });
 });

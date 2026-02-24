@@ -41,7 +41,15 @@ type EmailRuntime = { id: string; from: string; html: string; receivedAtIso?: st
 interface DriverReleveGouvernance {
   listerSources: () => Promise<SourceRuntime[]>;
   creerSource: (source: SourceEmail) => Promise<SourceRuntime>;
-  mettreAJourSource: (sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>) => Promise<void>;
+  mettreAJourSource: (
+    sourceId: string,
+    patch: Partial<
+      Pick<
+        SourceEmail,
+        'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'
+      >
+    >
+  ) => Promise<void>;
   creerOffres: (
     offres: Array<{
       idOffre: string;
@@ -177,7 +185,10 @@ export async function runTraitement(dataDir: string, options: OptionsRunTraiteme
       sourcesExistantes: sources.map((s) => ({
         emailExpéditeur: s.emailExpéditeur,
         plugin: s.plugin,
-        actif: s.actif,
+        type: s.type ?? 'email',
+        activerCreation: s.activerCreation,
+        activerEnrichissement: s.activerEnrichissement,
+        activerAnalyseIA: s.activerAnalyseIA,
       })),
       parseursDisponibles,
       capturerHtmlExemple: async (sourceNom, html) => {
@@ -267,3 +278,6 @@ export async function runTraitement(dataDir: string, options: OptionsRunTraiteme
     nbOffresDejaPresentes: resultReleve.nbOffresDejaPresentes,
   };
 }
+
+/** US-3.3 : alias sémantique pour la phase 1 (création d'offres). */
+export const runCreation = runTraitement;

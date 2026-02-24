@@ -6,7 +6,12 @@
 /** Résultat de la recherche de la source LinkedIn dans la table Sources (identifiée par email expéditeur + plugin). */
 export type SourceLinkedInResult =
   | { found: false }
-  | { found: true; actif: boolean; emailExpéditeur: string; sourceId: string };
+  | {
+      found: true;
+      activerCreation: boolean;
+      emailExpéditeur: string;
+      sourceId: string;
+    };
 
 /** Une offre extraite du HTML d'un email LinkedIn (avant enregistrement). */
 export interface OffreExtraite {

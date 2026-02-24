@@ -34,7 +34,13 @@ async function setMockEmail(emails: Array<{ id: string; from: string; html: stri
   if (!res.ok) throw new Error(`set-mock-emails failed: ${res.status}`);
 }
 
-async function setMockSources(sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>) {
+async function setMockSources(sources: Array<{
+  emailExpéditeur: string;
+  plugin: string;
+  activerCreation: boolean;
+  activerEnrichissement: boolean;
+  activerAnalyseIA: boolean;
+}>) {
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -102,7 +108,7 @@ Given(
   async ({ page: _page }, expediteur: string, plugin: string, _champ: string) => {
     currentExpediteur = expediteur.toLowerCase();
     currentPlugin = plugin;
-    await setMockSources([{ emailExpéditeur: expediteur, plugin: plugin, actif: false }]);
+    await setMockSources([{ emailExpéditeur: expediteur, plugin: plugin, activerCreation: false, activerEnrichissement: false, activerAnalyseIA: false }]);
   }
 );
 

@@ -1,10 +1,14 @@
 {
+  "name": "job-joy",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "build": "tsc && node dist/scripts/copy-css.js",
     "build:dev": "tsc",
     "start": "node dist/app/server.js",
     "dev": "npm run build:dev && node dist/app/server.js",
+    "build:electron": "npm run build && electron-builder",
+    "start:electron": "npm run build:dev && electron .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:coverage": "jest --coverage",
@@ -37,9 +41,18 @@
     "@playwright/test": "^1.49.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.1",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
     "jest": "^30.2.0",
     "playwright-bdd": "^8.4.2",
     "ts-jest": "^29.4.6",
     "typescript": "^5.7.2"
+  },
+  "build": {
+    "appId": "fr.jobjoy.app",
+    "productName": "Job-Joy",
+    "directories": { "output": "dist-electron" },
+    "win": { "target": ["nsis"], "icon": "" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
   }
 }

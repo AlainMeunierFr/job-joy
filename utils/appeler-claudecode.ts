@@ -4,8 +4,16 @@
  */
 import { lireClaudeCode } from './parametres-claudecode.js';
 
+/** Structure jsonValidation renvoyée quand le JSON IA est valide (US-3.2 : justifications). */
+export type JsonValidationOk = {
+  valid: true;
+  json: Record<string, unknown>;
+  conform?: boolean;
+  validationErrors?: string[];
+};
+
 export type ResultatAppelClaude =
-  | { ok: true; texte: string }
+  | { ok: true; texte: string; jsonValidation?: JsonValidationOk }
   | { ok: false; code: string; message?: string };
 
 export type FetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;

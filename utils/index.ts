@@ -76,6 +76,17 @@ export {
   enregistrerAppel,
   lireLogsDuJour,
   agregerConsommationParJourEtApi,
+  agregerConsommationParJourEtIntention,
   type EntreeLogAppel,
   type OptionsEnregistrerAppel,
 } from './log-appels-api.js';
+export {
+  compterEmailsAImporter,
+  type ReaderEmailsAImporter,
+} from './comptage-emails-a-importer.js';
+export {
+  executerOrchestrationTraitements,
+  type PortsOrchestrationTraitements,
+  type ResultatOrchestrationTraitements,
+} from './orchestration-traitements.js';
+export { getDataDir, type DataDirOptions } from './data-dir.js';

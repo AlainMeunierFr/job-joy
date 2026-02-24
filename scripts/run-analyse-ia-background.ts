@@ -12,20 +12,21 @@ import { normaliserBaseId } from '../utils/airtable-url.js';
 import { construirePromptComplet } from '../utils/prompt-ia.js';
 import { appelerClaudeCode } from '../utils/appeler-claudecode.js';
 import { enregistrerAppel } from '../utils/log-appels-api.js';
+import { INTENTION_ANALYSE_IA_LOT } from '../utils/intentions-appels-api.js';
 import { parseJsonReponseIA } from '../utils/parse-json-reponse-ia.js';
-import type { ChampsOffreAirtable, OffreAAnalyser } from '../utils/enrichissement-offres.js';
+import { STATUT_A_TRAITER, type ChampsOffreAirtable, type OffreAAnalyser } from '../utils/enrichissement-offres.js';
+import { jsonToChampsOffreAirtable } from '../utils/mapping-analyse-airtable.js';
 
-const STATUT_A_TRAITER = 'À traiter';
-
-/** Appelle updateOffre ; en cas d'erreur, écrit l'erreur dans Résumé puis lance pour arrêter le batch (éviter de griller des tokens). */
+/** Appelle updateOffre ; en cas d'erreur, écrit l'erreur dans Résumé et retourne false (ne pas arrêter le batch). */
 async function updateOffreOuRésuméErreur(
   driver: { updateOffre: (id: string, champs: ChampsOffreAirtable) => Promise<void> },
   recordId: string,
   champs: ChampsOffreAirtable,
   messages: string[]
-): Promise<void> {
+): Promise<boolean> {
   try {
     await driver.updateOffre(recordId, champs);
+    return true;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[Analyse IA] updateOffre ${recordId} échoué:`, msg);
@@ -36,41 +37,8 @@ async function updateOffreOuRésuméErreur(
     } catch {
       // ignorer si même l'écriture du Résumé échoue
     }
-    throw err;
+    return false;
   }
-}
-
-/** Construit les champs Airtable à partir du JSON renvoyé par l'IA (Résumé déjà calculé). */
-/** Mapping JSON IA → noms de colonnes Airtable (schéma airtable-driver-reel.ts). */
-function jsonToChampsOffreAirtable(
-  json: Record<string, unknown>,
-  resume: string
-): ChampsOffreAirtable {
-  const champs: ChampsOffreAirtable = {
-    Résumé: resume,
-    Statut: STATUT_A_TRAITER,
-  };
-  const texte = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
-  if (texte(json.Poste)) champs.Poste = texte(json.Poste);
-  if (texte(json.Entreprise)) champs.Entreprise = texte(json.Entreprise);
-  if (texte(json.Ville)) champs.Ville = texte(json.Ville);
-  if (texte(json.Département)) champs.Département = texte(json.Département);
-  if (texte(json.Salaire)) champs.Salaire = texte(json.Salaire);
-  if (texte(json.Date_offre)) champs.DateOffre = texte(json.Date_offre);
-  for (let i = 1; i <= 4; i++) {
-    const v = json[`Réhibitoire${i}`];
-    if (typeof v === 'boolean') (champs as Record<string, unknown>)[`CritèreRéhibitoire${i}`] = v;
-  }
-  const score = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 20 ? v : undefined);
-  const sLoc = score(json.ScoreLocalisation); if (sLoc !== undefined) champs.ScoreLocalisation = sLoc;
-  const sSal = score(json.ScoreSalaire); if (sSal !== undefined) champs.ScoreSalaire = sSal;
-  const sCul = score(json.ScoreCulture); if (sCul !== undefined) champs.ScoreCulture = sCul;
-  const sQual = score(json.ScoreQualitéOffre); if (sQual !== undefined) champs.ScoreQualiteOffre = sQual;
-  for (let i = 1; i <= 4; i++) {
-    const v = score(json[`ScoreOptionnel${i}`]);
-    if (v !== undefined) (champs as Record<string, unknown>)[`ScoreCritère${i}`] = v;
-  }
-  return champs;
 }
 
 async function resolveSourcesId(
@@ -168,15 +136,17 @@ export async function runAnalyseIABackground(
       api: 'Claude',
       succes: result.ok,
       codeErreur: result.ok ? undefined : result.code,
+      intention: INTENTION_ANALYSE_IA_LOT,
     });
     let resume: string;
     if (result.ok) {
       const parsed = parseJsonReponseIA(result.texte);
       if (parsed.ok) {
         resume = typeof parsed.json.Résumé_IA === 'string' ? parsed.json.Résumé_IA.trim() : result.texte;
-        nbAnalysees += 1;
         const champs = jsonToChampsOffreAirtable(parsed.json, resume);
-        await updateOffreOuRésuméErreur(driver, offre.id, champs, messages);
+        const updated = await updateOffreOuRésuméErreur(driver, offre.id, champs, messages);
+        if (updated) nbAnalysees += 1;
+        else nbEchecs += 1;
       } else {
         const detailErreur = parsed.error.slice(0, 180);
         resume = `⚠️ invalid_json: ${detailErreur}`;

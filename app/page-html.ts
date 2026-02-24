@@ -83,6 +83,8 @@ export interface OptionsParametresContent {
   promptIAPartieFixe?: string;
   /** True si au moins une offre Airtable a du texte (afficher bouton "Récupérer le texte d'une offre"). US-2.4 */
   offreTestHasOffre?: boolean;
+  /** Répertoire des ressources projet (guides HTML, etc.). Si fourni, les tutoriels sont lus depuis resourcesDir/guides/ au lieu de dataDir/ressources/. */
+  resourcesDir?: string;
 }
 
 function getFlashMessageText(flash: FlashMicrosoft): string {
@@ -103,21 +105,20 @@ export async function getParametresContent(
   const INJECT_CHAMP_URL_BASE = '<!-- INJECT_CHAMP_URL_BASE -->';
   const INJECT_CHAMP_API_KEY = '<!-- INJECT_CHAMP_API_KEY -->';
 
+  const guidesDir = options?.resourcesDir
+    ? join(options.resourcesDir, 'guides')
+    : join(dataDir, 'ressources');
+  const pathAirtable = join(guidesDir, options?.resourcesDir ? 'CreationCompteAirtable.html' : 'CréationCompteAirTable.html');
+  const pathClaude = join(guidesDir, 'CréationCompteClaudeCode.html');
   let tutorielAirtableHtml = '';
   try {
-    tutorielAirtableHtml = await readFile(
-      join(dataDir, 'ressources', 'CréationCompteAirTable.html'),
-      'utf-8'
-    );
+    tutorielAirtableHtml = await readFile(pathAirtable, 'utf-8');
   } catch {
     // Fichier absent : zone tutoriel vide
   }
   let tutorielClaudeCodeHtml = '';
   try {
-    tutorielClaudeCodeHtml = await readFile(
-      join(dataDir, 'ressources', 'CréationCompteClaudeCode.html'),
-      'utf-8'
-    );
+    tutorielClaudeCodeHtml = await readFile(pathClaude, 'utf-8');
     tutorielClaudeCodeHtml = tutorielClaudeCodeHtml.replace(/<!-- INJECT_CHAMP_API_KEY -->/g, '');
   } catch {
     tutorielClaudeCodeHtml = '<p class="tutorielAbsent">Fichier tutoriel absent.</p>';
@@ -687,6 +688,23 @@ export async function getParametresContent(
                       html += '<li>' + escapeHtml(String(e)) + '</li>';
                     });
                     html += '</ul>';
+                  }
+                  if (jv.json && typeof jv.json === 'object') {
+                    html += '<section class="zoneResultatRehibitoires" data-layout="zone-resultat-rehibitoires" aria-labelledby="titre-resultat-rehibitoires"><h4 id="titre-resultat-rehibitoires" class="zoneResultatRehibitoiresTitle">Réhibitoires</h4>';
+                    for (var ri = 1; ri <= 4; ri++) {
+                      var keyRehib = 'Réhibitoire' + ri;
+                      var valRehib = jv.json[keyRehib];
+                      var justif = (typeof valRehib === 'string' && valRehib.trim()) ? valRehib.trim() : '';
+                      var estRehibitoire = justif !== '';
+                      html += '<div class="blocResultatRehibitoire" data-layout="bloc-resultat-rehibitoire" data-rehibitoire-index="' + ri + '">';
+                      html += '<span class="blocResultatRehibitoireLabel">Réhibitoire ' + ri + '</span> ';
+                      html += '<span class="blocResultatRehibitoireValeur">' + (estRehibitoire ? 'true' : 'false') + '</span>';
+                      if (justif !== '') {
+                        html += '<p class="blocResultatRehibitoireJustification">' + escapeHtml(justif) + '</p>';
+                      }
+                      html += '</div>';
+                    }
+                    html += '</section>';
                   }
                 } else if (jv.valid === false && typeof jv.error === 'string') {
                   html += '<p class="resultatTestClaudecodeValidation resultatTestClaudecodeValidation--erreur">JSON invalide : ' + escapeHtml(jv.error) + '</p>';

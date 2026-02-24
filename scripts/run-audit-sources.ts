@@ -9,6 +9,8 @@ import { createLecteurEmailsMock } from '../utils/lecteur-emails-mock.js';
 import { normaliserBaseId } from '../utils/airtable-url.js';
 import { getValidAccessToken } from '../utils/auth-microsoft.js';
 import type { PluginSource, SourceEmail } from '../utils/gouvernance-sources-emails.js';
+import { createSourcePluginsRegistry } from '../utils/source-plugins.js';
+import { getDefaultActivationForPlugin } from '../utils/default-activation-source.js';
 
 export type ResultatAuditSources =
   | {
@@ -37,7 +39,12 @@ interface DriverReleveGouvernance {
   creerSource: (source: SourceEmail) => Promise<SourceRuntime>;
   mettreAJourSource?: (
     sourceId: string,
-    patch: Partial<Pick<SourceEmail, 'plugin' | 'actif'>>
+    patch: Partial<
+      Pick<
+        SourceEmail,
+        'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'
+      >
+    >
   ) => Promise<void>;
 }
 
@@ -99,16 +106,6 @@ function pluginParExpediteur(emailExpediteur: string): PluginSource {
   if (key === 'offres@alertes.cadremploi.fr') return 'Cadre Emploi';
   if (key.includes('linkedin.com')) return 'Linkedin';
   return 'Inconnu';
-}
-
-function actifParDefautPourPlugin(plugin: PluginSource): boolean {
-  return (
-    plugin === 'Linkedin' ||
-    plugin === 'HelloWork' ||
-    plugin === 'Welcome to the Jungle' ||
-    plugin === 'Job That Make Sense' ||
-    plugin === 'Cadre Emploi'
-  );
 }
 
 export async function runAuditSources(
@@ -218,24 +215,28 @@ export async function runAuditSources(
       synthese.push({
         emailExpéditeur: key,
         plugin: sourceExistante.plugin,
-        actif: sourceExistante.actif ? 'Oui' : 'Non',
+        actif: sourceExistante.activerCreation ? 'Oui' : 'Non',
         nbEmails,
       });
       continue;
     }
     const plugin = pluginParExpediteur(key);
-    const actifParDefaut = actifParDefautPourPlugin(plugin); // plugin connu => activer par défaut
+    const registry = createSourcePluginsRegistry();
+    const def = getDefaultActivationForPlugin(plugin, registry);
     const source: SourceEmail = {
       emailExpéditeur: key,
       plugin,
-      actif: actifParDefaut,
+      type: 'email',
+      activerCreation: def.activerCreation,
+      activerEnrichissement: def.activerEnrichissement,
+      activerAnalyseIA: def.activerAnalyseIA,
     };
     const created = await driverReleve.creerSource(source);
     indexParEmail.set(normaliserEmailExpediteur(created.emailExpéditeur), created);
     synthese.push({
       emailExpéditeur: key,
       plugin: source.plugin,
-      actif: actifParDefaut ? 'Oui' : 'Non',
+      actif: def.activerCreation ? 'Oui' : 'Non',
       nbEmails,
     });
     nbSourcesCreees += 1;

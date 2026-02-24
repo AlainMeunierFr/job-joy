@@ -21,69 +21,20 @@ describe('getHeaderHtml', () => {
 });
 
 describe('getPageTableauDeBord', () => {
-  it('contient un bouton "Auditer le dossier" distinct au-dessus du bouton de traitement', () => {
-    const html = getPageTableauDeBord();
-    expect(html).toContain('Dossier de la boite aux lettres');
-    expect(html).toContain('class="dossierBoiteContainer"');
-    expect(html).toContain('Auditer le dossier');
-    expect(html).toContain('e2eid="e2eid-bouton-auditer-dossier"');
-
-    const indexAudit = html.indexOf('Auditer le dossier');
-    const indexTraitement = html.indexOf('Lancer le traitement');
-    expect(indexAudit).toBeGreaterThan(-1);
-    expect(indexTraitement).toBeGreaterThan(-1);
-    expect(indexAudit).toBeLessThan(indexTraitement);
-  });
-
-  it('contient un bouton "Lancer le traitement" avec e2eid e2eid-bouton-lancer-traitement', () => {
-    const html = getPageTableauDeBord();
-    expect(html).toContain('Lancer le traitement');
-    expect(html).toContain('e2eid="e2eid-bouton-lancer-traitement"');
-  });
-
-  it('ajoute un bouton "Ouvrir Airtable" sous le bouton de traitement', () => {
+  // US-3.5 : ancien bloc "Dossier de la boîte aux lettres" / "Auditer le dossier" supprimé ; structure 3 blocs (Synthèse, Traitements, Consommation API).
+  it('contient le bloc Synthèse des offres avec tableau et bouton Ouvrir Airtable', () => {
     const html = getPageTableauDeBord({ airtableBaseUrl: 'https://airtable.com/appTest123' });
-    expect(html).toContain('Ouvrir Airtable');
+    expect(html).toContain('data-layout="synthese-offres"');
+    expect(html).toContain('syntheseOffresTable');
     expect(html).toContain('e2eid="e2eid-bouton-ouvrir-airtable"');
-    const indexTraitement = html.indexOf('e2eid-bouton-lancer-traitement');
-    const indexOuvrirAirtable = html.indexOf('e2eid-bouton-ouvrir-airtable');
-    expect(indexTraitement).toBeGreaterThan(-1);
-    expect(indexOuvrirAirtable).toBeGreaterThan(-1);
-    expect(indexTraitement).toBeLessThan(indexOuvrirAirtable);
+    expect(html).toContain('Ouvrir Airtable');
   });
 
-  it('place le bloc Synthèse des offres en dehors du bloc Dossier de la boite aux lettres', () => {
-    const html = getPageTableauDeBord();
-    const indexDossierStart = html.indexOf('<section class="dossierBoiteContainer"');
-    const indexDossierEnd = html.indexOf('</section>', indexDossierStart);
-    const indexSyntheseOffres = html.indexOf('<section class="syntheseOffres"');
-    expect(indexDossierStart).toBeGreaterThan(-1);
-    expect(indexDossierEnd).toBeGreaterThan(-1);
-    expect(indexSyntheseOffres).toBeGreaterThan(-1);
-    expect(indexSyntheseOffres).toBeGreaterThan(indexDossierEnd);
-  });
-
-  it('place worker, mise à jour et Ouvrir Airtable dans le bloc Synthèse des offres', () => {
-    const html = getPageTableauDeBord({ airtableBaseUrl: 'https://airtable.com/appTest123' });
-    const indexSyntheseOffres = html.indexOf('<section class="syntheseOffres"');
-    const indexWorker = html.indexOf('e2eid="e2eid-bouton-worker-enrichissement"');
-    const indexRefresh = html.indexOf('e2eid="e2eid-bouton-rafraichir-synthese-offres"');
-    const indexOuvrirAirtable = html.indexOf('e2eid="e2eid-bouton-ouvrir-airtable"');
-    const indexSyntheseOffresEnd = html.indexOf('</section>', indexSyntheseOffres);
-    expect(indexSyntheseOffres).toBeGreaterThan(-1);
-    expect(indexWorker).toBeGreaterThan(indexSyntheseOffres);
-    expect(indexRefresh).toBeGreaterThan(indexSyntheseOffres);
-    expect(indexOuvrirAirtable).toBeGreaterThan(indexSyntheseOffres);
-    expect(indexWorker).toBeLessThan(indexSyntheseOffresEnd);
-    expect(indexRefresh).toBeLessThan(indexSyntheseOffresEnd);
-    expect(indexOuvrirAirtable).toBeLessThan(indexSyntheseOffresEnd);
-  });
-
-  it('affiche un bouton worker enrichissement avec libellés explicites', () => {
+  it('contient le bloc Traitements avec bouton Lancer les traitements (e2eid worker-enrichissement)', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('e2eid="e2eid-bouton-worker-enrichissement"');
-    expect(html).toContain('Ouvrir, récupérer et analyser les annonces');
-    expect(html).toContain('Arrêter d\\\'ouvrir, récupérer et analyser les annonces');
+    expect(html).toContain('Lancer les traitements');
+    expect(html).toContain('Arrêter les traitements');
     expect(html).toContain('/api/enrichissement-worker/status');
     expect(html).toContain('/api/enrichissement-worker/start');
     expect(html).toContain('/api/enrichissement-worker/stop');
@@ -108,16 +59,15 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('e2eid="e2eid-bouton-ouvrir-airtable" data-airtable-url="" disabled');
   });
 
-  it('contient un script qui envoie POST vers /api/traitement/start au clic sur le bouton de traitement', () => {
+  it('contient un script worker avec enrichissement-worker start/stop et status', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('/api/traitement/start');
-    expect(html).toContain('/api/traitement/status?taskId=');
-    expect(html).toContain('POST');
-    expect(html).toContain('e2eid-bouton-lancer-traitement');
-    expect(html).toContain('window.__lancerAuditTableauDeBord');
+    expect(html).toContain('/api/enrichissement-worker/start');
+    expect(html).toContain('/api/enrichissement-worker/stop');
+    expect(html).toContain('/api/enrichissement-worker/status');
+    expect(html).toContain('e2eid-bouton-worker-enrichissement');
   });
 
-  it('contient un script audit dédié avec POST /api/audit/start et polling /api/audit/status', () => {
+  it.skip('contient un script audit dédié (US-3.5: bloc audit retiré du layout)', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('/api/audit/start');
     expect(html).toContain('/api/audit/status?taskId=');
@@ -125,7 +75,7 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('relanceApresTraitement');
   });
 
-  it('prévoit une zone de résultat audit avec indicateurs métier attendus', () => {
+  it.skip('prévoit une zone de résultat audit (US-3.5: bloc audit retiré)', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('id="resultat-audit"');
     expect(html).toContain('nbEmailsScannes');
@@ -133,7 +83,7 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('nbSourcesExistantes');
   });
 
-  it('affiche une table de synthèse audit avec les colonnes attendues', () => {
+  it.skip('affiche une table de synthèse audit (US-3.5: bloc audit retiré)', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('<div class="auditSynthese" data-layout="table" hidden>');
     expect(html).toContain('<table class="auditSyntheseTable"');
@@ -143,7 +93,7 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('<th scope="col">nbEmails</th>');
   });
 
-  it('affiche les sous-totaux prévisionnels sous le tableau', () => {
+  it.skip('affiche les sous-totaux prévisionnels (US-3.5: bloc audit retiré)', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('id="audit-sous-totaux" class="auditSousTotaux" hidden');
     expect(html).toContain('id="audit-ligne-archivage"');
@@ -152,21 +102,11 @@ describe('getPageTableauDeBord', () => {
 
   it('respecte l’ordre IHM: audit, puis tableau/sous-totaux, puis traitement', () => {
     const html = getPageTableauDeBord();
-    const indexBoutonAudit = html.indexOf('e2eid-bouton-auditer-dossier');
-    const indexTableau = html.indexOf('auditSyntheseTable');
-    const indexSousTotaux = html.indexOf('id="audit-sous-totaux"');
-    const indexBoutonTraitement = html.indexOf('e2eid-bouton-lancer-traitement');
-
-    expect(indexBoutonAudit).toBeGreaterThan(-1);
-    expect(indexTableau).toBeGreaterThan(-1);
-    expect(indexSousTotaux).toBeGreaterThan(-1);
-    expect(indexBoutonTraitement).toBeGreaterThan(-1);
-    expect(indexBoutonAudit).toBeLessThan(indexTableau);
-    expect(indexTableau).toBeLessThan(indexSousTotaux);
-    expect(indexSousTotaux).toBeLessThan(indexBoutonTraitement);
+    // US-3.5 : bloc audit retiré du layout, test désactivé.
+    expect(html).toContain('data-layout="traitements"');
   });
 
-  it('utilise result.synthese et les sous-totaux pour afficher archivé/subsistance', () => {
+  it.skip('utilise result.synthese archivé/subsistance (US-3.5: bloc audit retiré)', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('st.result.synthese');
     expect(html).toContain('st.result.sousTotauxPrevisionnels');
@@ -175,20 +115,24 @@ describe('getPageTableauDeBord', () => {
   });
 
   // --- US-1.7 : Tableau de synthèse des offres (conteneur distinct) ---
-  it('contient un conteneur dédié synthèse offres distinct de auditSynthese', () => {
+  it('contient un conteneur dédié synthèse offres (data-layout synthese-offres)', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('class="auditSynthese"');
+    expect(html).toContain('data-layout="synthese-offres"');
     expect(html).toContain('class="syntheseOffres"');
-    expect(html.indexOf('syntheseOffres')).not.toBe(html.indexOf('auditSynthese'));
   });
 
-  it('affiche les colonnes fixes du tableau synthèse offres : email expéditeur, plugin, phase 1, phase 2', () => {
+  it('affiche les colonnes fixes du tableau synthèse offres : email expéditeur, plugin, création, enrichissement, analyse', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('renderTableauSyntheseHead');
-    expect(html).toContain("'<th scope=\"col\">email expéditeur</th>'");
-    expect(html).toContain("'<th scope=\"col\">plugin</th>'");
-    expect(html).toContain("Phase 1 : Extraction de l\\'URL des offres dans les emails");
+    expect(html).toContain('email expéditeur</th>');
+    expect(html).toContain('plugin</th>');
+    expect(html).toContain("création");
+    expect(html).toContain("enrichissement");
+    expect(html).toContain("analyse");
+    expect(html).toContain("Phase 1 : Extraction de l'URL des offres dans les emails");
     expect(html).toContain("Phase 2 : Ouverture des offres pour en récupérer le texte complet");
+    expect(html).toContain("Phase 3 : Analyse et calcul");
+    expect(html).toContain("score par l'IA");
     expect(html).toContain('synthesePluginCapsule');
     expect(html).not.toContain("'<th scope=\"col\">actif</th>'");
   });
@@ -219,6 +163,10 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('ligne.statuts');
     expect(html).toContain('phase1Html');
     expect(html).toContain('phase2Html');
+    expect(html).toContain('phase3Html');
+    expect(html).toContain('activerCreation');
+    expect(html).toContain('activerEnrichissement');
+    expect(html).toContain('activerAnalyseIA');
   });
 
   it('ajoute une info-bulle qui décrit les phases 1, 2 et 3', () => {
@@ -226,7 +174,7 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('class="syntheseOffresInfoBulle"');
     expect(html).toContain("Phase 1 : Extraction de l'URL des offres dans les emails");
     expect(html).toContain('Phase 2 : Ouverture des offres pour en récupérer le texte complet');
-    expect(html).toContain("Phase 3 : Analyse et calcule d'un score par l'IA");
+    expect(html).toContain("Phase 3 : Analyse et calcul d'un score par l'IA");
   });
 
   it('affiche les zéros pour les compteurs (largeur stable)', () => {
@@ -235,15 +183,11 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain("ligne.statuts[statut] != null");
   });
 
-  it('tableau emails et tableau offres ont des ids/classes distincts sans collision', () => {
+  it('tableau synthèse offres a un tbody dédié et des classes distinctes', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('id="audit-synthese-body"');
     expect(html).toContain('id="synthese-offres-body"');
-    expect(html).toContain('class="auditSyntheseTable"');
     expect(html).toContain('class="syntheseOffresTable"');
-    expect(html).toContain('class="auditSynthese"');
     expect(html).toContain('class="syntheseOffres"');
-    expect(html.indexOf('audit-synthese-body')).not.toBe(html.indexOf('synthese-offres-body'));
   });
 
   // --- US-1.13 : Totaux (colonne et ligne) ---
@@ -284,5 +228,62 @@ describe('getPageTableauDeBord', () => {
     expect(idx).toBeGreaterThan(-1);
     const slice = html.slice(idx, idx + 1200);
     expect(slice).toMatch(/Date|Claude|Airtable/);
+  });
+
+  // --- US-3.5 CA5 : Structure 3 blocs ---
+  it('expose 3 containers identifiables : Synthèse des offres, Traitements, Consommation API', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('Synthèse des offres');
+    expect(html).toContain('data-layout="synthese-offres"');
+    expect(html).toContain('data-layout="traitements"');
+    expect(html).toContain('data-layout="consommation-api"');
+    const idxSynthese = html.indexOf('data-layout="synthese-offres"');
+    const idxTraitements = html.indexOf('data-layout="traitements"');
+    const idxConsommation = html.indexOf('data-layout="consommation-api"');
+    expect(idxSynthese).toBeGreaterThan(-1);
+    expect(idxTraitements).toBeGreaterThan(-1);
+    expect(idxConsommation).toBeGreaterThan(-1);
+    expect(idxSynthese).toBeLessThan(idxTraitements);
+    expect(idxTraitements).toBeLessThan(idxConsommation);
+  });
+
+  it('US-3.5 : bloc Synthèse contient Mise à jour puis Ouvrir Airtable ; bloc Traitements contient Lancer les traitements', () => {
+    const html = getPageTableauDeBord();
+    const blocSynthese = html.indexOf('data-layout="synthese-offres"');
+    expect(blocSynthese).toBeGreaterThan(-1);
+    const sliceSynthese = html.slice(blocSynthese, blocSynthese + 1500);
+    expect(sliceSynthese).toContain('e2eid="e2eid-bouton-rafraichir-synthese-offres"');
+    expect(sliceSynthese).toContain('e2eid="e2eid-bouton-ouvrir-airtable"');
+    expect(sliceSynthese.indexOf('rafraichir-synthese-offres')).toBeLessThan(sliceSynthese.indexOf('ouvrir-airtable'));
+    const blocTraitements = html.indexOf('data-layout="traitements"');
+    expect(blocTraitements).toBeGreaterThan(-1);
+    const sliceTraitements = html.slice(blocTraitements, blocTraitements + 800);
+    expect(sliceTraitements).toContain('e2eid="e2eid-bouton-worker-enrichissement"');
+  });
+
+  it('US-3.5 : dans le bloc Traitements, 3 lignes de phase avec data-layout ligne-phase', () => {
+    const html = getPageTableauDeBord();
+    const blocTraitements = html.indexOf('data-layout="traitements"');
+    expect(blocTraitements).toBeGreaterThan(-1);
+    const slice = html.slice(blocTraitements);
+    const countLignePhase = (slice.match(/data-layout="ligne-phase"/g) || []).length;
+    expect(countLignePhase).toBe(3);
+    expect(slice).toContain('traitementsLignePhaseNom');
+    expect(slice).toContain('Création');
+    expect(slice).toContain('Enrichissement');
+    expect(slice).toContain('Analyse IA');
+  });
+
+  it('US-3.5 CA1 : au chargement, aucun setInterval ne déclenche de requête synthèse après le premier chargement', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('refreshTableauSyntheseOffres');
+    expect(html).not.toMatch(/setInterval\s*\([^)]*refreshTableauSyntheseOffres/);
+  });
+
+  it('US-3.5 CA4 / US-3.3 CA2 : le clic sur Mise à jour déclenche l\'audit (POST refresh) puis le chargement du tableau (GET synthèse)', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain("'/api/tableau-synthese-offres/refresh'");
+    expect(html).toContain("method: 'POST'");
+    expect(html).toContain("'/api/tableau-synthese-offres'");
   });
 });

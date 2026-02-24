@@ -7,6 +7,7 @@ import type { ResultatEnrichissement, ResultatEnrichissementOffre } from '../typ
 
 export const STATUT_A_COMPLETER = 'A compléter';
 export const STATUT_A_ANALYSER = 'À analyser';
+export const STATUT_A_TRAITER = 'À traiter';
 export const STATUT_EXPIRE = 'Expiré';
 export const STATUT_IGNORE = 'Ignoré';
 
@@ -36,10 +37,16 @@ export interface ChampsOffreAirtable {
   Salaire?: string;
   DateOffre?: string;
   Statut?: string;
-  CritèreRéhibitoire1?: boolean;
-  CritèreRéhibitoire2?: boolean;
-  CritèreRéhibitoire3?: boolean;
-  CritèreRéhibitoire4?: boolean;
+  /** US-2.1 : colonnes "texte une seule ligne" dans Airtable = justification (chaîne). Vide = critère non rédhibitoire. */
+  CritèreRéhibitoire1?: string;
+  CritèreRéhibitoire2?: string;
+  CritèreRéhibitoire3?: string;
+  CritèreRéhibitoire4?: string;
+  /** Alias exposition API / synthèse (même valeur que CritèreRéhibitoireN quand lu depuis Airtable). */
+  JustificationRéhibitoire1?: string;
+  JustificationRéhibitoire2?: string;
+  JustificationRéhibitoire3?: string;
+  JustificationRéhibitoire4?: string;
   ScoreCritère1?: number;
   ScoreCritère2?: number;
   ScoreCritère3?: number;

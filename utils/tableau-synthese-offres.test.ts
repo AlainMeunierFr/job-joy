@@ -7,13 +7,21 @@ import {
   construireTableauSynthese,
   calculerTotauxTableauSynthese,
   produireTableauSynthese,
+  mergeCacheDansLignes,
   type TableauSyntheseRepository,
+  type LigneTableauSynthese,
 } from './tableau-synthese-offres.js';
 
 describe('tableau-synthese-offres (US-1.7)', () => {
   it('agrégation vide : aucune offre => aucune ligne retournée', () => {
     const sources = [
-      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
+      {
+        emailExpéditeur: 'jobs@linkedin.com',
+        plugin: 'Linkedin' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
     ];
     const offres: Array<{ emailExpéditeur: string; statut: string }> = [];
     const result = construireTableauSynthese({ sources, offres });
@@ -22,7 +30,13 @@ describe('tableau-synthese-offres (US-1.7)', () => {
 
   it('1 offre / 1 source : ligne avec colonnes source + colonnes statuts complètes (0 sauf statut concerné)', () => {
     const sources = [
-      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
+      {
+        emailExpéditeur: 'jobs@linkedin.com',
+        plugin: 'Linkedin' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
     ];
     const offres = [{ emailExpéditeur: 'jobs@linkedin.com', statut: 'À analyser' }];
     const result = construireTableauSynthese({ sources, offres });
@@ -31,7 +45,9 @@ describe('tableau-synthese-offres (US-1.7)', () => {
       emailExpéditeur: 'jobs@linkedin.com',
       pluginEtape1: 'Linkedin',
       pluginEtape2: 'Linkedin',
-      actif: true,
+      activerCreation: true,
+      activerEnrichissement: true,
+      activerAnalyseIA: true,
     });
     expect(result[0].statuts).toEqual({
       'A compléter': 0,
@@ -47,7 +63,13 @@ describe('tableau-synthese-offres (US-1.7)', () => {
 
   it('plusieurs offres même source : incrément correct des compteurs par statut', () => {
     const sources = [
-      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
+      {
+        emailExpéditeur: 'jobs@linkedin.com',
+        plugin: 'Linkedin' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
     ];
     const offres = [
       { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
@@ -63,8 +85,20 @@ describe('tableau-synthese-offres (US-1.7)', () => {
 
   it('plusieurs sources : une ligne par expéditeur avec matrice complète des statuts', () => {
     const sources = [
-      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
-      { emailExpéditeur: 'notification@emails.hellowork.com', plugin: 'HelloWork' as const, actif: true },
+      {
+        emailExpéditeur: 'jobs@linkedin.com',
+        plugin: 'Linkedin' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
+      {
+        emailExpéditeur: 'notification@emails.hellowork.com',
+        plugin: 'HelloWork' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
     ];
     const offres = [
       { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
@@ -89,8 +123,20 @@ describe('tableau-synthese-offres (US-1.7)', () => {
 
   it('filtrage : une source sans offre n\'apparaît pas', () => {
     const sources = [
-      { emailExpéditeur: 'avec-offres@test.com', plugin: 'HelloWork' as const, actif: true },
-      { emailExpéditeur: 'sans-offres@test.com', plugin: 'Inconnu' as const, actif: false },
+      {
+        emailExpéditeur: 'avec-offres@test.com',
+        plugin: 'HelloWork' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
+      {
+        emailExpéditeur: 'sans-offres@test.com',
+        plugin: 'Inconnu' as const,
+        activerCreation: false,
+        activerEnrichissement: false,
+        activerAnalyseIA: true,
+      },
     ];
     const offres = [
       { emailExpéditeur: 'avec-offres@test.com', statut: 'À traiter' },
@@ -103,7 +149,13 @@ describe('tableau-synthese-offres (US-1.7)', () => {
 
   it('statut hors énum : compté dans Autre quand statutsOrdre inclut Autre', () => {
     const sources = [
-      { emailExpéditeur: 'x@test.com', plugin: 'Linkedin' as const, actif: true },
+      {
+        emailExpéditeur: 'x@test.com',
+        plugin: 'Linkedin' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
     ];
     const offres = [
       { emailExpéditeur: 'x@test.com', statut: 'Custom statut' },
@@ -115,11 +167,47 @@ describe('tableau-synthese-offres (US-1.7)', () => {
     expect(result[0].statuts['Autre']).toBe(1);
   });
 
+  it('une ligne construite a aImporter à 0 et peut être enrichie avec aImporter (US-3.3)', () => {
+    const sources = [
+      {
+        emailExpéditeur: 'x@test.com',
+        plugin: 'Linkedin' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
+    ];
+    const offres = [{ emailExpéditeur: 'x@test.com', statut: 'À analyser' }];
+    const result = construireTableauSynthese({ sources, offres });
+    expect(result).toHaveLength(1);
+    expect(result[0].aImporter).toBe(0);
+    const enrichie = { ...result[0], aImporter: 5 };
+    expect(enrichie.aImporter).toBe(5);
+  });
+
   it('tri : ordre des lignes par plugin étape 2 puis plugin étape 1', () => {
     const sources = [
-      { emailExpéditeur: 'a@test.com', plugin: 'HelloWork' as const, actif: true },
-      { emailExpéditeur: 'b@test.com', plugin: 'Linkedin' as const, actif: true },
-      { emailExpéditeur: 'c@test.com', plugin: 'Inconnu' as const, actif: true },
+      {
+        emailExpéditeur: 'a@test.com',
+        plugin: 'HelloWork' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
+      {
+        emailExpéditeur: 'b@test.com',
+        plugin: 'Linkedin' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
+      {
+        emailExpéditeur: 'c@test.com',
+        plugin: 'Inconnu' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
     ];
     const offres = [
       { emailExpéditeur: 'c@test.com', statut: 'À traiter' },
@@ -132,6 +220,33 @@ describe('tableau-synthese-offres (US-1.7)', () => {
     expect(result[1].emailExpéditeur).toBe('b@test.com');
     expect(result[2].emailExpéditeur).toBe('c@test.com');
   });
+
+  it('tri : même plugin étape 2 et 1, ordre par email expéditeur', () => {
+    const sources = [
+      {
+        emailExpéditeur: 'z@test.com',
+        plugin: 'HelloWork' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
+      {
+        emailExpéditeur: 'a@test.com',
+        plugin: 'HelloWork' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
+    ];
+    const offres = [
+      { emailExpéditeur: 'z@test.com', statut: 'À traiter' },
+      { emailExpéditeur: 'a@test.com', statut: 'À traiter' },
+    ];
+    const result = construireTableauSynthese({ sources, offres });
+    expect(result).toHaveLength(2);
+    expect(result[0].emailExpéditeur).toBe('a@test.com');
+    expect(result[1].emailExpéditeur).toBe('z@test.com');
+  });
 });
 
 describe('produireTableauSynthese (intégration utils)', () => {
@@ -139,8 +254,20 @@ describe('produireTableauSynthese (intégration utils)', () => {
     const repo: TableauSyntheseRepository = {
       async listerSources() {
         return [
-          { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin', actif: true },
-          { emailExpéditeur: 'notification@emails.hellowork.com', plugin: 'HelloWork', actif: true },
+          {
+            emailExpéditeur: 'jobs@linkedin.com',
+            plugin: 'Linkedin',
+            activerCreation: true,
+            activerEnrichissement: true,
+            activerAnalyseIA: true,
+          },
+          {
+            emailExpéditeur: 'notification@emails.hellowork.com',
+            plugin: 'HelloWork',
+            activerCreation: true,
+            activerEnrichissement: true,
+            activerAnalyseIA: true,
+          },
         ];
       },
       async listerOffres() {
@@ -167,8 +294,20 @@ describe('produireTableauSynthese (intégration utils)', () => {
     const repo: TableauSyntheseRepository = {
       async listerSources() {
         return [
-          { emailExpéditeur: 'x@test.com', plugin: 'Autre' as never, actif: true },
-          { emailExpéditeur: 'a@test.com', plugin: 'HelloWork', actif: true },
+          {
+            emailExpéditeur: 'x@test.com',
+            plugin: 'Autre' as never,
+            activerCreation: true,
+            activerEnrichissement: true,
+            activerAnalyseIA: true,
+          },
+          {
+            emailExpéditeur: 'a@test.com',
+            plugin: 'HelloWork',
+            activerCreation: true,
+            activerEnrichissement: true,
+            activerAnalyseIA: true,
+          },
         ];
       },
       async listerOffres() {
@@ -260,8 +399,20 @@ describe('calculerTotauxTableauSynthese (US-1.13)', () => {
 
   it('avec lignes de construireTableauSynthese : totaux cohérents et totalGeneral = somme totalParColonne', () => {
     const sources = [
-      { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: true },
-      { emailExpéditeur: 'notification@emails.hellowork.com', plugin: 'HelloWork' as const, actif: true },
+      {
+        emailExpéditeur: 'jobs@linkedin.com',
+        plugin: 'Linkedin' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
+      {
+        emailExpéditeur: 'notification@emails.hellowork.com',
+        plugin: 'HelloWork' as const,
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+      },
     ];
     const offres = [
       { emailExpéditeur: 'jobs@linkedin.com', statut: 'A compléter' },
@@ -278,5 +429,72 @@ describe('calculerTotauxTableauSynthese (US-1.13)', () => {
     const sommeColonnes = Object.values(totaux.totalParColonne).reduce((a, b) => a + b, 0);
     expect(totaux.totalGeneral).toBe(sommeColonnes);
     expect(totaux.totalGeneral).toBe(5);
+  });
+});
+
+describe('mergeCacheDansLignes (US-3.3)', () => {
+  it('2 lignes (emails distincts), cache avec une entrée pour le premier : première ligne aImporter 3, seconde 0', () => {
+    const lignes: LigneTableauSynthese[] = [
+      {
+        emailExpéditeur: 'a@x.com',
+        pluginEtape1: 'HelloWork',
+        pluginEtape2: 'HelloWork',
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+        statuts: { 'À analyser': 1 },
+        aImporter: 0,
+      },
+      {
+        emailExpéditeur: 'b@y.com',
+        pluginEtape1: 'Linkedin',
+        pluginEtape2: 'Linkedin',
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+        statuts: { 'À traiter': 1 },
+        aImporter: 0,
+      },
+    ];
+    const cache = { 'a@x.com': 3 };
+    const result = mergeCacheDansLignes(lignes, cache);
+    expect(result).toHaveLength(2);
+    expect(result[0].aImporter).toBe(3);
+    expect(result[1].aImporter).toBe(0);
+  });
+
+  it('normalisation email : cache avec clé minuscule, ligne avec email mixte → aImporter trouvé', () => {
+    const lignes: LigneTableauSynthese[] = [
+      {
+        emailExpéditeur: 'A@X.COM',
+        pluginEtape1: 'HelloWork',
+        pluginEtape2: 'HelloWork',
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+        statuts: {},
+        aImporter: 0,
+      },
+    ];
+    const result = mergeCacheDansLignes(lignes, { 'a@x.com': 4 });
+    expect(result[0].aImporter).toBe(4);
+  });
+
+  it('cache vide : toutes les lignes ont aImporter 0', () => {
+    const lignes: LigneTableauSynthese[] = [
+      {
+        emailExpéditeur: 'a@x.com',
+        pluginEtape1: 'HelloWork',
+        pluginEtape2: 'HelloWork',
+        activerCreation: true,
+        activerEnrichissement: true,
+        activerAnalyseIA: true,
+        statuts: {},
+        aImporter: 0,
+      },
+    ];
+    const result = mergeCacheDansLignes(lignes, {});
+    expect(result).toHaveLength(1);
+    expect(result[0].aImporter).toBe(0);
   });
 });

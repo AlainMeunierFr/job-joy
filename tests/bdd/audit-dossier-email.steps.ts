@@ -65,7 +65,13 @@ async function setMockEmails(emails: string[]): Promise<void> {
   if (!res.ok) throw new Error(`set-mock-emails failed: ${res.status}`);
 }
 
-async function setMockSources(sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>): Promise<void> {
+async function setMockSources(sources: Array<{
+  emailExpéditeur: string;
+  plugin: string;
+  activerCreation: boolean;
+  activerEnrichissement: boolean;
+  activerAnalyseIA: boolean;
+}>): Promise<void> {
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -116,11 +122,14 @@ Given('le dossier à analyser contient les emails suivants', async ({ page: _pag
 Given(
   'la source {string} est reconnue avec l\'plugin {string} et le statut actif {string}',
   async ({ page: _page }, email: string, plugin: string, actif: string) => {
+    const actifBool = normaliserActif(actif) === 'oui';
     await setMockSources([
       {
         emailExpéditeur: email.toLowerCase(),
         plugin: (plugin || '').toLowerCase() === 'linkedin' ? 'Linkedin' : 'Inconnu',
-        actif: normaliserActif(actif) === 'oui',
+        activerCreation: actifBool,
+        activerEnrichissement: actifBool,
+        activerAnalyseIA: actifBool,
       },
     ]);
   }
@@ -134,6 +143,10 @@ When('je clique sur le bouton {string}', async ({ page }, bouton: string) => {
   const libelle = (bouton || '').toLowerCase();
   if (libelle.includes('auditer')) {
     lastAuditStatus = await lancerAudit(page);
+    return;
+  }
+  if (libelle.includes('lancer les traitements')) {
+    await page.locator('[e2eid="e2eid-bouton-worker-enrichissement"]').click();
     return;
   }
   throw new Error(`Bouton non géré par ce step: ${bouton}`);
@@ -288,4 +301,29 @@ Then('le bouton {string} est affiché sous les sous-totaux', async ({ page }, li
   expect(bbSousTotaux).toBeTruthy();
   expect(bbBtn).toBeTruthy();
   expect((bbBtn?.y ?? 0)).toBeGreaterThan(bbSousTotaux?.y ?? 0);
+});
+
+// --- US-3.3 CA4 : container BAL supprimé ---
+Then('le container "Dossier de la boite aux lettres" n\'est pas présent', async ({ page }) => {
+  await expect(page.locator('.dossierBoiteContainer')).toHaveCount(0);
+});
+
+Then('le titre "Dossier de la boite aux lettres" n\'est pas affiché', async ({ page }) => {
+  await expect(page.locator('#titre-dossier-bal')).toHaveCount(0);
+});
+
+Then('le bouton "Auditer le dossier" n\'est pas affiché', async ({ page }) => {
+  await expect(page.locator('[e2eid="e2eid-bouton-auditer-dossier"]')).toHaveCount(0);
+});
+
+Then('le bouton "Lancer le traitement" n\'est pas affiché', async ({ page }) => {
+  await expect(page.locator('[e2eid="e2eid-bouton-lancer-traitement"]')).toHaveCount(0);
+});
+
+Then('le tableau de synthèse audit \\(emails par source) n\'est pas affiché', async ({ page }) => {
+  await expect(page.locator('.auditSynthese')).toHaveCount(0);
+});
+
+Then('les sous-totaux archivés et subsistance ne sont pas affichés', async ({ page }) => {
+  await expect(page.locator('#audit-sous-totaux')).toHaveCount(0);
 });

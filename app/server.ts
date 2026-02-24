@@ -6,7 +6,7 @@ import '../utils/load-env-local.js';
 import { randomBytes } from 'node:crypto';
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { existsSync, readdirSync, readFileSync, rmSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getPageParametres } from './page-html.js';
@@ -26,12 +26,13 @@ import {
   handleGetEnrichissementWorkerStatus,
   handlePostEnrichissementWorkerStart,
   handlePostEnrichissementWorkerStop,
-  restoreWorkerStateIfNeeded,
   handleGetTableauSyntheseOffres,
+  handlePostRefreshSyntheseOffres,
   handleGetConsommationApi,
   setBddMockEmailsGouvernance,
   setBddMockSources,
   setBddMockTableauSynthese,
+  handlePostSetMockCacheAudit,
   setBddMockOffreTest,
   setBddMockTestClaudecode,
   getOffreTestHasOffre,
@@ -69,11 +70,24 @@ import {
 } from '../utils/auth-microsoft.js';
 import { getUrlOuvertureBase } from '../utils/airtable-url.js';
 import { enregistrerAppel } from '../utils/log-appels-api.js';
+import { getDataDir } from '../utils/data-dir.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..');
-/** Chemin canonique absolu du dossier data (un seul fichier parametres.json pour toute l'app). */
-const DATA_DIR = resolve(join(PROJECT_ROOT, 'data'));
+/** Répertoire des ressources projet (guides HTML, exemples) à la racine du projet. */
+const RESOURCES_DIR = join(PROJECT_ROOT, 'ressources');
+/**
+ * DATA_DIR : en dev = projet/data (npm run dev), en version packagée Electron = userData (npm run start:electron).
+ * Pour tester en mode "packagé" sans installer : lancer le serveur avec JOB_JOY_USER_DATA défini.
+ */
+const DATA_DIR = (() => {
+  const dir =
+    process.env.JOB_JOY_USER_DATA !== undefined && process.env.JOB_JOY_USER_DATA !== ''
+      ? getDataDir({ isPackaged: true, userDataDir: process.env.JOB_JOY_USER_DATA })
+      : getDataDir({ cwd: PROJECT_ROOT });
+  mkdirSync(dir, { recursive: true });
+  return dir;
+})();
 const PORT = Number(process.env.PORT) || 3001;
 
 const MS_OAUTH_STATE = 'ms_oauth_state';
@@ -228,6 +242,7 @@ const server = createServer(async (req, res) => {
         promptIAPartieModifiable,
         promptIAPartieFixe: getPartieFixePromptIA(parametres?.parametrageIA ?? null),
         offreTestHasOffre,
+        resourcesDir: RESOURCES_DIR,
       })
     );
     return;
@@ -429,6 +444,17 @@ const server = createServer(async (req, res) => {
       await handleGetTableauSyntheseOffres(DATA_DIR, res);
     } catch (err) {
       console.error('GET /api/tableau-synthese-offres error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/tableau-synthese-offres/refresh') {
+    try {
+      await handlePostRefreshSyntheseOffres(DATA_DIR, res);
+    } catch (err) {
+      console.error('POST /api/tableau-synthese-offres/refresh error', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, message: String(err) }));
     }
@@ -777,12 +803,23 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && pathname === '/api/test/set-mock-sources') {
       try {
         const body = (await parseBody(req)) as {
-          sources?: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>;
+          sources?: Array<{
+            emailExpéditeur: string;
+            plugin: string;
+            type?: 'email' | 'liste html' | 'liste csv';
+            activerCreation: boolean;
+            activerEnrichissement: boolean;
+            activerAnalyseIA: boolean;
+          }>;
         };
         const raw = Array.isArray(body?.sources) ? body.sources : [];
-        const sources: Array<{ emailExpéditeur: string; plugin: PluginSource; actif: boolean }> = raw.map((s) => ({
-          ...s,
+        const sources = raw.map((s) => ({
+          emailExpéditeur: s.emailExpéditeur,
           plugin: s.plugin as PluginSource,
+          type: s.type,
+          activerCreation: s.activerCreation,
+          activerEnrichissement: s.activerEnrichissement,
+          activerAnalyseIA: s.activerAnalyseIA,
         }));
         setBddMockSources(sources);
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -806,6 +843,16 @@ const server = createServer(async (req, res) => {
       }
       return;
     }
+    if (req.method === 'POST' && pathname === '/api/test/set-mock-cache-audit') {
+      try {
+        const body = (await parseBody(req)) as Record<string, unknown>;
+        handlePostSetMockCacheAudit(body, res);
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
     if (req.method === 'POST' && pathname === '/api/test/set-mock-offre-test') {
       try {
         const body = (await parseBody(req)) as { hasOffre?: boolean; texte?: string };
@@ -822,9 +869,21 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'POST' && pathname === '/api/test/set-mock-test-claudecode') {
       try {
-        const body = (await parseBody(req)) as { ok?: boolean; texte?: string; code?: string; message?: string };
+        const body = (await parseBody(req)) as {
+          ok?: boolean;
+          texte?: string;
+          code?: string;
+          message?: string;
+          jsonValidation?: { valid: true; json: Record<string, unknown>; conform?: boolean; validationErrors?: string[] };
+        };
         if (body?.ok === true && typeof body.texte === 'string') {
-          setBddMockTestClaudecode({ ok: true, texte: body.texte });
+          setBddMockTestClaudecode({
+            ok: true,
+            texte: body.texte,
+            ...(body.jsonValidation && body.jsonValidation.valid === true && body.jsonValidation.json
+              ? { jsonValidation: body.jsonValidation }
+              : {}),
+          });
         } else if (body?.ok === false && typeof body.code === 'string') {
           setBddMockTestClaudecode({
             ok: false,
@@ -864,17 +923,18 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'POST' && pathname === '/api/test/log-appel') {
       try {
-        const body = (await parseBody(req)) as { api?: string; succes?: boolean; codeErreur?: string; dateISO?: string };
+        const body = (await parseBody(req)) as { api?: string; succes?: boolean; codeErreur?: string; dateISO?: string; intention?: string };
         const api = typeof body.api === 'string' ? body.api.trim() : 'Claude';
         const succes = body.succes === true || body.succes === false ? body.succes : true;
         const codeErreur = typeof body.codeErreur === 'string' ? body.codeErreur : undefined;
+        const intention = typeof body.intention === 'string' ? body.intention.trim() || undefined : undefined;
         const dateISO = typeof body.dateISO === 'string' ? body.dateISO.trim() : undefined;
         if (!dateISO || dateISO.length !== 10) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, message: 'dateISO requis (AAAA-MM-JJ)' }));
           return;
         }
-        enregistrerAppel(DATA_DIR, { api, succes, codeErreur }, dateISO);
+        enregistrerAppel(DATA_DIR, { api, succes, codeErreur, intention }, dateISO);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       } catch (err) {
@@ -983,8 +1043,6 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 server.listen(
   { port: PORT, host: '127.0.0.1', reuseAddress: true },
   () => {
-    // Restaurer l'état du worker tout de suite, avant toute requête : évite "bouton blanc puis bleu" au premier poll.
-    restoreWorkerStateIfNeeded(DATA_DIR);
     console.log(`Server listening on http://127.0.0.1:${PORT}`);
     console.log(`Paramètres (parametres.json): ${join(DATA_DIR, 'parametres.json')}`);
     // Énumérations Airtable en arrière-plan (ne bloque pas).

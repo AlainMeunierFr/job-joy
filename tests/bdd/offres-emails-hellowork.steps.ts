@@ -106,7 +106,13 @@ function setMockEmailHelloWork(emails: Array<{ id: string; from: string; html: s
     body: JSON.stringify({ emailsGouvernance: emails }),
   });
 }
-async function setMockSources(sources: Array<{ emailExpéditeur: string; plugin: string; actif: boolean }>) {
+async function setMockSources(sources: Array<{
+  emailExpéditeur: string;
+  plugin: string;
+  activerCreation: boolean;
+  activerEnrichissement: boolean;
+  activerAnalyseIA: boolean;
+}>) {
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -127,6 +133,9 @@ Given('qu\'aucun expéditeur d\'email {string} n\'existe dans {string}', async (
   ]);
 });
 
+const defaultActivation = { activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true };
+const inactiveActivation = { activerCreation: false, activerEnrichissement: false, activerAnalyseIA: false };
+
 Given('la source d\'expéditeur {string} existe avec l\'plugin {string} et le champ {string} à true', async (
   { page: _page },
   expediteur: string,
@@ -134,7 +143,7 @@ Given('la source d\'expéditeur {string} existe avec l\'plugin {string} et le ch
   _champ: string
 ) => {
   lastExpectedExpediteur = expediteur.toLowerCase();
-  await setMockSources([{ emailExpéditeur: expediteur, plugin: plugin, actif: true }]);
+  await setMockSources([{ emailExpéditeur: expediteur, plugin: plugin, ...defaultActivation }]);
   await setMockEmailHelloWork([
     { id: 'hw1', from: 'Notification@Emails.HelloWork.com', html: '<a href="https://emails.hellowork.com/clic/a/b/c/d/e/dGVzdA==/f">Voir</a>' },
   ]);
@@ -147,7 +156,8 @@ Given('que la source d\'expéditeur {string} existe avec l\'plugin {string} et l
   valeur: string
 ) => {
   lastExpectedExpediteur = expediteur.toLowerCase();
-  await setMockSources([{ emailExpéditeur: expediteur, plugin: plugin, actif: valeur === 'true' }]);
+  const activation = valeur === 'true' ? defaultActivation : inactiveActivation;
+  await setMockSources([{ emailExpéditeur: expediteur, plugin: plugin, ...activation }]);
   await setMockEmailHelloWork([
     { id: 'hw1', from: 'Notification@Emails.HelloWork.com', html: '<a href="https://emails.hellowork.com/clic/a/b/c/d/e/dGVzdA==/f">Voir</a>' },
   ]);
