@@ -1,13 +1,14 @@
 /**
  * Layout commun : header sticky avec menu horizontal (US-1.2).
- * US-1.6 : configComplète === false masque le lien "Tableau de bord".
+ * Le lien "Tableau de bord" est toujours affiché ; si la config est incomplète,
+ * le serveur redirige /tableau-de-bord vers /parametres (et affiche ce qui manque).
  * US-1.7 : tableau de synthèse des offres (colonnes fixes + statuts Airtable).
  */
 import { STATUTS_OFFRES_AVEC_AUTRE } from '../utils/statuts-offres-airtable.js';
 export type PageActive = 'tableau-de-bord' | 'parametres' | 'a-propos';
 
 export type HeaderOptions = {
-  /** Si false, le lien "Tableau de bord" est masqué (config incomplète). */
+  /** Conservé pour compatibilité (option ignorée : le lien Tableau de bord est toujours affiché). */
   configComplète?: boolean;
 };
 
@@ -15,10 +16,7 @@ export function getHeaderHtml(active: PageActive, options?: HeaderOptions): stri
   const tableauActive = active === 'tableau-de-bord';
   const parametresActive = active === 'parametres';
   const aProposActive = active === 'a-propos';
-  const afficherTableauDeBord = options?.configComplète !== false;
-  const lienTableauDeBord = afficherTableauDeBord
-    ? `<li><a href="/tableau-de-bord" class="appNavLink${tableauActive ? ' appNavLinkActive' : ''}">Tableau de bord</a></li>`
-    : '';
+  const lienTableauDeBord = `<li><a href="/tableau-de-bord" class="appNavLink${tableauActive ? ' appNavLinkActive' : ''}">Tableau de bord</a></li>`;
   return `
 <header class="appHeader" role="banner">
   <nav class="appNav" aria-label="Navigation principale">

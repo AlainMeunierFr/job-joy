@@ -95,17 +95,15 @@ export interface ConfigAuthMicrosoft {
 }
 
 /**
- * Lit la config MSAL depuis les variables d'environnement.
- * AZURE_CLIENT_ID (requis), AZURE_TENANT_ID (recommandé pour app mono-tenant, sinon AADSTS50194 avec /common).
+ * Lit la config MSAL. Tenant : variable d'environnement AZURE_TENANT_ID si définie, sinon "common"
+ * (comptes personnels Outlook/Hotmail). On ne réutilise jamais le tenant sauvegardé dans parametres.json,
+ * pour éviter d'utiliser un tenant d'entreprise en mode Electron où .env.local projet n'est pas chargé.
+ * Client ID : env ou dernière connexion enregistrée (parametres.json).
  */
 export function getConfigAuthMicrosoft(): ConfigAuthMicrosoft {
   const persisted = loadTokens();
   const clientId = (process.env.AZURE_CLIENT_ID ?? '').trim() || (persisted?.clientId ?? '').trim();
-  const rawTenant = process.env.AZURE_TENANT_ID ?? persisted?.tenantId;
-  const tenantId =
-    rawTenant !== undefined && rawTenant !== null
-      ? rawTenant.trim()
-      : 'common';
+  const tenantId = (process.env.AZURE_TENANT_ID ?? '').trim() || 'common';
   const clientSecret = (process.env.AZURE_CLIENT_SECRET ?? '').trim() || undefined;
   const scopes = [...SCOPES_MAIL];
   return { clientId, tenantId, clientSecret, scopes };

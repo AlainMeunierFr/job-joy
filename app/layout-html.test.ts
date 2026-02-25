@@ -5,18 +5,11 @@
 import { getHeaderHtml, getPageTableauDeBord } from './layout-html.js';
 
 describe('getHeaderHtml', () => {
-  it('affiche le lien Tableau de bord quand configComplète est true ou non fourni', () => {
+  it('affiche toujours le lien Tableau de bord (configComplète option ignorée pour ne pas bloquer en paramètres)', () => {
     expect(getHeaderHtml('parametres')).toContain('/tableau-de-bord');
     expect(getHeaderHtml('parametres', { configComplète: true })).toContain('/tableau-de-bord');
+    expect(getHeaderHtml('parametres', { configComplète: false })).toContain('/tableau-de-bord');
     expect(getHeaderHtml('tableau-de-bord')).toContain('/tableau-de-bord');
-  });
-
-  it('masque le lien Tableau de bord quand configComplète est false', () => {
-    const html = getHeaderHtml('parametres', { configComplète: false });
-    expect(html).not.toContain('/tableau-de-bord');
-    expect(html).not.toContain('Tableau de bord');
-    expect(html).toContain('/parametres');
-    expect(html).toContain('Paramètres');
   });
 
   it('affiche le lien À propos et le marque actif sur la page À propos (US-3.16)', () => {

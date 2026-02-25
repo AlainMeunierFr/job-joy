@@ -6,13 +6,13 @@ Fonctionnalité: Redirection vers les paramètres tant que la configuration n'es
 
   Paramétrages complets = connexion (compte email) OK + Airtable OK.
 
-  # --- CA1 : Menu Tableau de bord masqué et redirection vers Paramètres ---
-  Plan du Scénario: À l'arrivée sur l'application, si la configuration est incomplète, redirection vers Paramètres et menu Tableau de bord masqué
+  # --- CA1 : Redirection vers Paramètres ; menu Tableau de bord toujours visible (clic redirige si config incomplète) ---
+  Plan du Scénario: À l'arrivée sur l'application, si la configuration est incomplète, redirection vers Paramètres ; le menu Tableau de bord reste visible
     Étant donné que "<état connexion email>"
     Et que "<état Airtable>"
     Quand j'arrive sur l'application
     Alors je suis redirigé vers la page Paramètres
-    Et le menu "Tableau de bord" est masqué
+    Et le menu "Tableau de bord" est visible
 
     Exemples:
       | état connexion email | état Airtable |
@@ -20,10 +20,11 @@ Fonctionnalité: Redirection vers les paramètres tant que la configuration n'es
       | la connexion email est OK | Airtable n'est pas OK |
       | la connexion email n'est pas OK | Airtable n'est pas OK |
 
-  Scénario: À l'arrivée sur l'application avec configuration incomplète, l'utilisateur ne peut pas accéder au tableau de bord via le menu
+  Scénario: Avec configuration incomplète, un clic sur Tableau de bord redirige vers Paramètres
     Étant donné que la connexion email n'est pas OK
     Et que je suis redirigé vers la page Paramètres à l'arrivée sur l'application
-    Alors le menu "Tableau de bord" n'est pas visible ou pas cliquable
+    Quand je clique sur le menu "Tableau de bord"
+    Alors je suis redirigé vers la page Paramètres
 
   # --- CA2 : Enregistrer à tout moment, sauvegarde partielle, message d'erreur si incomplet, données conservées ---
   Scénario: Enregistrer sur la page Paramètres enregistre les données saisies même si la configuration est incomplète

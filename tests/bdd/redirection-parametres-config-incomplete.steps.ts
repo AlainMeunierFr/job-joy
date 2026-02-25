@@ -180,6 +180,10 @@ Then('je suis redirigé vers le tableau de bord', async ({ page }) => {
 });
 
 // --- Menu Tableau de bord ---
+When('je clique sur le menu "Tableau de bord"', async ({ page }) => {
+  await page.getByRole('link', { name: 'Tableau de bord' }).click();
+  await page.waitForURL(/\/(parametres|tableau-de-bord)(\?|$)/, { timeout: 5000 });
+});
 Then('le menu "Tableau de bord" est masqué', async ({ page }) => {
   const lien = page.getByRole('link', { name: 'Tableau de bord' });
   await expect(lien).toBeHidden();

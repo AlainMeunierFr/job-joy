@@ -259,9 +259,15 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pathname === '/tableau-de-bord') {
-    const { complet } = evaluerParametragesComplets(DATA_DIR);
+    const { complet, manque } = evaluerParametragesComplets(DATA_DIR);
     if (!complet) {
-      res.writeHead(302, { Location: '/parametres', 'Cache-Control': 'no-store' });
+      const flashConfigId = randomId();
+      flashConfigStore.set(flashConfigId, manque);
+      res.writeHead(302, {
+        Location: '/parametres',
+        'Cache-Control': 'no-store',
+        'Set-Cookie': `${FLASH_CONFIG_COOKIE}=${flashConfigId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${FLASH_MAX_AGE}`,
+      });
       res.end();
       return;
     }
@@ -327,8 +333,14 @@ const server = createServer(async (req, res) => {
       const airtableUpdates: { base?: string; apiKey?: string } = { base: airtableBase || undefined };
       if (airtableApiKey) airtableUpdates.apiKey = airtableApiKey;
       ecrireAirTable(DATA_DIR, airtableUpdates);
-    } catch {
-      // redirection même en cas d'erreur pour réafficher la page
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(400, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(JSON.stringify({ ok: false, message }));
+      return;
     }
     const { complet, manque } = evaluerParametragesComplets(DATA_DIR);
     const headers: Record<string, string> = { 'Cache-Control': 'no-store' };
@@ -388,10 +400,6 @@ const server = createServer(async (req, res) => {
       setFlashAndRedirect(res, [], { type: 'microsoft', status: 'error', message: 'AZURE_CLIENT_ID' });
       return;
     }
-    if (!config.tenantId || config.tenantId === 'common') {
-      setFlashAndRedirect(res, [], { type: 'microsoft', status: 'error', message: 'AZURE_TENANT_ID' });
-      return;
-    }
     const baseUrl = getBaseUrl(req);
     const redirectUri = `${baseUrl}/api/auth/microsoft/callback`;
     const state = randomId();
@@ -400,7 +408,8 @@ const server = createServer(async (req, res) => {
     try {
       url = getAuthorizeUrl(redirectUri, state, codeChallenge);
     } catch (err) {
-      setFlashAndRedirect(res, [], { type: 'microsoft', status: 'error', message: 'AZURE_TENANT_ID' });
+      const msg = err instanceof Error ? err.message : String(err);
+      setFlashAndRedirect(res, [], { type: 'microsoft', status: 'error', message: msg.slice(0, 120) });
       return;
     }
     res.writeHead(302, {

@@ -93,7 +93,13 @@ function getFlashMessageText(flash: FlashMicrosoft): string {
   }
   const msg = flash.message ?? 'Erreur de connexion Microsoft.';
   if (msg === 'AZURE_TENANT_ID') {
-    return "Définissez AZURE_TENANT_ID dans le fichier .env à la racine du projet (ID de l'annuaire Entra : Vue d'ensemble de l'app > ID de l'annuaire). Puis redémarrez le serveur.";
+    return "Définissez AZURE_TENANT_ID dans le fichier .env (ou .env.local du dossier de données). Pour un compte Outlook/Hotmail perso, utilisez AZURE_TENANT_ID=common. Puis redémarrez l'application.";
+  }
+  if (msg === 'AZURE_CLIENT_ID') {
+    return "Définissez AZURE_CLIENT_ID dans le fichier .env (ou .env.local du dossier de données). Puis redémarrez l'application.";
+  }
+  if (/AADSTS50020|does not exist in tenant|cannot access the application in that tenant/i.test(msg)) {
+    return "Compte personnel (outlook.fr, hotmail.com) utilisé avec une application enregistrée pour un annuaire d'entreprise (le tenant affiché dans l'erreur). Pour Outlook perso : dans .env.local du dossier de données, définissez AZURE_TENANT_ID=common et utilisez une app Azure qui autorise les « comptes personnels Microsoft ». Supprimez aussi les données Microsoft enregistrées (déco puis reconnectez après avoir corrigé .env.local).";
   }
   return 'Microsoft : ' + msg;
 }
@@ -142,7 +148,7 @@ export async function getParametresContent(
           : false);
   const compteEmailConfigured = !!(dossierAAnalyserConfigure && modeConnexionOk);
   const airtableOuvert = !tablesAirtableCreees;
-  const connexionOuvert = !compteEmailConfigured;
+  const connexionOuvert = !compteEmailConfigured || (options?.flashConfigManque && options.flashConfigManque.length > 0);
   const flash = options?.flash;
   const baseUrl = (options?.baseUrl ?? '').replace(/\/$/, '');
   const hrefMicrosoft = baseUrl ? `${baseUrl}/api/auth/microsoft` : '/api/auth/microsoft';
@@ -160,7 +166,7 @@ export async function getParametresContent(
   const provider = (compte?.provider ?? 'imap') as string;
   const adresseReelle = compte?.adresseEmail ?? '';
   const adresseDisplay = adresseReelle ? maskEmail(adresseReelle) : '';
-  const dossier = compte?.cheminDossier ?? '';
+  const dossier = (compte?.cheminDossier ?? '').trim() || 'INBOX';
   const dossierArchive = compte?.cheminDossierArchive ?? '';
   const imapHost = compte?.imapHost ?? '';
   const imapPort = compte?.imapPort ?? 993;
@@ -365,14 +371,17 @@ export async function getParametresContent(
       <hr class="formDivider" />
       <form id="form-compte" class="formCompte" method="post" action="/parametres">
         <fieldset class="fieldGroup fieldGroup-dossier" aria-label="Dossiers de travail de la boîte mail">
-          <legend>Dossiers de travail de la boîte mail (ex. inbox, INBOX, Offres)</legend>
+          <legend>Dossiers de travail de la boîte mail</legend>
+          <p class="fieldHint fieldHint-dossier" id="hint-chemin-dossier">
+            <strong>Syntaxe du chemin</strong> : un seul nom pour le dossier principal, ou plusieurs niveaux séparés par <code>/</code>. La valeur par défaut <code>INBOX</code> correspond à la boîte de réception. <strong>Gmail</strong> : il n’y a pas de « dossiers » comme en IMAP classique — utilisez <code>INBOX</code> pour lire la boîte de réception (aucun dossier à créer). Les libellés Gmail sont exposés comme dossiers IMAP si vous en utilisez. Pas d’espace avant/après le chemin.
+          </p>
           <div class="fieldGroup">
             <label for="chemin-dossier">Dossier à analyser</label>
-            <input type="text" id="chemin-dossier" name="cheminDossier" value="${escapeHtml(dossier)}" placeholder="inbox" e2eid="e2eid-champ-chemin-dossier" />
+            <input type="text" id="chemin-dossier" name="cheminDossier" value="${escapeHtml(dossier)}" placeholder="INBOX" e2eid="e2eid-champ-chemin-dossier" aria-describedby="hint-chemin-dossier" />
           </div>
           <div class="fieldGroup">
             <label for="chemin-dossier-archive">Dossier pour archiver</label>
-            <input type="text" id="chemin-dossier-archive" name="cheminDossierArchive" value="${escapeHtml(dossierArchive)}" placeholder="Traité" e2eid="e2eid-champ-chemin-dossier-archive" />
+            <input type="text" id="chemin-dossier-archive" name="cheminDossierArchive" value="${escapeHtml(dossierArchive)}" placeholder="INBOX/Traité" e2eid="e2eid-champ-chemin-dossier-archive" />
           </div>
           <div class="actions actions-dossier">
             <button type="button" id="bouton-test-connexion" e2eid="e2eid-bouton-test-connexion">Tester connexion</button>
@@ -491,10 +500,31 @@ export async function getParametresContent(
         if (apiKeyEl && apiKeyEl.value) parts.push('airtableApiKey=' + encodeURIComponent(apiKeyEl.value));
         var body = parts.join('&');
         var btnSave = document.getElementById('bouton-enregistrer');
+        var feedbackSave = document.getElementById('feedback-enregistrement');
         if (btnSave) btnSave.disabled = true;
+        if (feedbackSave) { feedbackSave.textContent = ''; feedbackSave.removeAttribute('data-type'); }
         fetch(origin + '/parametres', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
-          .then(function() { window.location.href = origin + '/tableau-de-bord'; })
-          .catch(function() { window.location.href = origin + '/tableau-de-bord'; })
+          .then(function(r) {
+            if (!r.ok) {
+              return r.json().then(function(b) {
+                var msg = (b && b.message) ? b.message : 'Erreur lors de l\'enregistrement.';
+                if (feedbackSave) {
+                  feedbackSave.textContent = msg;
+                  feedbackSave.setAttribute('data-type', 'erreur');
+                  feedbackSave.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+                throw new Error(msg);
+              });
+            }
+            window.location.href = origin + '/tableau-de-bord';
+          })
+          .catch(function(err) {
+            if (feedbackSave && !feedbackSave.textContent) {
+              feedbackSave.textContent = (err && err.message) ? err.message : 'Requête échouée. Les données n\'ont pas été enregistrées.';
+              feedbackSave.setAttribute('data-type', 'erreur');
+              feedbackSave.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          })
           .finally(function() { if (btnSave) btnSave.disabled = false; });
         return;
       }
@@ -542,6 +572,9 @@ export async function getParametresContent(
             var msg = (data && data.ok)
               ? ('Dossier « ' + escapeHtml(payload.cheminDossier || '') + ' » trouvé. ' + nb + ' email(s) à l\\'intérieur.')
               : ((data && data.message) || 'Erreur inconnue');
+            if (type === 'erreur' && (msg === 'Command failed' || /^Command failed/i.test(msg))) {
+              msg = 'Connexion au serveur impossible. Vérifiez l\'hôte IMAP, le port, le mot de passe (ou mot de passe d\'application) et le chemin du dossier.';
+            }
             zone.textContent = type + ': ' + msg;
             zone.setAttribute('data-type', type);
             if (tab) tab.hidden = false;
@@ -549,7 +582,11 @@ export async function getParametresContent(
             if (sectionTest) sectionTest.scrollIntoView({ behavior: 'smooth', block: 'start' });
           })
           .catch(function(err) {
-            zone.textContent = 'erreur: ' + (err && err.message ? err.message : 'requête échouée');
+            var msg = (err && err.message) ? err.message : 'requête échouée';
+            if (msg === 'Command failed' || /^Command failed/i.test(msg)) {
+              msg = 'Connexion au serveur impossible. Vérifiez l\'hôte IMAP, le port, le mot de passe (ou mot de passe d\'application) et le chemin du dossier.';
+            }
+            zone.textContent = 'erreur: ' + msg;
             zone.setAttribute('data-type', 'erreur');
             if (tab) tab.hidden = false;
             if (tb) tb.innerHTML = '';
@@ -857,14 +894,24 @@ export function getPageAPropos(): string {
 <div class="pageAPropos">
   <h1>À propos</h1>
 
+  <nav class="pageAProposSommaire" aria-label="Sommaire de la page">
+    <p class="pageAProposSommaireIntro">Contenu de la page&nbsp;:</p>
+    <ul>
+      <li><a href="#a-propos-changelog">Changelog / Release notes</a></li>
+      <li><a href="#a-propos-support">Support technique</a></li>
+      <li><a href="#a-propos-gnu">Licence et conformité (GNU)</a></li>
+      <li><a href="#a-propos-mentions">Mentions légales</a></li>
+    </ul>
+  </nav>
+
   <section class="pageAProposSection" aria-labelledby="a-propos-changelog">
     <h2 id="a-propos-changelog">Changelog / Release notes</h2>
-    <iframe class="airtable-embed" src="https://airtable.com/embed/appjJzOR9PJ50xcl7/shrAMjz8JVh14srWm?viewControls=on" frameborder="0" onmousewheel="" width="100%" height="533" style="background: transparent; border: 1px solid #ccc;" title="Release notes Airtable"></iframe>
+    <iframe class="airtable-embed" src="https://airtable.com/embed/appnnCmflxgrqf3H3/shr3ahE86sW7F1Qj9?viewControls=on" frameborder="0" onmousewheel="" width="100%" height="533" style="background: transparent; border: 1px solid #ccc;" title="Release notes Airtable"></iframe>
   </section>
 
   <section class="pageAProposSection" aria-labelledby="a-propos-support">
     <h2 id="a-propos-support">Support technique</h2>
-    <iframe class="airtable-embed" src="https://airtable.com/embed/appjJzOR9PJ50xcl7/pagNfcygkjTUOKEif/form" frameborder="0" onmousewheel="" width="100%" height="533" style="background: transparent; border: 1px solid #ccc;" title="Formulaire de création de ticket support"></iframe>
+    <iframe class="airtable-embed" src="https://airtable.com/embed/appnnCmflxgrqf3H3/pagCSK6ZPjlXLz8fS/form" frameborder="0" onmousewheel="" width="100%" height="800" style="background: transparent; border: 1px solid #ccc;" title="Formulaire de création de ticket support"></iframe>
   </section>
 
   <section class="pageAProposSection pageAProposSectionLegal" aria-labelledby="a-propos-gnu">

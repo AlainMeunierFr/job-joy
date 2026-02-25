@@ -7,7 +7,7 @@
  * US-3.12 Single instance : une seule instance, focus au second lancement.
  * Vérification : scénarios BDD tests/bdd/single-instance.feature (E2E).
  */
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
 const http = require('http');
 const { spawn } = require('child_process');
@@ -16,6 +16,19 @@ const PORT = Number(process.env.ELECTRON_APP_PORT) || 3002;
 let serverProcess = null;
 /** Référence à la fenêtre principale (US-3.12) pour focus/restore au second lancement. */
 let mainWindow = null;
+
+/** Ouvre les URLs externes dans le navigateur système ; retourne true si l'URL est externe. */
+function isExternalAndOpen(url) {
+  try {
+    const u = new URL(url);
+    const isLocal = u.hostname === '127.0.0.1' && Number(u.port) === PORT;
+    if (!isLocal) {
+      shell.openExternal(url);
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
 
 function getServerPath() {
   return path.join(app.getAppPath(), 'dist', 'app', 'server.js');
@@ -47,6 +60,16 @@ function createWindow() {
     webPreferences: { nodeIntegration: false, contextIsolation: true },
   });
   mainWindow = win;
+  const wc = win.webContents;
+  // Liens externes (target=_blank ou window.open) → navigateur système, pas une nouvelle fenêtre Electron
+  wc.setWindowOpenHandler(({ url }) => {
+    if (isExternalAndOpen(url)) return { action: 'deny' };
+    return { action: 'allow' };
+  });
+  // Navigation vers une URL externe dans la même fenêtre → ouvrir dans le navigateur et rester dans l'app
+  wc.on('will-navigate', (event, url) => {
+    if (isExternalAndOpen(url)) event.preventDefault();
+  });
   win.loadURL(`http://127.0.0.1:${PORT}`);
   win.on('closed', () => {
     mainWindow = null;

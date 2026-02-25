@@ -16,14 +16,14 @@ describe('getPageAPropos (US-3.16)', () => {
     const html = getPageAPropos();
     expect(html).toContain('id="a-propos-changelog"');
     expect(html).toContain('Changelog / Release notes');
-    expect(html).toContain('airtable.com/embed/appjJzOR9PJ50xcl7/shrAMjz8JVh14srWm');
+    expect(html).toContain('airtable.com/embed/appnnCmflxgrqf3H3/shr3ahE86sW7F1Qj9');
   });
 
   it('contient la section Support technique avec iframe formulaire', () => {
     const html = getPageAPropos();
     expect(html).toContain('id="a-propos-support"');
     expect(html).toContain('Support technique');
-    expect(html).toContain('airtable.com/embed/appjJzOR9PJ50xcl7/pagNfcygkjTUOKEif/form');
+    expect(html).toContain('airtable.com/embed/appnnCmflxgrqf3H3/pagCSK6ZPjlXLz8fS/form');
   });
 
   it('contient la section GNU avec licence, disclaimer et code source', () => {
