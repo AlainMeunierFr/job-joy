@@ -15,9 +15,8 @@ function Afficher-Menu {
     Write-Host "  2. Forcer kill des process sur 3001 puis relancer le serveur (1)"
     Write-Host "  3. Lancer les tests d'integration Airtable (a la main, pas pendant le build)"
     Write-Host "  4. Tests complets (TU + BDD, sans skip)"
-    Write-Host "  5. Sauvegarder (4 avec blocage si echec puis github)"
-    Write-Host "  6. Publier version pre-prod (build Electron distant + release, pour tester la mise a jour)"
-    Write-Host "  7. Rendre public (6) (CI seulement : bump + tag + push)"
+    Write-Host "  5. Publish pre-prod (4 puis si pas d'echec build Electron distant + release)"
+    Write-Host "  6. Pre-prod (5) passe en prod (CI seulement : bump + tag + push)"
     Write-Host "  Q. Quitter"
     Write-Host ""
 }
@@ -112,71 +111,6 @@ function Charger-EnvSiPresent {
     }
 }
 
-function Invoke-Sauvegarder-GitHub {
-    Push-Location $PSScriptRoot
-    try {
-        if (-not (Test-Path ".git")) {
-            Write-Host "Ce dossier n'est pas un depot Git. Initialisez avec : git init" -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-        Write-Host "Sauvegarder (option 4 avec blocage si echec puis github)." -ForegroundColor Cyan
-        Write-Host "Lancement des tests complets (4)..." -ForegroundColor Gray
-        npm run test:all
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Sauvegarde bloquee : les tests ont echoue. Corrigez puis relancez 5." -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-        Write-Host "Tests OK. Commit de toutes les modifications puis push." -ForegroundColor Green
-        Write-Host ""
-
-        git add -A
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "git add -A en echec." -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-        Write-Host "Toutes les modifications ont ete ajoutees a l'index." -ForegroundColor Gray
-        git diff --cached --quiet 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Aucune modification a committer (working tree clean)." -ForegroundColor DarkYellow
-            $push = Read-Host "Pousser quand meme les commits existants ? (o/N)"
-            if ($push -match '^[oOyY]') {
-                git push
-                if ($LASTEXITCODE -eq 0) { Write-Host "Push OK." -ForegroundColor Green } else { Write-Host "Push en echec." -ForegroundColor Red }
-            }
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-        git status --short
-        Write-Host ""
-        $msg = Read-Host "Message de commit (obligatoire)"
-        if ([string]::IsNullOrWhiteSpace($msg)) {
-            Write-Host "Annule : message vide." -ForegroundColor Yellow
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-        git commit -m "$msg"
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Commit en echec (conflits ou rien a committer ?)." -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-        Write-Host "Commit OK. Push en cours..." -ForegroundColor Green
-        git push
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Sauvegarde sur GitHub terminee." -ForegroundColor Green
-        } else {
-            Write-Host "Push en echec. Verifiez la remote (origin) et vos acces (token, SSH)." -ForegroundColor Red
-        }
-        Write-Host ""
-        Read-Host "Appuyez sur Entree pour revenir au menu"
-    } finally {
-        Pop-Location
-    }
-}
-
 function Invoke-Publier-Version-Preprod {
     Push-Location $PSScriptRoot
     try {
@@ -185,7 +119,17 @@ function Invoke-Publier-Version-Preprod {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Publier version pre-prod (bump + commit + tag preprod-v* + push ; CI construit l'exe, release Pre-release)" -ForegroundColor Cyan
+        Write-Host "Publier version pre-prod (option 4 puis commit + tag preprod-v* + push)." -ForegroundColor Cyan
+        Write-Host "Lancement des tests complets (4)..." -ForegroundColor Gray
+        npm run test:all
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Pre-prod bloquee : les tests ont echoue. Corrigez puis relancez 5." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        Write-Host "Tests OK. Suite : version, commit, tag preprod-v* + push." -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Choix de version (bump ou actuelle) :" -ForegroundColor Gray
         Write-Host "  major = marketing | schema = Airtable | feature = evolution | hotfix = correction" -ForegroundColor Gray
         Write-Host ""
         Write-Host "  0. Version actuelle (sans bump)"
@@ -244,9 +188,7 @@ function Invoke-Publier-Version-Preprod {
         git add -A
         git commit -m "Pre-prod $tagName"
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Commit en echec (rien a committer ?)." -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
+            Write-Host "Rien a committer (working tree clean). Tag et push du commit actuel." -ForegroundColor DarkYellow
         }
         $tagLocal = git tag -l $tagName 2>$null
         if ($tagLocal) {
@@ -350,9 +292,7 @@ function Invoke-Publier-Version-CI {
         git add -A
         git commit -m "Release $tagName"
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Commit en echec (rien a committer ?)." -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
+            Write-Host "Rien a committer (working tree clean). Tag et push du commit actuel." -ForegroundColor DarkYellow
         }
         $tagLocal = git tag -l $tagName 2>$null
         if ($tagLocal) {
@@ -417,9 +357,8 @@ do {
         "2" { Forcer-Kill-Et-Relancer-Serveur; break }
         "3" { Lancer-Tests-Integration-Airtable }
         "4" { Lancer-Tests-Complets }
-        "5" { Invoke-Sauvegarder-GitHub }
-        "6" { Invoke-Publier-Version-Preprod }
-        "7" { Invoke-Publier-Version-CI }
+        "5" { Invoke-Publier-Version-Preprod }
+        "6" { Invoke-Publier-Version-CI }
         "q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         "Q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         default { Write-Host "Choix invalide." -ForegroundColor Red; Start-Sleep -Seconds 2 }
