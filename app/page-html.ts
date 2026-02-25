@@ -93,13 +93,13 @@ function getFlashMessageText(flash: FlashMicrosoft): string {
   }
   const msg = flash.message ?? 'Erreur de connexion Microsoft.';
   if (msg === 'AZURE_TENANT_ID') {
-    return "Définissez AZURE_TENANT_ID dans le fichier .env (ou .env.local du dossier de données). Pour un compte Outlook/Hotmail perso, utilisez AZURE_TENANT_ID=common. Puis redémarrez l'application.";
+    return "Connexion Microsoft non configurée (annuaire manquant). Contactez l'administrateur de l'application.";
   }
   if (msg === 'AZURE_CLIENT_ID') {
-    return "Définissez AZURE_CLIENT_ID dans le fichier .env (ou .env.local du dossier de données). Puis redémarrez l'application.";
+    return "Connexion Microsoft non configurée (identifiant d'application manquant). Contactez l'administrateur de l'application.";
   }
   if (/AADSTS50020|does not exist in tenant|cannot access the application in that tenant/i.test(msg)) {
-    return "Compte personnel (outlook.fr, hotmail.com) utilisé avec une application enregistrée pour un annuaire d'entreprise (le tenant affiché dans l'erreur). Pour Outlook perso : dans .env.local du dossier de données, définissez AZURE_TENANT_ID=common et utilisez une app Azure qui autorise les « comptes personnels Microsoft ». Supprimez aussi les données Microsoft enregistrées (déco puis reconnectez après avoir corrigé .env.local).";
+    return "Ce compte personnel (outlook.fr, hotmail.com) ne peut pas être utilisé avec l'application actuellement configurée. Utilisez un compte professionnel ou une autre méthode de connexion (ex. IMAP).";
   }
   return 'Microsoft : ' + msg;
 }

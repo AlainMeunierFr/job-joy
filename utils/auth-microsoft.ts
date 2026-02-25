@@ -2,7 +2,7 @@
  * Authentification Microsoft (MSAL) pour Microsoft Graph.
  * - Flux navigateur : authorization code + PKCE (bouton "Se connecter avec Microsoft").
  * - Flux CLI : device code (npm run cli:auth-microsoft).
- * - Stockage du refresh token et régénération automatique de l'access token.
+ * - Stockage du refresh token et rÃ©gÃ©nÃ©ration automatique de l'access token.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { join } from 'node:path';
@@ -25,16 +25,16 @@ const SCOPES_MAIL = [
 
 const BDD_IN_MEMORY = process.env.BDD_IN_MEMORY_STORE === '1';
 
-/** Données persistées pour le refresh (ne pas committer ce fichier). */
+/** DonnÃ©es persistÃ©es pour le refresh (ne pas committer ce fichier). */
 export interface MicrosoftTokensFile {
   refreshToken: string;
   clientId?: string;
   tenantId?: string;
 }
 
-/** Cache en mémoire pour éviter de refrapper le token à chaque requête. */
+/** Cache en mÃ©moire pour Ã©viter de refrapper le token Ã  chaque requÃªte. */
 let cachedAccessToken: { token: string; expiresAt: number } | null = null;
-const CACHE_MARGIN_MS = 5 * 60 * 1000; // considérer expiré 5 min avant la vraie date
+const CACHE_MARGIN_MS = 5 * 60 * 1000; // considÃ©rer expirÃ© 5 min avant la vraie date
 
 function getDataDir(): string {
   return join(process.cwd(), 'data');
@@ -56,7 +56,7 @@ export function loadTokens(): MicrosoftTokensFile | null {
 
 /**
  * Enregistre le refresh token dans data/parametres.json (connexionBoiteEmail.microsoft).
- * @param dataDir optionnel : répertoire data (ex. DATA_DIR du serveur) pour garantir le même fichier.
+ * @param dataDir optionnel : rÃ©pertoire data (ex. DATA_DIR du serveur) pour garantir le mÃªme fichier.
  */
 export function saveTokens(data: MicrosoftTokensFile, dataDir?: string): void {
   const dir = dataDir ?? getDataDir();
@@ -73,14 +73,14 @@ export function saveTokens(data: MicrosoftTokensFile, dataDir?: string): void {
   cachedAccessToken = null;
 }
 
-/** Invalide le cache d'access token (après mise à jour des paramètres côté serveur). */
+/** Invalide le cache d'access token (aprÃ¨s mise Ã  jour des paramÃ¨tres cÃ´tÃ© serveur). */
 export function clearMicrosoftTokenCache(): void {
   cachedAccessToken = null;
 }
 
 /**
- * True si l'app peut obtenir un token Microsoft (refresh token enregistré).
- * Utilisé pour afficher ou masquer l'option "Microsoft" dans les paramètres.
+ * True si l'app peut obtenir un token Microsoft (refresh token enregistrÃ©).
+ * UtilisÃ© pour afficher ou masquer l'option "Microsoft" dans les paramÃ¨tres.
  */
 export function microsoftTokenDisponible(): boolean {
   const tokens = loadTokens();
@@ -95,10 +95,10 @@ export interface ConfigAuthMicrosoft {
 }
 
 /**
- * Lit la config MSAL. Tenant : variable d'environnement AZURE_TENANT_ID si définie, sinon "common"
- * (comptes personnels Outlook/Hotmail). On ne réutilise jamais le tenant sauvegardé dans parametres.json,
- * pour éviter d'utiliser un tenant d'entreprise en mode Electron où .env.local projet n'est pas chargé.
- * Client ID : env ou dernière connexion enregistrée (parametres.json).
+ * Lit la config MSAL. Tenant : variable d'environnement AZURE_TENANT_ID si dÃ©finie, sinon "common"
+ * (comptes personnels Outlook/Hotmail). On ne rÃ©utilise jamais le tenant sauvegardÃ© dans parametres.json,
+ * pour Ã©viter d'utiliser un tenant d'entreprise en mode Electron oÃ¹ .env.local projet n'est pas chargÃ©.
+ * Client ID : env ou derniÃ¨re connexion enregistrÃ©e (parametres.json).
  */
 export function getConfigAuthMicrosoft(): ConfigAuthMicrosoft {
   const persisted = loadTokens();
@@ -110,11 +110,11 @@ export function getConfigAuthMicrosoft(): ConfigAuthMicrosoft {
 }
 
 /**
- * Crée une application cliente publique MSAL (pour device code / POC).
+ * CrÃ©e une application cliente publique MSAL (pour device code / POC).
  */
 export function createPublicClient(config: ConfigAuthMicrosoft): PublicClientApplication {
   if (!config.clientId) {
-    throw new Error('AZURE_CLIENT_ID est requis pour l’authentification Microsoft.');
+    throw new Error('AZURE_CLIENT_ID est requis pour lâ€™authentification Microsoft.');
   }
   const msalConfig: Configuration = {
     auth: {
@@ -144,13 +144,13 @@ export async function acquireTokenByDeviceCode(
   };
   const result = await pca.acquireTokenByDeviceCode(request);
   if (!result) {
-    throw new Error('Échec de l’acquisition du token (réponse nulle).');
+    throw new Error('Ã‰chec de lâ€™acquisition du token (rÃ©ponse nulle).');
   }
   return result;
 }
 
 /**
- * Génère une paire PKCE (code_verifier, code_challenge) pour le flux authorization code.
+ * GÃ©nÃ¨re une paire PKCE (code_verifier, code_challenge) pour le flux authorization code.
  */
 export function generatePkce(): { codeVerifier: string; codeChallenge: string } {
   const codeVerifier = randomBytes(32).toString('base64url');
@@ -160,7 +160,7 @@ export function generatePkce(): { codeVerifier: string; codeChallenge: string } 
 
 /**
  * Construit l'URL d'autorisation Microsoft (ouverture dans le navigateur).
- * L'utilisateur se connecte, consent, et est redirigé vers redirectUri avec ?code=...&state=...
+ * L'utilisateur se connecte, consent, et est redirigÃ© vers redirectUri avec ?code=...&state=...
  */
 export function getAuthorizeUrl(
   redirectUri: string,
@@ -171,14 +171,7 @@ export function getAuthorizeUrl(
   if (!config.clientId) {
     throw new Error('AZURE_CLIENT_ID est requis.');
   }
-  if (!config.tenantId || config.tenantId.length === 0) {
-    throw new Error(
-      'AZURE_TENANT_ID est requis pour la connexion Microsoft (app Entra mono-tenant). ' +
-        'Dans .env.local, définissez AZURE_TENANT_ID avec l’ID de l’annuaire (Entra > votre app > Vue d’ensemble > ID de l’annuaire). ' +
-        'Redémarrez le serveur après modification de .env.local.'
-    );
-  }
-  const tenantId = config.tenantId;
+  const tenantId = (config.tenantId && config.tenantId.length > 0) ? config.tenantId : 'common';
   const scope = config.scopes.join(' ');
   const params = new URLSearchParams({
     response_type: 'code',
@@ -220,7 +213,7 @@ export async function exchangeCodeForTokens(
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Échange code échoué (${res.status}) : ${text}`);
+    throw new Error(`Ã‰change code Ã©chouÃ© (${res.status}) : ${text}`);
   }
   const data = (await res.json()) as {
     access_token?: string;
@@ -228,7 +221,7 @@ export async function exchangeCodeForTokens(
     expires_in?: number;
   };
   if (!data.access_token) {
-    throw new Error('Réponse sans access_token.');
+    throw new Error('RÃ©ponse sans access_token.');
   }
   return {
     accessToken: data.access_token,
@@ -238,8 +231,8 @@ export async function exchangeCodeForTokens(
 }
 
 /**
- * Récupère l'adresse email de l'utilisateur connecté via Microsoft Graph (/me).
- * Utilise mail ou userPrincipalName. Nécessite le scope User.Read.
+ * RÃ©cupÃ¨re l'adresse email de l'utilisateur connectÃ© via Microsoft Graph (/me).
+ * Utilise mail ou userPrincipalName. NÃ©cessite le scope User.Read.
  */
 export async function fetchUserEmailFromGraph(accessToken: string): Promise<string | null> {
   const url = 'https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName';
@@ -253,7 +246,7 @@ export async function fetchUserEmailFromGraph(accessToken: string): Promise<stri
 }
 
 /**
- * Échange un refresh_token contre un nouvel access_token (endpoint OAuth2 Microsoft).
+ * Ã‰change un refresh_token contre un nouvel access_token (endpoint OAuth2 Microsoft).
  */
 async function refreshAccessToken(
   refreshToken: string,
@@ -277,7 +270,7 @@ async function refreshAccessToken(
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Refresh token échoué (${res.status}) : ${text}`);
+    throw new Error(`Refresh token Ã©chouÃ© (${res.status}) : ${text}`);
   }
   const data = (await res.json()) as {
     access_token?: string;
@@ -285,7 +278,7 @@ async function refreshAccessToken(
     refresh_token?: string;
   };
   if (!data.access_token) {
-    throw new Error('Réponse token sans access_token.');
+    throw new Error('RÃ©ponse token sans access_token.');
   }
   return {
     accessToken: data.access_token,
@@ -296,7 +289,7 @@ async function refreshAccessToken(
 
 /**
  * Retourne un access token valide : depuis le cache ou via refresh token.
- * À utiliser pour tous les appels Graph ; le token est régénéré automatiquement quand il expire.
+ * Ã€ utiliser pour tous les appels Graph ; le token est rÃ©gÃ©nÃ©rÃ© automatiquement quand il expire.
  */
 export async function getValidAccessToken(): Promise<string> {
   const now = Date.now();
@@ -331,12 +324,12 @@ export async function getValidAccessToken(): Promise<string> {
     } catch (err) {
       const msg = messageErreurReseau(err);
       throw new Error(
-        `Impossible de régénérer le token (refresh expiré ou invalide). Relancez : npm run cli:auth-microsoft. Détail : ${msg}`
+        `Impossible de rÃ©gÃ©nÃ©rer le token (refresh expirÃ© ou invalide). Relancez : npm run cli:auth-microsoft. DÃ©tail : ${msg}`
       );
     }
   }
 
   throw new Error(
-    'Aucun token Microsoft disponible. Lancez une fois : npm run cli:auth-microsoft (le refresh token sera enregistré pour les prochaines fois).'
+    'Aucun token Microsoft disponible. Lancez une fois : npm run cli:auth-microsoft (le refresh token sera enregistrÃ© pour les prochaines fois).'
   );
 }

@@ -246,10 +246,45 @@ function Invoke-Publier-Version {
         Write-Host "Push commit + tag..." -ForegroundColor Gray
         git push
         git push origin $tagName
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Version $tagName publiee." -ForegroundColor Green
-        } else {
+        if ($LASTEXITCODE -ne 0) {
             Write-Host "Push en echec. Verifiez la remote et vos acces." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+
+        Write-Host "Build Electron (installateur Windows)..." -ForegroundColor Gray
+        npm run build:electron 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Build Electron en echec." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+
+        $exeDir = Join-Path $PSScriptRoot "dist-electron"
+        $exe = Get-ChildItem -Path $exeDir -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $exe) {
+            Write-Host "Aucun .exe trouve dans dist-electron. Release GitHub non creee." -ForegroundColor Yellow
+            Write-Host "Version $tagName poussee (tag seul). Creer la release a la main sur GitHub si besoin." -ForegroundColor Gray
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+
+        $gh = Get-Command gh -ErrorAction SilentlyContinue
+        if (-not $gh) {
+            Write-Host "GitHub CLI (gh) non installe. Tag pousse ; pour creer la release avec l'exe :" -ForegroundColor Yellow
+            Write-Host "  gh release create $tagName $($exe.FullName) --title ""Release $tagName"" --notes ""Release $tagName""" -ForegroundColor Gray
+            Write-Host "Ou installez gh : winget install GitHub.cli" -ForegroundColor Gray
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+
+        Write-Host "Creation de la release GitHub $tagName avec $($exe.Name)..." -ForegroundColor Gray
+        & gh release create $tagName $exe.FullName --title "Release $tagName" --notes "Release $tagName"
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Version $tagName publiee (tag + release + exe)." -ForegroundColor Green
+            Write-Host "Lien a partager : https://github.com/AlainMeunierFr/job-joy/releases/latest" -ForegroundColor Cyan
+        } else {
+            Write-Host "gh release create en echec (droits ? release deja existante ?)." -ForegroundColor Red
         }
         Write-Host ""
         Read-Host "Appuyez sur Entree pour revenir au menu"
