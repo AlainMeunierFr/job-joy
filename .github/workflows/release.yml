@@ -30,8 +30,18 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Cache Electron
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.workspace }}/electron-cache
+          key: electron-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            electron-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm ci
+        env:
+          ELECTRON_CACHE: ${{ runner.workspace }}/electron-cache
 
       - name: Lire la version
         id: version
@@ -81,7 +91,8 @@ jobs:
         run: |
           $tag = "${{ steps.release.outputs.tag }}"
           $prerelease = "${{ steps.release.outputs.prerelease }}"
-          $args = @($tag, "./dist-electron/Job-Joy-Setup.exe", "--title", "Job-Joy $tag")
+          $title = if ($prerelease -eq "true") { $tag } else { "Job-Joy $tag" }
+          $args = @($tag, "./dist-electron/Job-Joy-Setup.exe", "--title", $title)
           if (Test-Path "./dist-electron/Job-Joy-Setup.exe.blockmap") { $args += "./dist-electron/Job-Joy-Setup.exe.blockmap" }
           if (Test-Path "./dist-electron/latest.yml") { $args += "./dist-electron/latest.yml" }
           if ($prerelease -eq "true") { $args += "--prerelease" }
