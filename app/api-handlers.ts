@@ -35,7 +35,13 @@ import type {
 } from '../types/compte.js';
 import { maskEmail } from '../utils/mask-email.js';
 import { chargerEnvLocal } from '../utils/load-env-local.js';
-import { lireParametres } from '../utils/parametres-io.js';
+import {
+  lireParametres,
+  lireEmailIdentificationDejaEnvoye,
+  marquerEmailIdentificationEnvoye,
+} from '../utils/parametres-io.js';
+import { envoyerEmailIdentification } from '../utils/envoi-email-identification.js';
+import { createEnvoyeurIdentificationAirtable } from '../utils/envoi-identification-airtable.js';
 import { createLecteurEmailsMock } from '../utils/lecteur-emails-mock.js';
 import type { SourceEmail, TypeSource } from '../utils/gouvernance-sources-emails.js';
 import {
@@ -98,8 +104,9 @@ const bddEmailsIdentificationEnvoyes: ParametresEmailIdentification[] = [];
 /** BDD : si true, le port spy simule un échec d'envoi. */
 let bddEnvoyeurIdentificationDoFail = false;
 
+/** En production sans config SMTP : n'envoie rien, retourne ok: false pour ne pas marquer le consentement comme envoyé. */
 const noopEnvoyeurIdentification: EnvoyeurEmailIdentification = {
-  envoyer: async () => ({ ok: true }),
+  envoyer: async () => ({ ok: false, message: "Envoi email non configuré (aucun SMTP configuré)." }),
 };
 
 const spyEnvoyeurIdentification: EnvoyeurEmailIdentification = {
@@ -112,9 +119,12 @@ const spyEnvoyeurIdentification: EnvoyeurEmailIdentification = {
   },
 };
 
-/** Port d'envoi email identification : spy en BDD, noop sinon. */
+/** Port d'envoi identification : BDD → spy ; si AIRTABLE_SUIVI_* configuré → inscription Airtable ; sinon noop. */
 export function getEnvoyeurIdentificationPort(): EnvoyeurEmailIdentification {
-  return process.env.BDD_IN_MEMORY_STORE === '1' ? spyEnvoyeurIdentification : noopEnvoyeurIdentification;
+  if (process.env.BDD_IN_MEMORY_STORE === '1') return spyEnvoyeurIdentification;
+  const airtable = createEnvoyeurIdentificationAirtable();
+  if (airtable) return airtable;
+  return noopEnvoyeurIdentification;
 }
 
 /** BDD : vide la liste des emails enregistrés (appelé au reset-compte). */
@@ -189,6 +199,26 @@ export function setBddMockSources(sources: Array<{
       activerAnalyseIA: s.activerAnalyseIA,
       sourceId: `rec_${randomUUID().slice(0, 14)}`,
     });
+  }
+}
+
+/** BDD (US-4.6) : définir les offres mock pour enrichissement. Chaque offre doit avoir un emailExpéditeur correspondant à une source déjà dans bddMockSourcesStore. */
+export function setBddMockOffres(
+  offres: Array<{ idOffre: string; url: string; dateAjout: string; statut: string; emailExpéditeur: string }>
+): void {
+  bddMockOffresStore.length = 0;
+  for (const o of offres) {
+    const email = o.emailExpéditeur.trim().toLowerCase();
+    const source = bddMockSourcesStore.find((s) => s.emailExpéditeur === email);
+    if (source) {
+      bddMockOffresStore.push({
+        idOffre: o.idOffre,
+        url: o.url,
+        dateAjout: o.dateAjout,
+        statut: o.statut,
+        sourceId: source.sourceId,
+      });
+    }
   }
 }
 
@@ -382,6 +412,15 @@ const analyseIAWorker: AnalyseIAWorkerState = {
   running: false,
   intervalMs: ANALYSE_IA_INTERVAL_MS,
 };
+
+/** État de la phase Création (relève emails → offres), lancée au démarrage des traitements. */
+type CreationWorkerState = {
+  running: boolean;
+  lastResult?: ResultatTraitement;
+  lastError?: string;
+  currentProgress?: { index: number; total: number };
+};
+const creationWorkerState: CreationWorkerState = { running: false };
 
 async function runOneEnrichissementBatch(dataDir: string): Promise<void> {
   if (!enrichissementWorker.running) return;
@@ -1054,10 +1093,17 @@ export function handleGetAuditStatus(taskId: string, res: ServerResponse): void 
 }
 
 export function handleGetEnrichissementWorkerStatus(dataDir: string, res: ServerResponse): void {
-  const running = enrichissementWorker.running || analyseIAWorker.running;
+  const running =
+    creationWorkerState.running || enrichissementWorker.running || analyseIAWorker.running;
   const payload = {
     ok: true,
     running,
+    creation: {
+      running: creationWorkerState.running,
+      lastResult: creationWorkerState.lastResult,
+      lastError: creationWorkerState.lastError,
+      currentProgress: creationWorkerState.currentProgress,
+    },
     enrichissement: {
       running: enrichissementWorker.running,
       intervalMs: enrichissementWorker.intervalMs,
@@ -1092,6 +1138,35 @@ export function handleGetEnrichissementWorkerStatus(dataDir: string, res: Server
 }
 
 export function handlePostEnrichissementWorkerStart(dataDir: string, res: ServerResponse): void {
+  if (!creationWorkerState.running) {
+    creationWorkerState.running = true;
+    creationWorkerState.lastError = undefined;
+    creationWorkerState.lastResult = undefined;
+    creationWorkerState.currentProgress = undefined;
+    void runCreation(dataDir, {
+      onProgress: (message) => {
+        if (!creationWorkerState.running) return;
+        const m = /(\d+)\/(\d+)/.exec(message);
+        if (m) {
+          creationWorkerState.currentProgress = { index: parseInt(m[1], 10) - 1, total: parseInt(m[2], 10) };
+        }
+      },
+    })
+      .then((result) => {
+        creationWorkerState.running = false;
+        creationWorkerState.lastResult = result;
+        creationWorkerState.lastError = result.ok ? undefined : result.message;
+        creationWorkerState.currentProgress = undefined;
+        if (result.ok) {
+          void autoStartEnrichissementWorkerIfNeeded(dataDir);
+        }
+      })
+      .catch((err) => {
+        creationWorkerState.running = false;
+        creationWorkerState.lastError = err instanceof Error ? err.message : String(err);
+        creationWorkerState.currentProgress = undefined;
+      });
+  }
   startEnrichissementWorker(dataDir);
   startAnalyseIAWorker(dataDir);
   sendJson(res, 200, { ok: true, running: true });
@@ -1111,13 +1186,37 @@ export type GetConnecteurEmailFn = (
   overrides?: OverridesConnecteur
 ) => ConnecteurEmail;
 
+/** Options pour envoi email consentement après test connexion réussi (US-3.15). */
+export interface OptionsTestConnexionConsentement {
+  dataDir: string;
+  portEnvoiConsentement: EnvoyeurEmailIdentification;
+}
+
+async function envoyerConsentementSiDemande(
+  body: Record<string, unknown>,
+  adresseEmail: string,
+  options: OptionsTestConnexionConsentement | undefined
+): Promise<void> {
+  if (!options || !adresseEmail.trim()) return;
+  const consentement =
+    body.consentementIdentification === true || body.consentementIdentification === 'true';
+  if (!consentement) return;
+  if (lireEmailIdentificationDejaEnvoye(options.dataDir)) return;
+  const envoiResult = await envoyerEmailIdentification(adresseEmail, options.portEnvoiConsentement);
+  if (envoiResult.ok === true) {
+    marquerEmailIdentificationEnvoye(options.dataDir);
+  }
+}
+
 /**
  * Test de connexion : selon provider (IMAP / Microsoft / Gmail), valide et appelle le connecteur.
+ * Si test OK et case consentement cochée et pas encore envoyé, envoie l'email de consentement et enregistre la date dans parametres.json (US-3.15).
  */
 export async function handlePostTestConnexion(
   getConnecteurEmailFn: GetConnecteurEmailFn,
   body: Record<string, unknown>,
-  res: ServerResponse
+  res: ServerResponse,
+  optionsConsentement?: OptionsTestConnexionConsentement
 ): Promise<void> {
   const provider = String(body.provider ?? 'imap').trim().toLowerCase() as 'imap' | 'microsoft' | 'gmail';
   const adresseEmail = String(body.adresseEmail ?? '').trim();
@@ -1149,6 +1248,7 @@ export async function handlePostTestConnexion(
     });
     const result = await executerTestConnexion(adresseEmail, '', cheminDossier, connecteur);
     if (result.ok) {
+      await envoyerConsentementSiDemande(body, adresseEmail, optionsConsentement);
       sendJson(res, 200, { ok: true, nbEmails: result.nbEmails });
     } else {
       sendJson(res, 200, { ok: false, message: result.message });
@@ -1164,6 +1264,7 @@ export async function handlePostTestConnexion(
   const connecteur = getConnecteurEmailFn({ host: imapHost, port: imapPort, secure: imapSecure });
   const result = await executerTestConnexion(adresseEmail, motDePasse, cheminDossier, connecteur);
   if (result.ok) {
+    await envoyerConsentementSiDemande(body, adresseEmail, optionsConsentement);
     sendJson(res, 200, { ok: true, nbEmails: result.nbEmails });
   } else {
     sendJson(res, 200, { ok: false, message: result.message });

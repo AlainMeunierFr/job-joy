@@ -2,6 +2,7 @@ import type { ResultatEnrichissementOffre } from '../types/offres-releve.js';
 import type { SourceOfferFetchPlugin } from './source-plugins.js';
 import { BROWSER_LIKE_HEADERS } from './fetch-offre-headers.js';
 import { fetchCadreEmploiPage } from './cadreemploi-page-fetcher.js';
+import { getCadreEmploiHtmlFetcherForEnv } from './env-html-fetcher.js';
 
 function decodeHtmlEntities(input: string): string {
   return input
@@ -139,7 +140,7 @@ export function createCadreEmploiOfferFetchPlugin(): SourceOfferFetchPlugin {
         if (res.ok) {
           html = await res.text();
         } else if (res.status === 403 || res.status === 429) {
-          const playResult = await fetchCadreEmploiPage(u);
+          const playResult = await fetchCadreEmploiPage(u, getCadreEmploiHtmlFetcherForEnv());
           if ('html' in playResult) html = playResult.html;
           else return { ok: false, message: playResult.error };
         } else {

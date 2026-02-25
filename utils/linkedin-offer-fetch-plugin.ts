@@ -1,5 +1,6 @@
 import type { ResultatEnrichissementOffre } from '../types/offres-releve.js';
 import type { SourceOfferFetchPlugin } from './source-plugins.js';
+import { getLinkedInHtmlFetcherForEnv } from './env-html-fetcher.js';
 import { fetchLinkedinJobPage } from './linkedin-page-fetcher.js';
 
 /**
@@ -16,7 +17,7 @@ export function createLinkedinOfferFetchPlugin(): SourceOfferFetchPlugin {
         return { ok: false, message: 'URL vide.' };
       }
 
-      const result = await fetchLinkedinJobPage(u);
+      const result = await fetchLinkedinJobPage(u, getLinkedInHtmlFetcherForEnv());
       if ('error' in result) {
         return { ok: false, message: result.error };
       }

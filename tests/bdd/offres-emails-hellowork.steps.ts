@@ -6,7 +6,7 @@ import { createBdd } from 'playwright-bdd';
 import { expect } from '@playwright/test';
 import { test } from './configuration-compte-email.steps.js';
 
-const API_BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3011';
+const getApiBase = () => process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3011';
 
 export const { Given, When, Then } = createBdd(test);
 
@@ -29,7 +29,7 @@ let lastEmailExpediteurInFolder = '';
 
 // --- Contexte (réutilise celui de la feature) ---
 Given('que la base Airtable est configurée avec les tables Sources et Offres', async () => {
-  const res = await fetch(`${API_BASE}/api/test/set-airtable`, {
+  const res = await fetch(`${getApiBase()}/api/test/set-airtable`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -43,7 +43,7 @@ Given('que la base Airtable est configurée avec les tables Sources et Offres', 
 });
 
 Given('que le compte email et le dossier à analyser sont configurés', async () => {
-  const res = await fetch(`${API_BASE}/api/compte`, {
+  const res = await fetch(`${getApiBase()}/api/compte`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -100,7 +100,7 @@ Given('aucune source d\'expéditeur {string} n\'existe dans {string}', async ({ 
 });
 
 function setMockEmailHelloWork(emails: Array<{ id: string; from: string; html: string }>) {
-  return fetch(`${API_BASE}/api/test/set-mock-emails`, {
+  return fetch(`${getApiBase()}/api/test/set-mock-emails`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ emailsGouvernance: emails }),
@@ -113,7 +113,7 @@ async function setMockSources(sources: Array<{
   activerEnrichissement: boolean;
   activerAnalyseIA: boolean;
 }>) {
-  const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
+  const res = await fetch(`${getApiBase()}/api/test/set-mock-sources`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sources }),
@@ -315,13 +315,13 @@ Given('que l\'étape 2 récupère des données enrichies suffisantes pour l\'ana
 // --- When ---
 When('l\'initialisation des sources est exécutée', async ({ page }) => {
   await page.goto('/tableau-de-bord');
-  const startRes = await page.request.post(`${API_BASE}/api/audit/start`, { data: {} });
+  const startRes = await page.request.post(`${getApiBase()}/api/audit/start`, { data: {} });
   const startData = (await startRes.json()) as { ok?: boolean; taskId?: string };
   if (!startData?.taskId) throw new Error('Audit start failed');
   let statusRes: AuditResult | null = null;
   for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 500));
-    const r = await page.request.get(`${API_BASE}/api/audit/status?taskId=${startData.taskId}`);
+    const r = await page.request.get(`${getApiBase()}/api/audit/status?taskId=${startData.taskId}`);
     statusRes = (await r.json()) as AuditResult;
     if (statusRes?.status === 'done' || statusRes?.status === 'error') break;
   }
@@ -330,13 +330,13 @@ When('l\'initialisation des sources est exécutée', async ({ page }) => {
 
 When('je lance l\'audit du dossier email', async ({ page }) => {
   await page.goto('/tableau-de-bord');
-  const startRes = await page.request.post(`${API_BASE}/api/audit/start`, { data: {} });
+  const startRes = await page.request.post(`${getApiBase()}/api/audit/start`, { data: {} });
   const startData = (await startRes.json()) as { ok?: boolean; taskId?: string };
   if (!startData?.taskId) throw new Error('Audit start failed');
   let statusRes: AuditResult | null = null;
   for (let i = 0; i < 60; i++) {
     await new Promise((r) => setTimeout(r, 500));
-    const r = await page.request.get(`${API_BASE}/api/audit/status?taskId=${startData.taskId}`);
+    const r = await page.request.get(`${getApiBase()}/api/audit/status?taskId=${startData.taskId}`);
     statusRes = (await r.json()) as AuditResult;
     if (statusRes?.status === 'done' || statusRes?.status === 'error') break;
   }
@@ -348,7 +348,7 @@ When('je consulte les valeurs possibles du champ {string} de la table {string}',
 });
 
 When('je lance la relève des offres depuis les emails HelloWork', async ({ page }) => {
-  const startRes = await page.request.post(`${API_BASE}/api/traitement/start`, { data: {} });
+  const startRes = await page.request.post(`${getApiBase()}/api/traitement/start`, { data: {} });
   const startData = (await startRes.json()) as { ok?: boolean; taskId?: string; message?: string };
   if (!startData?.taskId) {
     lastTraitementResponse = { ok: false, message: startData?.message };
@@ -356,7 +356,7 @@ When('je lance la relève des offres depuis les emails HelloWork', async ({ page
   }
   for (let i = 0; i < 120; i++) {
     await new Promise((r) => setTimeout(r, 500));
-    const r = await page.request.get(`${API_BASE}/api/traitement/status?taskId=${startData.taskId}`);
+    const r = await page.request.get(`${getApiBase()}/api/traitement/status?taskId=${startData.taskId}`);
     const st = (await r.json()) as { status?: string; result?: TraitementResponse; message?: string };
     if (st?.status === 'done' || st?.status === 'error') {
       lastTraitementResponse = st.result ?? { ok: st.status === 'done', message: st.message };
@@ -367,7 +367,7 @@ When('je lance la relève des offres depuis les emails HelloWork', async ({ page
 });
 
 When('je lance la relève des offres depuis les emails Welcome to the Jungle', async ({ page }) => {
-  const startRes = await page.request.post(`${API_BASE}/api/traitement/start`, { data: {} });
+  const startRes = await page.request.post(`${getApiBase()}/api/traitement/start`, { data: {} });
   const startData = (await startRes.json()) as { ok?: boolean; taskId?: string; message?: string };
   if (!startData?.taskId) {
     lastTraitementResponse = { ok: false, message: startData?.message };
@@ -375,7 +375,7 @@ When('je lance la relève des offres depuis les emails Welcome to the Jungle', a
   }
   for (let i = 0; i < 120; i++) {
     await new Promise((r) => setTimeout(r, 500));
-    const r = await page.request.get(`${API_BASE}/api/traitement/status?taskId=${startData.taskId}`);
+    const r = await page.request.get(`${getApiBase()}/api/traitement/status?taskId=${startData.taskId}`);
     const st = (await r.json()) as { status?: string; result?: TraitementResponse; message?: string };
     if (st?.status === 'done' || st?.status === 'error') {
       lastTraitementResponse = st.result ?? { ok: st.status === 'done', message: st.message };
@@ -386,8 +386,10 @@ When('je lance la relève des offres depuis les emails Welcome to the Jungle', a
 });
 
 When('je lance l\'étape 2 d\'enrichissement des offres à récupérer', async ({ page }) => {
-  await page.goto('/tableau-de-bord');
-  const res = await page.request.post(`${API_BASE}/api/enrichissement-worker/start`);
+  const base = getApiBase();
+  const url = page.url().startsWith(base) ? new URL('/tableau-de-bord', base).href : '/tableau-de-bord';
+  await page.goto(url);
+  const res = await page.request.post(`${getApiBase()}/api/enrichissement-worker/start`);
   lastEnrichissementResponse = (await res.json()) as Record<string, unknown>;
 });
 

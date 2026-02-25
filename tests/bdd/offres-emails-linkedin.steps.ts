@@ -6,7 +6,7 @@ import { createBdd } from 'playwright-bdd';
 import { expect } from '@playwright/test';
 import { test } from './configuration-compte-email.steps.js';
 
-const API_BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3011';
+const getApiBase = () => process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3011';
 
 type TraitementResponse = { ok: boolean; message?: string; nbOffresCreees?: number; nbEnrichies?: number; nbEchecs?: number };
 
@@ -16,7 +16,7 @@ let lastTraitementResponse: TraitementResponse | null = null;
 
 // --- Contexte (partagé par tous les scénarios) ---
 Given('la base Airtable est configurée avec les tables Sources et Offres', async () => {
-  const res = await fetch(`${API_BASE}/api/test/set-airtable`, {
+  const res = await fetch(`${getApiBase()}/api/test/set-airtable`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -30,7 +30,7 @@ Given('la base Airtable est configurée avec les tables Sources et Offres', asyn
 });
 
 Given('le compte email et le dossier à analyser sont configurés', async () => {
-  const res = await fetch(`${API_BASE}/api/compte`, {
+  const res = await fetch(`${getApiBase()}/api/compte`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -62,7 +62,7 @@ Given('il existe au moins un email dans le dossier configuré dont l\'expéditeu
 Given('aucune source nommée {string} n\'existe dans la table Sources', async () => {});
 Given('le champ emailExpéditeur de la source LinkedIn vaut {string}', async () => {});
 Given('le compte email et le dossier sont configurés', async () => {
-  const res = await fetch(`${API_BASE}/api/compte`, {
+  const res = await fetch(`${getApiBase()}/api/compte`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -83,7 +83,48 @@ Given('aucun email dans le dossier configuré n\'a un expéditeur contenant la v
 Given('il existe un email dans le dossier à analyser dont l\'expéditeur contient la valeur emailExpéditeur et dont le contenu permet d\'extraire au moins une offre', async () => {});
 Given('la table Offres contient déjà une ligne pour la source LinkedIn et l\'Id offre {string}', async () => {});
 Given('il existe un email dans le dossier dont le contenu permet d\'extraire une offre avec Id offre {string} et une URL mise à jour', async () => {});
-Given('la table Offres contient une ligne avec Statut {string} et une URL d\'offre LinkedIn', async () => {});
+Given('la table Offres contient une ligne avec Statut {string} et une URL d\'offre LinkedIn', async ({}, statut: string) => {
+  await fetch(`${getApiBase()}/api/test/set-airtable`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiKey: 'patTestKeyValide123',
+      base: 'appXyz123',
+      sources: 'tblSourcesId',
+      offres: 'tblOffresId',
+    }),
+  });
+  await fetch(`${getApiBase()}/api/test/set-mock-sources`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sources: [
+        {
+          emailExpéditeur: 'jobs@linkedin.com',
+          plugin: 'Linkedin',
+          activerCreation: true,
+          activerEnrichissement: true,
+          activerAnalyseIA: true,
+        },
+      ],
+    }),
+  });
+  await fetch(`${getApiBase()}/api/test/set-mock-offres`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      offres: [
+        {
+          idOffre: 'linkedin-bdd-1',
+          url: 'https://www.linkedin.com/jobs/view/123',
+          dateAjout: new Date().toISOString().slice(0, 10),
+          statut: statut || 'Annonce à récupérer',
+          emailExpéditeur: 'jobs@linkedin.com',
+        },
+      ],
+    }),
+  });
+});
 Given('le texte complet de la page d\'offre est accessible en local pour cette URL \\(poste, entreprise, ville, etc.)', async () => {});
 Given('la récupération du texte complet depuis cette URL échoue \\(contrainte anti-crawler, authentification requise ou autre)', async () => {});
 Given('la récupération du texte depuis l\'URL ne permet pas d\'obtenir les champs attendus \\(réponse vide ou non exploitable)', async () => {});
@@ -99,7 +140,9 @@ When('je lance la relève des offres depuis les emails LinkedIn', async ({ page 
 });
 
 When('je lance l\'enrichissement des offres à récupérer', async ({ page }) => {
-  await page.goto('/tableau-de-bord');
+  const base = getApiBase();
+  const url = page.url().startsWith(base) ? new URL('/tableau-de-bord', base).href : '/tableau-de-bord';
+  await page.goto(url);
   const [response] = await Promise.all([
     page.waitForResponse((resp) => resp.url().includes('/api/traitement') && resp.request().method() === 'POST', { timeout: 60000 }),
     page.locator('[e2eid="e2eid-bouton-lancer-traitement"]').click(),

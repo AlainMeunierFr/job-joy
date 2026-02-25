@@ -2,6 +2,7 @@
  * Step definitions pour la fonctionnalité Publication application Electron (US-3.6).
  * Scénarios partiellement automatisés : serveur avec JOB_JOY_USER_DATA, DATA_DIR, interface visible.
  * Steps installateur / après installation / fenêtre Electron : stub ou validation manuelle.
+ * US-4.6 : si contextElectronPackaged.electronFetchBaseUrl est défini, JOB_JOY_ELECTRON_FETCH_URL est injecté au spawn.
  */
 import { createBdd } from 'playwright-bdd';
 import { expect } from '@playwright/test';
@@ -10,6 +11,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { contextElectronPackaged, startMockFetchServer, stopMockFetchServer } from './context-electron-packaged.js';
 
 export const { Given, When, Then } = createBdd(test);
 
@@ -51,6 +53,7 @@ function cleanupPackagedServer(): void {
     stepContext.userDataDir = null;
   }
   stepContext.serverPort = null;
+  stopMockFetchServer();
 }
 
 // --- CA1 : Installateur - disponibilité (stub) ---
@@ -195,17 +198,21 @@ Then(
 // --- CA3 : Données utilisateur DATA_DIR ---
 Given(
   /l'application packagée est lancée \(version Electron\)/,
-  async () => {
+  async ({ page }) => {
     cleanupPackagedServer();
+    const fetchBaseUrl = startMockFetchServer();
+    contextElectronPackaged.electronFetchBaseUrl = fetchBaseUrl;
     const userDataDir = mkdtempSync(join(tmpdir(), 'job-joy-bdd-'));
     const serverPath = join(process.cwd(), 'dist', 'app', 'server.js');
-    const env = {
+    const env: NodeJS.ProcessEnv = {
       ...process.env,
       JOB_JOY_USER_DATA: userDataDir,
       PORT: String(PACKAGED_SERVER_PORT),
       PARAMETRES_ENCRYPTION_KEY: ENCRYPTION_KEY_HEX,
+      JOB_JOY_ELECTRON_FETCH_URL: fetchBaseUrl,
+      BDD_MOCK_CONNECTEUR: '1',
+      BDD_IN_MEMORY_STORE: '1',
     };
-    delete (env as NodeJS.ProcessEnv).BDD_IN_MEMORY_STORE;
 
     const child = spawn(process.execPath, [serverPath], {
       env,
@@ -216,6 +223,10 @@ Given(
     stepContext.serverPort = PACKAGED_SERVER_PORT;
     stepContext.serverProcess = child;
     await waitForServer(PACKAGED_SERVER_PORT, 15000);
+    process.env.PLAYWRIGHT_BASE_URL = `http://127.0.0.1:${PACKAGED_SERVER_PORT}`;
+    if (page) {
+      await page.goto(`http://127.0.0.1:${PACKAGED_SERVER_PORT}`);
+    }
   }
 );
 

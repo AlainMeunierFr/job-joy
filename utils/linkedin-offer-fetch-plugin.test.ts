@@ -34,7 +34,7 @@ describe('createLinkedinOfferFetchPlugin', () => {
     if (!result.ok) {
       expect(result.message).toContain('mur connexion');
     }
-    expect(fetchLinkedinJobPage).toHaveBeenCalledWith('https://www.linkedin.com/jobs/view/123/');
+    expect(fetchLinkedinJobPage).toHaveBeenCalledWith('https://www.linkedin.com/jobs/view/123/', undefined);
   });
 
   it('retourne ok: true avec texteOffre quand le fetcher retourne offre et entreprise', async () => {
@@ -45,7 +45,7 @@ describe('createLinkedinOfferFetchPlugin', () => {
     const plugin = createLinkedinOfferFetchPlugin();
     const result = await plugin.recupererContenuOffre('https://www.linkedin.com/jobs/view/456/');
     expect(result.ok).toBe(true);
-    expect(fetchLinkedinJobPage).toHaveBeenCalledWith('https://www.linkedin.com/jobs/view/456/');
+    expect(fetchLinkedinJobPage).toHaveBeenCalledWith('https://www.linkedin.com/jobs/view/456/', undefined);
     if (result.ok) {
       expect(result.champs.texteOffre).toContain('Contexte et missions');
       expect(result.champs.texteOffre).toContain('Transcom');

@@ -34,6 +34,7 @@
     "dotenv": "^16.4.5",
     "imapflow": "^1.2.0",
     "isomorphic-fetch": "^3.0.0",
+    "linkedom": "^0.18.12",
     "playwright": "^1.49.0",
     "puppeteer": "^24.37.5",
     "puppeteer-extra": "^3.3.6",

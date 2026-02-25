@@ -9,6 +9,7 @@ import { readFile } from 'node:fs/promises';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getVersionEtBuildTime } from '../utils/read-build-info.js';
 import { getPageParametres, getPageAPropos } from './page-html.js';
 import { getPageTableauDeBord } from './layout-html.js';
 import type { PluginSource } from '../utils/gouvernance-sources-emails.js';
@@ -31,6 +32,7 @@ import {
   handleGetConsommationApi,
   setBddMockEmailsGouvernance,
   setBddMockSources,
+  setBddMockOffres,
   setBddMockTableauSynthese,
   handlePostSetMockCacheAudit,
   setBddMockOffreTest,
@@ -212,9 +214,18 @@ const server = createServer(async (req, res) => {
   const pathname = url.split('?')[0];
 
   if (req.method === 'GET' && pathname === '/') {
-    const { complet } = evaluerParametragesComplets(DATA_DIR);
+    const { complet, manque } = evaluerParametragesComplets(DATA_DIR);
     const target = complet ? '/tableau-de-bord' : '/parametres';
-    res.writeHead(302, { Location: target, 'Cache-Control': 'no-store' });
+    const headers: Record<string, string> = {
+      Location: target,
+      'Cache-Control': 'no-store',
+    };
+    if (!complet) {
+      const flashConfigId = randomId();
+      flashConfigStore.set(flashConfigId, manque);
+      headers['Set-Cookie'] = `${FLASH_CONFIG_COOKIE}=${flashConfigId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${FLASH_MAX_AGE}`;
+    }
+    res.writeHead(302, headers);
     res.end();
     return;
   }
@@ -282,11 +293,12 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pathname === '/a-propos') {
+    const { version, buildTime } = getVersionEtBuildTime();
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
     });
-    res.end(getPageAPropos());
+    res.end(getPageAPropos({ version, buildTime }));
     return;
   }
 
@@ -354,6 +366,28 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/scripts/parametres.js') {
+    const scriptPathDist = join(__dirname, 'scripts', 'parametres.js');
+    const scriptPathSource = join(PROJECT_ROOT, 'app', 'scripts', 'parametres.js');
+    let js: string;
+    try {
+      js = await readFile(scriptPathDist, 'utf-8');
+    } catch {
+      try {
+        js = await readFile(scriptPathSource, 'utf-8');
+      } catch {
+        notFound(res);
+        return;
+      }
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    });
+    res.end(js);
+    return;
+  }
+
   if (req.method === 'GET' && pathname === '/styles/site.css') {
     const isDev = process.env.NODE_ENV !== 'production';
     let css: string;
@@ -386,6 +420,33 @@ const server = createServer(async (req, res) => {
     });
     res.end(css);
     return;
+  }
+
+  if (req.method === 'GET' && pathname.startsWith('/ressources/guides/')) {
+    const name = pathname.slice('/ressources/guides/'.length).replace(/\/.*$/, '');
+    if (name && !name.includes('..')) {
+      const filePath = join(RESOURCES_DIR, 'guides', name);
+      try {
+        const content = await readFile(filePath);
+        const ext = name.split('.').pop()?.toLowerCase();
+        const contentType =
+          ext === 'png'
+            ? 'image/png'
+            : ext === 'html'
+              ? 'text/html; charset=utf-8'
+              : ext === 'pptx'
+                ? 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                : 'application/octet-stream';
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=3600',
+        });
+        res.end(content);
+        return;
+      } catch {
+        /* fall through to 404 */
+      }
+    }
   }
 
   if (req.method === 'GET' && pathname === '/api/health') {
@@ -526,7 +587,10 @@ const server = createServer(async (req, res) => {
   if (req.method === 'POST' && pathname === '/api/test-connexion') {
     try {
       const body = await parseBody(req);
-      await handlePostTestConnexion(getConnecteurEmail, body, res);
+      await handlePostTestConnexion(getConnecteurEmail, body, res, {
+        dataDir: DATA_DIR,
+        portEnvoiConsentement: getEnvoyeurIdentificationPort(),
+      });
     } catch (err) {
       console.error('POST /api/test-connexion error', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -886,6 +950,21 @@ const server = createServer(async (req, res) => {
           activerAnalyseIA: s.activerAnalyseIA,
         }));
         setBddMockSources(sources);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/set-mock-offres') {
+      try {
+        const body = (await parseBody(req)) as {
+          offres?: Array<{ idOffre: string; url: string; dateAjout: string; statut: string; emailExpéditeur: string }>;
+        };
+        const offres = Array.isArray(body?.offres) ? body.offres : [];
+        setBddMockOffres(offres);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       } catch (err) {

@@ -1,7 +1,11 @@
 /**
  * Récupération du contenu d'une page d'offre LinkedIn en mode invité (Playwright).
  * Utilisé par le plugin Stage 2 LinkedIn ; logique issue du POC scripts/poc-linkedin-public.cjs.
+ * US-4.6 : accepte un HtmlFetcher optionnel pour le mode Electron packagé (sans Playwright).
  */
+
+import type { HtmlFetcher } from './electron-html-fetcher.js';
+import { parseHTML } from 'linkedom';
 
 export type LinkedinPageResult =
   | { offerText: string; companyText: string }
@@ -60,14 +64,126 @@ function splitOfferAndCompany(descriptionText: string): { offerText: string; com
 }
 
 /**
- * Récupère le texte "À propos de l'offre" et "À propos de l'entreprise" depuis une URL LinkedIn Jobs.
- * Lance un navigateur headless, ferme les popups, clique sur "Show more" si présent, extrait les blocs.
+ * Extrait description et section entreprise depuis le HTML d'une page LinkedIn (parsing Node, pas Playwright).
  */
-export async function fetchLinkedinJobPage(url: string): Promise<LinkedinPageResult> {
+function extractFromLinkedInHtml(html: string): { descriptionText: string; companyText: string } {
+  const { document } = parseHTML(html);
+  const descriptionSelectors = [
+    ".description__text .show-more-less-html__markup",
+    ".show-more-less-html__markup",
+    ".description__text",
+    ".jobs-description-content__text",
+    "[data-test-id='job-details']",
+  ];
+  const candidates: string[] = [];
+  for (const selector of descriptionSelectors) {
+    const nodes = document.querySelectorAll(selector);
+    for (const node of nodes) {
+      const raw = (node as HTMLElement).innerText?.trim() ?? (node.textContent ?? "").trim();
+      if (raw.length >= 200) candidates.push(raw);
+    }
+  }
+  let descriptionText = "";
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b.length - a.length);
+    descriptionText = candidates[0] ?? "";
+  }
+  if (!descriptionText) {
+    const mainSelectors = ["[role='main']", ".scaffold-layout__main", "main"];
+    for (const sel of mainSelectors) {
+      const main = document.querySelector(sel);
+      if (!main) continue;
+      const raw = (main as HTMLElement).innerText?.trim() ?? (main.textContent ?? "").trim();
+      if (
+        raw.length >= 500 &&
+        /Contexte|missions|Profil|CDI|CDD|Postuler|Apply|entreprise à mission|énergét|solaire/i.test(raw)
+      ) {
+        descriptionText = raw;
+        break;
+      }
+    }
+  }
+
+  const companySelectors = [
+    ".jobs-company__company-info",
+    ".jobs-company",
+    "[data-test-id='about-company']",
+    "section.jobs-company",
+    ".job-details-how-you-match",
+  ];
+  let companyText = "";
+  for (const selector of companySelectors) {
+    const el = document.querySelector(selector);
+    if (!el) continue;
+    const t = ((el as HTMLElement).innerText ?? el.textContent ?? "").trim();
+    if (t.length < 100) continue;
+    if (
+      /\d+[\s\u00a0]*abonnés/i.test(t) ||
+      /\d+[\s\u00a0]*employés/i.test(t) ||
+      /Suivre|Follow/i.test(t) ||
+      /Conseil|externalisation|provides digitally|digitally enhanced/i.test(t)
+    ) {
+      companyText = t;
+      break;
+    }
+  }
+  if (!companyText) {
+    const all = document.querySelectorAll(
+      "section, aside, [class*='company'], [class*='Company'], [class*='about']"
+    );
+    for (const el of all) {
+      const t = ((el as HTMLElement).innerText ?? el.textContent ?? "").trim();
+      if (
+        t.length >= 200 &&
+        (/\d+[\s\u00a0]*abonnés/i.test(t) || /\d+[\s\u00a0]*employés/i.test(t)) &&
+        (/Suivre|Follow/i.test(t) ||
+          /Conseil|externalisation|provides digitally|digitally enhanced/i.test(t))
+      ) {
+        companyText = t;
+        break;
+      }
+    }
+  }
+
+  return {
+    descriptionText: normalizeTextPreserveLines(descriptionText),
+    companyText: normalizeTextPreserveLines(companyText),
+  };
+}
+
+/**
+ * Récupère le texte "À propos de l'offre" et "À propos de l'entreprise" depuis une URL LinkedIn Jobs.
+ * Si htmlFetcher est fourni (mode Electron packagé), utilise le HTML récupéré par le fetcher sans Playwright.
+ * Sinon lance un navigateur headless Playwright.
+ */
+export async function fetchLinkedinJobPage(
+  url: string,
+  htmlFetcher?: HtmlFetcher
+): Promise<LinkedinPageResult> {
   const u = (url ?? "").trim();
   if (!u) return { error: "URL vide." };
   if (!/linkedin\.com\/jobs\/view\//i.test(u)) {
     return { error: "URL non reconnue comme page LinkedIn Jobs." };
+  }
+
+  if (htmlFetcher) {
+    try {
+      const html = await htmlFetcher.fetchHtml(u);
+      const { descriptionText, companyText: companySectionText } = extractFromLinkedInHtml(html);
+      const { offerText, companyText: inlineCompany } = splitOfferAndCompany(descriptionText);
+      const companyText = companySectionText.length > 0 ? companySectionText : inlineCompany;
+      const extractionFailed = descriptionText.length < 400 || offerText.length < 300;
+      if (extractionFailed && companyText.length < 100) {
+        return {
+          error:
+            "Description non récupérée (mur connexion ou contenu non disponible pour cette offre).",
+        };
+      }
+      return { offerText, companyText };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { error: `Erreur LinkedIn: ${message}` };
+    }
   }
 
   let browser: Awaited<ReturnType<Awaited<typeof import("playwright")>["chromium"]["launch"]>> | null = null;
