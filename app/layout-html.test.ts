@@ -69,37 +69,25 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('e2eid-bouton-worker-enrichissement');
   });
 
-  it.skip('contient un script audit dédié (US-3.5: bloc audit retiré du layout)', () => {
+  it('n’a plus de script audit dédié dans le layout (US-3.5: bloc audit retiré)', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('/api/audit/start');
-    expect(html).toContain('/api/audit/status?taskId=');
-    expect(html).toContain('e2eid-bouton-auditer-dossier');
-    expect(html).toContain('relanceApresTraitement');
+    expect(html).not.toContain('/api/audit/start');
+    expect(html).not.toContain('e2eid-bouton-auditer-dossier');
   });
 
-  it.skip('prévoit une zone de résultat audit (US-3.5: bloc audit retiré)', () => {
+  it('n’a plus de zone résultat audit dans le layout (US-3.5: bloc audit retiré)', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('id="resultat-audit"');
-    expect(html).toContain('nbEmailsScannes');
-    expect(html).toContain('nbSourcesCreees');
-    expect(html).toContain('nbSourcesExistantes');
+    expect(html).not.toContain('id="resultat-audit"');
   });
 
-  it.skip('affiche une table de synthèse audit (US-3.5: bloc audit retiré)', () => {
+  it('n’a plus de table de synthèse audit dans le layout (US-3.5: bloc audit retiré)', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('<div class="auditSynthese" data-layout="table" hidden>');
-    expect(html).toContain('<table class="auditSyntheseTable"');
-    expect(html).toContain('<th scope="col">emailExpéditeur</th>');
-    expect(html).toContain('<th scope="col">plugin</th>');
-    expect(html).toContain('<th scope="col">actif</th>');
-    expect(html).toContain('<th scope="col">nbEmails</th>');
+    expect(html).not.toContain('class="auditSyntheseTable"');
   });
 
-  it.skip('affiche les sous-totaux prévisionnels (US-3.5: bloc audit retiré)', () => {
+  it('n’a plus de sous-totaux prévisionnels audit dans le layout (US-3.5: bloc audit retiré)', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('id="audit-sous-totaux" class="auditSousTotaux" hidden');
-    expect(html).toContain('id="audit-ligne-archivage"');
-    expect(html).toContain('id="audit-ligne-subsistance"');
+    expect(html).not.toContain('id="audit-sous-totaux"');
   });
 
   it('respecte l’ordre IHM: audit, puis tableau/sous-totaux, puis traitement', () => {
@@ -108,12 +96,10 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('data-layout="traitements"');
   });
 
-  it.skip('utilise result.synthese archivé/subsistance (US-3.5: bloc audit retiré)', () => {
+  it('n’utilise plus result.synthese audit dans le layout (US-3.5: bloc audit retiré)', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('st.result.synthese');
-    expect(html).toContain('st.result.sousTotauxPrevisionnels');
-    expect(html).toContain('emailsÀArchiver');
-    expect(html).toContain('emails subsisteront dans le dossier à analyser');
+    expect(html).not.toContain('audit-sous-totaux');
+    expect(html).toContain('data-layout="traitements"');
   });
 
   // --- US-1.7 : Tableau de synthèse des offres (conteneur distinct) ---

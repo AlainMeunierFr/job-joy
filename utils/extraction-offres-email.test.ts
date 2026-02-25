@@ -149,8 +149,8 @@ describe('extractOffresFromHtml', () => {
   const fixtureFiles = existsSync(fixturesDir)
     ? readdirSync(fixturesDir).filter((f) => f.toLowerCase().endsWith('.html'))
     : [];
-  const maybeIt = fixtureFiles.length > 0 ? it : it.skip;
-  maybeIt('parse toutes les fixtures HTML LinkedIn versionnées (tests/exemples/LinkedIn)', () => {
+  it('parse toutes les fixtures HTML LinkedIn (tests/exemples/LinkedIn)', () => {
+    expect(fixtureFiles.length).toBeGreaterThan(0);
     for (const fileName of fixtureFiles) {
       const fullPath = join(fixturesDir, fileName);
       const html = readFileSync(fullPath, 'utf-8');
