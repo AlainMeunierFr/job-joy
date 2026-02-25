@@ -15,8 +15,8 @@ function Afficher-Menu {
     Write-Host "  2. Forcer kill des process sur 3001 puis relancer le serveur (1)"
     Write-Host "  3. Lancer les tests d'integration Airtable (a la main, pas pendant le build)"
     Write-Host "  4. Tests complets (TU + BDD, sans skip)"
-    Write-Host "  5. Publish pre-prod (4 puis si pas d'echec build Electron distant + release)"
-    Write-Host "  6. Pre-prod (5) passe en prod (CI seulement : bump + tag + push)"
+        Write-Host "  5. Publish pre-prod (4 puis version/commit + push vers branche preprod ; CI build + Pre-release)"
+        Write-Host "  6. Rendre public (version/commit + tag v* + push ; CI build + release stable)"
     Write-Host "  Q. Quitter"
     Write-Host ""
 }
@@ -119,7 +119,7 @@ function Invoke-Publier-Version-Preprod {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Publier version pre-prod (option 4 puis commit + tag preprod-v* + push)." -ForegroundColor Cyan
+        Write-Host "Publier version pre-prod (option 4 puis version/commit + push vers branche preprod)." -ForegroundColor Cyan
         Write-Host "Lancement des tests complets (4)..." -ForegroundColor Gray
         npm run test:all
         if ($LASTEXITCODE -ne 0) {
@@ -127,7 +127,7 @@ function Invoke-Publier-Version-Preprod {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Tests OK. Suite : version, commit, tag preprod-v* + push." -ForegroundColor Green
+        Write-Host "Tests OK. Suite : version, commit, push vers preprod (CI cree la Pre-release)." -ForegroundColor Green
         Write-Host ""
         Write-Host "Choix de version (bump ou actuelle) :" -ForegroundColor Gray
         Write-Host "  major = marketing | schema = Airtable | feature = evolution | hotfix = correction" -ForegroundColor Gray
@@ -168,7 +168,6 @@ function Invoke-Publier-Version-Preprod {
                 Read-Host "Appuyez sur Entree pour revenir au menu"
                 return
             }
-            $tagName = "preprod-v$nextVer"
         } else {
             $bumpOut = node dist/scripts/bump-version-cli.js $type 2>&1 | Out-String
             $verMatches = [regex]::Matches($bumpOut, '\d+\.\d+\.\d+')
@@ -181,39 +180,27 @@ function Invoke-Publier-Version-Preprod {
                 return
             }
             $nextVer = $parts -join '.'
-            $tagName = "preprod-v$nextVer"
         }
-        Write-Host "Tag pre-prod : $tagName" -ForegroundColor Green
+        Write-Host "Version pre-prod : $nextVer (release preprod-v$nextVer creee par la CI)." -ForegroundColor Green
 
         git add -A
-        git commit -m "Pre-prod $tagName"
+        git commit -m "Pre-prod preprod-v$nextVer"
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Rien a committer (working tree clean). Tag et push du commit actuel." -ForegroundColor DarkYellow
-        }
-        $tagLocal = git tag -l $tagName 2>$null
-        if ($tagLocal) {
-            git tag -d $tagName 2>$null
-            Write-Host "Tag local $tagName supprime." -ForegroundColor Gray
-        }
-        $tagRemote = git ls-remote origin "refs/tags/$tagName" 2>$null
-        if ($tagRemote) {
-            git push origin ":refs/tags/$tagName" 2>$null
-            Write-Host "Tag distant $tagName supprime." -ForegroundColor Gray
-        }
-        git tag $tagName
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Tag en echec." -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
+            Write-Host "Rien a committer (working tree clean). Push du commit actuel vers preprod." -ForegroundColor DarkYellow
         }
         git push
-        git push origin $tagName
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Push en echec. Verifiez la remote et vos acces." -ForegroundColor Red
+            Write-Host "Push de la branche en echec. Verifiez la remote et vos acces." -ForegroundColor Red
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Tag $tagName pousse. GitHub Actions va construire l'exe et publier en Pre-release (pour tests mise a jour)." -ForegroundColor Green
+        git push origin HEAD:preprod
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Push vers preprod en echec. Verifiez la remote (la branche preprod sera creee au premier push)." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        Write-Host "Branche preprod mise a jour. GitHub Actions va construire l'exe et publier la Pre-release preprod-v$nextVer." -ForegroundColor Green
         Write-Host "Lien : https://github.com/AlainMeunierFr/job-joy/releases" -ForegroundColor Gray
         Write-Host ""
         Read-Host "Appuyez sur Entree pour revenir au menu"

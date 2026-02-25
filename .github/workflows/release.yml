@@ -1,13 +1,16 @@
-# À chaque push d’un tag v* (ex. v1.0.0), build Windows et publication sur GitHub Releases.
-# Le lien de téléchargement direct sera : .../releases/latest/download/Job-Joy-Setup.exe
+# Deux flux :
+# - Push sur la branche preprod → build, release Pre-release (preprod-vX.Y.Z)
+# - Push d'un tag v* → build, release stable (vX.Y.Z)
+# On build sans --publish puis on crée la release avec le bon tag (gh release create).
 
 name: Release
 
 on:
   push:
+    branches:
+      - preprod
     tags:
       - 'v*'
-      - 'preprod-v*'
 
 permissions:
   contents: write
@@ -18,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,26 +33,57 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Sync version from tag
+      - name: Lire la version
+        id: version
         run: |
-          $ref = "$env:GITHUB_REF"
-          if ($ref -match '^refs/tags/preprod-v(.+)$') { $version = $Matches[1] }
-          elseif ($ref -match '^refs/tags/v(.+)$') { $version = $Matches[1] }
-          else { $version = $ref -replace '^refs/tags/', '' }
-          npm pkg set version=$version
-
-      - name: Build and publish to GitHub Releases
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build:electron -- --win --publish always
-
-      - name: Publish release (stable ou pre-release)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $tag = "${{ github.ref_name }}"
-          if ($tag -like "preprod-v*") {
-            gh release edit $tag --draft=false --prerelease
+          if ("$env:GITHUB_REF" -match '^refs/tags/v(.+)$') {
+            $ver = $Matches[1]
           } else {
-            gh release edit $tag --draft=false
+            $ver = (Get-Content package.json | ConvertFrom-Json).version
           }
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+          echo "Version: $ver"
+
+      - name: Build Electron (sans publish)
+        run: npm run build:electron -- --win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Déterminer le tag et le type de release
+        id: release
+        run: |
+          $isPreprod = "$env:GITHUB_REF" -notmatch '^refs/tags/v'
+          if ($isPreprod) {
+            $tag = "preprod-v${{ steps.version.outputs.version }}"
+            $prerelease = "true"
+          } else {
+            $tag = "v${{ steps.version.outputs.version }}"
+            $prerelease = "false"
+          }
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+          echo "prerelease=$prerelease" >> $env:GITHUB_OUTPUT
+          echo "Tag: $tag (prerelease=$prerelease)"
+
+      - name: Créer le tag (preprod uniquement)
+        if: steps.release.outputs.prerelease == 'true'
+        run: |
+          $tag = "${{ steps.release.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $tag
+          git push origin $tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publier la release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ steps.release.outputs.tag }}"
+          $prerelease = "${{ steps.release.outputs.prerelease }}"
+          $args = @($tag, "./dist-electron/Job-Joy-Setup.exe", "--title", "Job-Joy $tag")
+          if (Test-Path "./dist-electron/Job-Joy-Setup.exe.blockmap") { $args += "./dist-electron/Job-Joy-Setup.exe.blockmap" }
+          if (Test-Path "./dist-electron/latest.yml") { $args += "./dist-electron/latest.yml" }
+          if ($prerelease -eq "true") { $args += "--prerelease" }
+          gh release create $args
+          Write-Host "Release $tag creee."
