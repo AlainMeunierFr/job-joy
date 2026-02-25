@@ -80,8 +80,9 @@ jobs:
           $tag = "${{ steps.release.outputs.tag }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag $tag
-          git push origin $tag
+          if (-not (git tag -l $tag)) { git tag $tag }
+          git push origin $tag 2>&1
+          if ($LASTEXITCODE -ne 0) { Write-Host "Tag peut deja exister (re-run), on continue."; exit 0 }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -92,9 +93,19 @@ jobs:
           $tag = "${{ steps.release.outputs.tag }}"
           $prerelease = "${{ steps.release.outputs.prerelease }}"
           $title = if ($prerelease -eq "true") { $tag } else { "Job-Joy $tag" }
-          $args = @($tag, "./dist-electron/Job-Joy-Setup.exe", "--title", $title)
-          if (Test-Path "./dist-electron/Job-Joy-Setup.exe.blockmap") { $args += "./dist-electron/Job-Joy-Setup.exe.blockmap" }
-          if (Test-Path "./dist-electron/latest.yml") { $args += "./dist-electron/latest.yml" }
-          if ($prerelease -eq "true") { $args += "--prerelease" }
-          gh release create $args
-          Write-Host "Release $tag creee."
+          $files = @("./dist-electron/Job-Joy-Setup.exe")
+          if (Test-Path "./dist-electron/Job-Joy-Setup.exe.blockmap") { $files += "./dist-electron/Job-Joy-Setup.exe.blockmap" }
+          if (Test-Path "./dist-electron/latest.yml") { $files += "./dist-electron/latest.yml" }
+          $createArgs = @($tag, "--title", $title) + $files
+          if ($prerelease -eq "true") { $createArgs += "--prerelease" }
+          $out = gh release create $createArgs 2>&1
+          $code = $LASTEXITCODE
+          if ($code -ne 0 -and "$out" -match "already exists") {
+            Write-Host "Release existante : mise a jour des artefacts."
+            gh release upload $tag $files --clobber
+            if ($prerelease -eq "true") { gh release edit $tag --prerelease }
+          } elseif ($code -ne 0) {
+            Write-Host $out
+            exit $code
+          }
+          Write-Host "Release $tag OK."
