@@ -1,0 +1,32 @@
+[
+  {
+    "email": "notifications@linkedin.com",
+    "plugin": "Linkedin",
+    "creation": true,
+    "enrichissement": true
+  },
+  {
+    "email": "notification@emails.hellowork.com",
+    "plugin": "HelloWork",
+    "creation": true,
+    "enrichissement": true
+  },
+  {
+    "email": "alerts@welcometothejungle.com",
+    "plugin": "Welcome to the Jungle",
+    "creation": true,
+    "enrichissement": true
+  },
+  {
+    "email": "jobs@makesense.org",
+    "plugin": "Job That Make Sense",
+    "creation": true,
+    "enrichissement": true
+  },
+  {
+    "email": "offres@alertes.cadremploi.fr",
+    "plugin": "Cadre Emploi",
+    "creation": true,
+    "enrichissement": true
+  }
+]

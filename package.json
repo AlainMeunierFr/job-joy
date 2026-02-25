@@ -4,7 +4,7 @@
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
-    "build": "tsc && node dist/scripts/copy-css.js",
+    "build": "tsc && node dist/scripts/copy-css.js && node dist/scripts/build-plugins-json.js",
     "build:dev": "tsc",
     "start": "node dist/app/server.js",
     "dev": "npm run build:dev && node dist/app/server.js",

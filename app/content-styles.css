@@ -730,6 +730,13 @@ body.appLayout {
   margin: 0;
 }
 
+.pageAPropos .pageParametresTitle {
+  margin: 0 0 var(--space-lg);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
 .pageAPropos .pageAProposVersion,
 .pageAPropos .pageAProposBuildTime {
   margin: 0 0 var(--space-xs);
@@ -797,9 +804,7 @@ body.appLayout {
   color: var(--color-text);
 }
 
-.pageAPropos .pageAProposSectionLegal {
-  max-width: 60rem;
-}
+/* Pas de max-width spécifique : même largeur que les autres blocs (contrainte par .appMain) */
 
 .pageAPropos .pageAProposSectionLegal p {
   margin: 0 0 var(--space-sm);
@@ -809,6 +814,63 @@ body.appLayout {
   display: block;
   max-width: 100%;
   min-height: 400px;
+}
+
+/* Bouton primaire (Design system : texte clair sur fond primary) */
+.pageAPropos .pageAProposBtn {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.pageAPropos .pageAProposBtn:hover {
+  background: var(--color-primary-hover);
+  color: var(--color-on-primary);
+}
+
+/* Blocs À propos : même présentation que Paramètres (carte + titre + contenu), sans accordéon, sans trait sous le titre */
+.pageAPropos .blocAPropos {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-xl);
+}
+
+.pageAPropos .blocAPropos:first-of-type {
+  margin-top: 0;
+}
+
+.pageAPropos .blocAProposTitle {
+  margin: 0;
+  padding: var(--space-lg);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pageAPropos .blocAProposContent {
+  padding: 0 var(--space-lg) var(--space-lg);
+}
+
+.pageAPropos .blocAProposContent p {
+  margin: 0 0 var(--space-sm);
+}
+
+.pageAPropos .blocAProposContent p:last-child {
+  margin-bottom: 0;
+}
+
+.pageAPropos .blocAProposContent a:not(.pageAProposBtn) {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.pageAPropos .blocAProposContent a:not(.pageAProposBtn):hover {
+  text-decoration: underline;
 }
 
 /* --- US-4.5 Introduction au process de paramétrage --- */
@@ -1016,6 +1078,11 @@ body.appLayout {
 
 .pageParametres .blocParametrage[open] .blocParametrageContent {
   padding-top: var(--space-sm);
+}
+
+/* Avant propos : contenu docs/telecharger.html — masquer le bloc téléchargement (réservé à la page standalone GitHub) */
+.blocParametrageContent-avantPropos .page-header {
+  display: none;
 }
 
 .pageParametres .blocParametrageSummary,

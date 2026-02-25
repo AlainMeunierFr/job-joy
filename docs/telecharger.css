@@ -1,12 +1,7 @@
 /**
- * Page Télécharger — GitHub Pages (docs/)
- * Tokens et styles introParametrage pour une page autonome.
- * body.standalone = page complète dans docs/ (liste plugins non disponible) → section plugins masquée.
+ * Page Télécharger — GitHub Pages (docs/) et contenu réutilisé dans Paramètres (Avant propos).
+ * Même contenu dans les deux contextes : liste plugins via plugins-list.json (GitHub) ou injection serveur (app).
  */
-
-.standalone .introParametragePlugins {
-  display: none;
-}
 
 :root {
   --color-bg: #f5f5f5;

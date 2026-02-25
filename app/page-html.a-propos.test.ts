@@ -9,7 +9,8 @@ describe('getPageAPropos (US-3.16)', () => {
     expect(html).toContain('<title>Job-Joy - À propos</title>');
     expect(html).toContain('class="appHeader"');
     expect(html).toContain('href="/a-propos"');
-    expect(html).toContain('<h1>À propos</h1>');
+    expect(html).toContain('À propos</h1>');
+    expect(html).toContain('pageParametresTitle');
   });
 
   it('contient la section Discuter avec l\'auteur avec lien zcal avant le Changelog', () => {
@@ -25,18 +26,22 @@ describe('getPageAPropos (US-3.16)', () => {
     expect(idxDiscuter).toBeLessThan(idxChangelog);
   });
 
-  it('contient la section Changelog avec iframe Airtable release notes', () => {
+  it('contient la section Changelog avec lien nouvel onglet vers release notes', () => {
     const html = getPageAPropos();
     expect(html).toContain('id="a-propos-changelog"');
     expect(html).toContain('Changelog / Release notes');
     expect(html).toContain('airtable.com/embed/appnnCmflxgrqf3H3/shr3ahE86sW7F1Qj9');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('Voir le changelog');
   });
 
-  it('contient la section Support technique avec iframe formulaire', () => {
+  it('contient la section Support technique avec lien nouvel onglet vers formulaire', () => {
     const html = getPageAPropos();
     expect(html).toContain('id="a-propos-support"');
     expect(html).toContain('Support technique');
     expect(html).toContain('airtable.com/embed/appnnCmflxgrqf3H3/pagCSK6ZPjlXLz8fS/form');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('formulaire de ticket');
   });
 
   it('contient la section GNU avec licence, disclaimer et code source', () => {

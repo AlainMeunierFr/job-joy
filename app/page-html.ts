@@ -4,6 +4,7 @@
  * une fois connecté, option radio + bloc comme les autres.
  */
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { lireCompte, lireAirTable } from '../utils/index.js';
 import { getListePluginsPourAvantPropos } from '../utils/source-plugins.js';
@@ -172,6 +173,7 @@ export async function getParametresContent(
           .join('') +
         '</tbody></table>';
       avantProposHtml = avantProposHtml.replace(/<!-- INJECT_LISTE_PLUGIN -->/g, tablePluginsHtml);
+      avantProposHtml = avantProposHtml.replace(/src="diagramme-de-flux\.png"/g, 'src="/docs/diagramme-de-flux.png"');
     } catch {
       avantProposHtml = '<p class="tutorielAbsent">Avant propos absent (fichier docs/telecharger.html absent).</p>';
     }
@@ -557,10 +559,12 @@ export async function getPageParametres(
   });
 }
 
-/** Options pour la page À propos : version et date/heure de publication. */
+/** Options pour la page À propos : version, date/heure de publication, répertoire des ressources (contenu depuis ressources/guides/APropos.html). */
 export interface PageAProposOptions {
   version?: string;
   buildTime?: string | null;
+  /** Répertoire des ressources projet (ex. ressources/). Si fourni, le contenu est lu depuis resourcesDir/guides/APropos.html. */
+  resourcesDir?: string;
 }
 
 /** Formate une date ISO en français (ex. "21 février 2025 à 14:30"). */
@@ -575,62 +579,79 @@ function formatBuildTime(iso: string): string {
   }
 }
 
-/** Page À propos (US-3.16) : version, date de publication, changelog, support, licence GNU, mentions légales. */
+/** Contenu À propos en dur (fallback si fichier ressources/guides/APropos.html absent). */
+const PAGE_A_PROPOS_FALLBACK = `
+<div class="pageAPropos">
+  <h1 class="pageParametresTitle">À propos</h1>
+  <!-- INJECT_VERSION_LINE -->
+  <!-- INJECT_BUILD_TIME_LINE -->
+
+  <div class="blocAPropos" aria-labelledby="a-propos-discuter">
+    <h2 id="a-propos-discuter" class="blocAProposTitle">Discuter avec l'auteur</h2>
+    <div class="blocAProposContent">
+      <p>Je suis Alain Meunier.</p>
+      <p>Pour discuter du produit ou simplement faire connaissance, prenez un rendez-vous de <a href="https://zcal.co/alain-meunier/30min" target="_blank" rel="noopener noreferrer">30&nbsp;mn en visio avec moi</a>.</p>
+      <p>A bientôt.</p>
+    </div>
+  </div>
+
+  <div class="blocAPropos" aria-labelledby="a-propos-changelog">
+    <h2 id="a-propos-changelog" class="blocAProposTitle">Changelog / Release notes</h2>
+    <div class="blocAProposContent">
+      <p><a href="https://airtable.com/embed/appnnCmflxgrqf3H3/shr3ahE86sW7F1Qj9?viewControls=on" target="_blank" rel="noopener noreferrer" class="pageAProposBtn">Voir le changelog (nouvel onglet)</a></p>
+    </div>
+  </div>
+
+  <div class="blocAPropos" aria-labelledby="a-propos-support">
+    <h2 id="a-propos-support" class="blocAProposTitle">Support technique</h2>
+    <div class="blocAProposContent">
+      <p><a href="https://airtable.com/embed/appnnCmflxgrqf3H3/pagCSK6ZPjlXLz8fS/form" target="_blank" rel="noopener noreferrer" class="pageAProposBtn">Ouvrir le formulaire de ticket (nouvel onglet)</a></p>
+    </div>
+  </div>
+
+  <div class="blocAPropos pageAProposSectionLegal" aria-labelledby="a-propos-gnu">
+    <h2 id="a-propos-gnu" class="blocAProposTitle">Licence et conformité (GNU)</h2>
+    <div class="blocAProposContent">
+      <p>Ce logiciel est distribué sous licence <strong>GNU AGPL v3</strong> (ou ultérieure). Il est fourni «&nbsp;tel quel&nbsp;», sans garantie d'aucune sorte, explicite ou implicite, y compris les garanties de qualité marchande ou d'adéquation à un usage particulier.</p>
+      <p>Le code source est disponible sur demande auprès de l'éditeur (voir mentions légales). Conformément à la licence GNU AGPL, toute utilisation en réseau de cette application confère aux utilisateurs le droit de recevoir le code source correspondant.</p>
+      <p>Copyright &copy; Alain MEUNIER. Tous droits réservés selon les termes de la licence GNU AGPL v3.</p>
+    </div>
+  </div>
+
+  <div class="blocAPropos pageAProposSectionLegal" aria-labelledby="a-propos-mentions">
+    <h2 id="a-propos-mentions" class="blocAProposTitle">Mentions légales</h2>
+    <div class="blocAProposContent">
+      <p><strong>Éditeur et responsable de publication</strong></p>
+      <p>Alain MEUNIER<br>
+      Email&nbsp;: <a href="mailto:alain@maep.fr">alain@maep.fr</a><br>
+      Site web&nbsp;: <a href="https://m-alain-et-possible.fr/" target="_blank" rel="noopener noreferrer">https://m-alain-et-possible.fr/</a></p>
+    </div>
+  </div>
+</div>`;
+
+/** Page À propos (US-3.16) : contenu depuis ressources/guides/APropos.html si options.resourcesDir fourni, sinon fallback. */
 export function getPageAPropos(options?: PageAProposOptions): string {
-  const { version, buildTime } = options ?? {};
+  const { version, buildTime, resourcesDir } = options ?? {};
   const versionLine = version ? `<p class="pageAProposVersion">Version ${version}</p>` : '';
   const buildTimeLine = buildTime
     ? `<p class="pageAProposBuildTime">Publiée le&nbsp;: ${formatBuildTime(buildTime)}</p>`
     : '';
-  const content = `
-<div class="pageAPropos">
-  <h1>À propos</h1>
-  ${versionLine}
-  ${buildTimeLine}
 
-  <nav class="pageAProposSommaire" aria-label="Sommaire de la page">
-    <p class="pageAProposSommaireIntro">Contenu de la page&nbsp;:</p>
-    <ul>
-      <li><a href="#a-propos-discuter">Discuter avec l'auteur</a></li>
-      <li><a href="#a-propos-changelog">Changelog / Release notes</a></li>
-      <li><a href="#a-propos-support">Support technique</a></li>
-      <li><a href="#a-propos-gnu">Licence et conformité (GNU)</a></li>
-      <li><a href="#a-propos-mentions">Mentions légales</a></li>
-    </ul>
-  </nav>
+  let content: string;
+  if (resourcesDir) {
+    try {
+      content = readFileSync(join(resourcesDir, 'guides', 'APropos.html'), 'utf-8');
+    } catch {
+      content = PAGE_A_PROPOS_FALLBACK;
+    }
+  } else {
+    content = PAGE_A_PROPOS_FALLBACK;
+  }
 
-  <section class="pageAProposSection" aria-labelledby="a-propos-discuter">
-    <h2 id="a-propos-discuter">Discuter avec l'auteur</h2>
-    <p>Je suis Alain Meunier.</p>
-    <p>Pour discuter du produit ou simplement faire connaissance, prenez un rendez-vous de <a href="https://zcal.co/alain-meunier/30min" target="_blank" rel="noopener noreferrer">30&nbsp;mn en visio avec moi</a>.</p>
-    <p>A bientôt.</p>
-  </section>
+  content = content
+    .replace(/<!-- INJECT_VERSION_LINE -->/g, versionLine)
+    .replace(/<!-- INJECT_BUILD_TIME_LINE -->/g, buildTimeLine);
 
-  <section class="pageAProposSection" aria-labelledby="a-propos-changelog">
-    <h2 id="a-propos-changelog">Changelog / Release notes</h2>
-    <iframe class="airtable-embed" src="https://airtable.com/embed/appnnCmflxgrqf3H3/shr3ahE86sW7F1Qj9?viewControls=on" frameborder="0" onmousewheel="" width="100%" height="533" style="background: transparent; border: 1px solid #ccc;" title="Release notes Airtable"></iframe>
-  </section>
-
-  <section class="pageAProposSection" aria-labelledby="a-propos-support">
-    <h2 id="a-propos-support">Support technique</h2>
-    <iframe class="airtable-embed" src="https://airtable.com/embed/appnnCmflxgrqf3H3/pagCSK6ZPjlXLz8fS/form" frameborder="0" onmousewheel="" width="100%" height="800" style="background: transparent; border: 1px solid #ccc;" title="Formulaire de création de ticket support"></iframe>
-  </section>
-
-  <section class="pageAProposSection pageAProposSectionLegal" aria-labelledby="a-propos-gnu">
-    <h2 id="a-propos-gnu">Licence et conformité (GNU)</h2>
-    <p>Ce logiciel est distribué sous licence <strong>GNU AGPL v3</strong> (ou ultérieure). Il est fourni «&nbsp;tel quel&nbsp;», sans garantie d'aucune sorte, explicite ou implicite, y compris les garanties de qualité marchande ou d'adéquation à un usage particulier.</p>
-    <p>Le code source est disponible sur demande auprès de l'éditeur (voir mentions légales). Conformément à la licence GNU AGPL, toute utilisation en réseau de cette application confère aux utilisateurs le droit de recevoir le code source correspondant.</p>
-    <p>Copyright &copy; Alain MEUNIER. Tous droits réservés selon les termes de la licence GNU AGPL v3.</p>
-  </section>
-
-  <section class="pageAProposSection pageAProposSectionLegal" aria-labelledby="a-propos-mentions">
-    <h2 id="a-propos-mentions">Mentions légales</h2>
-    <p><strong>Éditeur et responsable de publication</strong></p>
-    <p>Alain MEUNIER<br>
-    Email&nbsp;: <a href="mailto:alain@maep.fr">alain@maep.fr</a><br>
-    Site web&nbsp;: <a href="https://m-alain-et-possible.fr/" target="_blank" rel="noopener noreferrer">https://m-alain-et-possible.fr/</a></p>
-  </section>
-</div>`;
   return getLayoutHtml('a-propos', 'À propos', content);
 }
 

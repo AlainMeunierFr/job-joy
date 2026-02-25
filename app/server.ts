@@ -312,7 +312,7 @@ const server = createServer(async (req, res) => {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
     });
-    res.end(getPageAPropos({ version, buildTime }));
+    res.end(getPageAPropos({ version, buildTime, resourcesDir: RESOURCES_DIR }));
     return;
   }
 

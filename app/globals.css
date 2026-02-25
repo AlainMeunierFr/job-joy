@@ -1,6 +1,8 @@
 /**
- * Tokens globaux — source unique pour couleurs, espacements, polices, rayons.
- * Utilisés par content-styles.css et tout CSS de contenu.
+ * Design system — tokens globaux (source unique).
+ * À appliquer partout : couleurs, espacements, polices, rayons.
+ * Boutons primaires : background var(--color-primary), texte var(--color-on-primary).
+ * Cartes / blocs : background var(--color-bg-card), border var(--color-border), radius var(--radius-md).
  */
 
 :root {

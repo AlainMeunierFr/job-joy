@@ -73,9 +73,24 @@
     <div class="introParametrageWhy introParametragePlugins" data-section="plugins" aria-labelledby="titre-intro-plugins">
       <h3 id="titre-intro-plugins" class="introParametrageSectionTitle">Les plugins disponibles</h3>
       <p class="IntroPlugIn">Pour les phases <strong>Création</strong> et <strong>Enrichissement</strong> un code informatique spécifique est créé pour chaque site d'offre d'emploi. Voici la liste actuellement gérée :</p>
-      <!-- INJECT_LISTE_PLUGIN -->
-      <p class="ConclusionPlugIn">Si vous souhaitez gérer d'autres sources, formulez votre demande en ouvrant un <a href="https://github.com/AlainMeunierFr/job-joy/issues">ticket</a>.</p>
+      <div id="liste-plugins-container"><!-- INJECT_LISTE_PLUGIN --></div>
+      <p class="ConclusionPlugIn">Si vous souhaitez gérer d'autres sources, formulez votre demande en ouvrant un <a href="https://airtable.com/appnnCmflxgrqf3H3/pagCSK6ZPjlXLz8fS/form">ticket</a>.</p>
     </div>
   </main>
+  <script>
+    (function () {
+      var container = document.getElementById('liste-plugins-container');
+      if (!container || container.innerHTML.indexOf('INJECT_LISTE_PLUGIN') === -1) return;
+      fetch('plugins-list.json').then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (data) {
+        var thead = '<thead><tr><th scope="col">Email</th><th scope="col">Plugin</th><th scope="col">Création</th><th scope="col">Enrichissement</th></tr></thead>';
+        var rows = data.map(function (l) {
+          return '<tr><td>' + (l.email || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</td><td>' + (l.plugin || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</td><td>' + (l.creation ? 'Oui' : 'Non') + '</td><td>' + (l.enrichissement ? 'Oui' : 'Non') + '</td></tr>';
+        }).join('');
+        container.innerHTML = '<table class="introParametrageListePlugins" aria-label="Liste des plugins par source">' + thead + '<tbody>' + rows + '</tbody></table>';
+      }).catch(function () {
+        container.innerHTML = '<p class="tutorielAbsent">Liste des plugins non disponible (fichier plugins-list.json absent ou erreur).</p>';
+      });
+    })();
+  </script>
 </body>
 </html>

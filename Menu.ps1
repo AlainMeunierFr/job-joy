@@ -1,25 +1,23 @@
-# Menu.ps1 - Menu local du projet analyse-offres
+# Menu.ps1 - Menu local du projet Job-Joy
 # Usage : powershell -ExecutionPolicy Bypass -File Menu.ps1
 # Ou en PowerShell : .\Menu.ps1
 
-$host.UI.RawUI.WindowTitle = "analyse-offres - Menu"
+$host.UI.RawUI.WindowTitle = "Job-Joy - Menu"
 
 function Afficher-Menu {
     Clear-Host
     Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "  analyse-offres - Menu local" -ForegroundColor Cyan
+    Write-Host "  Job-Joy - Menu local" -ForegroundColor Cyan
     Write-Host "  Serveur par defaut : port 3001" -ForegroundColor Gray
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "  1. Lancer le serveur de dev (watch TS/CSS, port 3001, F5 pour voir)"
-    Write-Host "  2. Lancer la suite de tests complete (TU + BDD)"
+    Write-Host "  1. Lancer le serveur de dev (watch TS/CSS, port 3001)"
+    Write-Host "  2. Forcer kill des process sur 3001 puis relancer le serveur (1)"
     Write-Host "  3. Lancer les tests d'integration Airtable (a la main, pas pendant le build)"
-    Write-Host "  4. Forcer kill des process sur 3001 puis relancer le serveur"
-    Write-Host "  --- GitHub ---"
-    Write-Host "  5. Voir l'etat Git (status)"
-    Write-Host "  6. Sauvegarder sur GitHub (add + commit + push, sans version)"
-    Write-Host "  7. Recuperer les mises a jour (git pull)"
-    Write-Host "  8. Publier une version (bump + commit + tag + push)"
+    Write-Host "  4. Tests complets (TU + BDD, sans skip)"
+    Write-Host "  5. Sauvegarder (4 avec blocage si echec puis github)"
+    Write-Host "  6. Publier version pre-prod (build Electron distant + release, pour tester la mise a jour)"
+    Write-Host "  7. Rendre public (6) (CI seulement : bump + tag + push)"
     Write-Host "  Q. Quitter"
     Write-Host ""
 }
@@ -114,28 +112,6 @@ function Charger-EnvSiPresent {
     }
 }
 
-function Invoke-GitStatus {
-    Push-Location $PSScriptRoot
-    try {
-        if (-not (Test-Path ".git")) {
-            Write-Host "Ce dossier n'est pas un depot Git." -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-        Write-Host "Etat du depot Git :" -ForegroundColor Cyan
-        git status
-        Write-Host ""
-        $remotes = git remote -v 2>$null
-        if ($remotes) {
-            Write-Host "Remotes :" -ForegroundColor Gray
-            $remotes
-        }
-        Read-Host "Appuyez sur Entree pour revenir au menu"
-    } finally {
-        Pop-Location
-    }
-}
-
 function Invoke-Sauvegarder-GitHub {
     Push-Location $PSScriptRoot
     try {
@@ -144,12 +120,27 @@ function Invoke-Sauvegarder-GitHub {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Sauvegarde sur GitHub" -ForegroundColor Cyan
+        Write-Host "Sauvegarder (option 4 avec blocage si echec puis github)." -ForegroundColor Cyan
+        Write-Host "Lancement des tests complets (4)..." -ForegroundColor Gray
+        npm run test:all
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Sauvegarde bloquee : les tests ont echoue. Corrigez puis relancez 5." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        Write-Host "Tests OK. Commit de toutes les modifications puis push." -ForegroundColor Green
         Write-Host ""
 
-        $status = git status --porcelain
-        if (-not $status) {
-            Write-Host "Rien a committer (working tree clean)." -ForegroundColor DarkYellow
+        git add -A
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "git add -A en echec." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        Write-Host "Toutes les modifications ont ete ajoutees a l'index." -ForegroundColor Gray
+        git diff --cached --quiet 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Aucune modification a committer (working tree clean)." -ForegroundColor DarkYellow
             $push = Read-Host "Pousser quand meme les commits existants ? (o/N)"
             if ($push -match '^[oOyY]') {
                 git push
@@ -158,19 +149,11 @@ function Invoke-Sauvegarder-GitHub {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-
-        git status
+        git status --short
         Write-Host ""
-        $msg = Read-Host "Message de commit (obligatoire pour add+commit+push)"
+        $msg = Read-Host "Message de commit (obligatoire)"
         if ([string]::IsNullOrWhiteSpace($msg)) {
             Write-Host "Annule : message vide." -ForegroundColor Yellow
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-
-        git add -A
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "git add -A en echec." -ForegroundColor Red
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
@@ -194,7 +177,7 @@ function Invoke-Sauvegarder-GitHub {
     }
 }
 
-function Invoke-Publier-Version {
+function Invoke-Publier-Version-Preprod {
     Push-Location $PSScriptRoot
     try {
         if (-not (Test-Path ".git")) {
@@ -202,14 +185,11 @@ function Invoke-Publier-Version {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Publier une version (major.minor.patch)" -ForegroundColor Cyan
-        Write-Host "  major = marketing (gros changement) | minor = schema (Airtable, attention) | patch = evolution et correction" -ForegroundColor Gray
+        Write-Host "Publier version pre-prod (bump + commit + tag preprod-v* + push ; CI construit l'exe, release Pre-release)" -ForegroundColor Cyan
+        Write-Host "  major = marketing | schema = Airtable | feature = evolution | hotfix = correction" -ForegroundColor Gray
         Write-Host ""
-        Write-Host "  0. Version actuelle (sans bump ; ecrase le tag si deja existant)"
-        Write-Host "  1. major   (gros changement, signal marketing)"
-        Write-Host "  2. schema  (changement de schema Airtable / parametres - attention)"
-        Write-Host "  3. feature (evolution)"
-        Write-Host "  4. hotfix  (correction de bugs)"
+        Write-Host "  0. Version actuelle (sans bump)"
+        Write-Host "  1. major   |  2. schema   |  3. feature   |  4. hotfix"
         Write-Host "  q. Annuler"
         Write-Host ""
         $typeChoix = Read-Host "Choix (0-4 ou q)"
@@ -227,11 +207,10 @@ function Invoke-Publier-Version {
             return
         }
 
-        Write-Host "Build..." -ForegroundColor Gray
-        $buildOut = npm run build 2>&1 | Out-String
+        Write-Host "Build (tsc)..." -ForegroundColor Gray
+        npm run build 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Build en echec." -ForegroundColor Red
-            Write-Host $buildOut -ForegroundColor Gray
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
@@ -245,8 +224,7 @@ function Invoke-Publier-Version {
                 Read-Host "Appuyez sur Entree pour revenir au menu"
                 return
             }
-            $tagName = "v$nextVer"
-            Write-Host "Version actuelle : $tagName (tag existant sera ecrase si present)" -ForegroundColor Green
+            $tagName = "preprod-v$nextVer"
         } else {
             $bumpOut = node dist/scripts/bump-version-cli.js $type 2>&1 | Out-String
             $verMatches = [regex]::Matches($bumpOut, '\d+\.\d+\.\d+')
@@ -254,100 +232,31 @@ function Invoke-Publier-Version {
             $nextVer = if ($rawVer) { ($rawVer -replace '[^\d.]', '').Trim() } else { $null }
             $parts = if ($nextVer) { $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' } } else { @() }
             if (-not $nextVer -or $parts.Count -ne 3) {
-                $preview = $bumpOut.Trim(); if ($preview.Length -gt 80) { $preview = $preview.Substring(0, 80) + "..." }
-                Write-Host "Bump en echec ou version invalide (sortie : $preview)" -ForegroundColor Red
+                Write-Host "Bump en echec ou version invalide." -ForegroundColor Red
                 Read-Host "Appuyez sur Entree pour revenir au menu"
                 return
             }
             $nextVer = $parts -join '.'
-            $tagName = "v$nextVer"
-            Write-Host "Nouvelle version : $tagName (bump en attente de build Electron reussi)" -ForegroundColor Green
+            $tagName = "preprod-v$nextVer"
         }
+        Write-Host "Tag pre-prod : $tagName" -ForegroundColor Green
 
-        Write-Host "Arret des processus Job-Joy / Electron (eviter verrou)..." -ForegroundColor Gray
-        Get-Process -Name "Job-Joy", "electron", "Electron" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-        Get-Process | Where-Object { $_.Path -and $_.Path -like "*job-joy*" } | Stop-Process -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Seconds 1
-        $releaseOutDir = Join-Path $PSScriptRoot "dist-electron-release"
-        if (Test-Path $releaseOutDir) {
-            Remove-Item $releaseOutDir -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        Write-Host "Build Electron (dossier de sortie : dist-electron-release)..." -ForegroundColor Gray
-        npm run build 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Build (tsc) en echec." -ForegroundColor Red
-            git checkout -- package.json
-            if (Test-Path "package-lock.json") { git checkout -- package-lock.json }
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-        $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
-        $env:CSC_LINK = ''
-        $env:CSC_KEY_PASSWORD = ''
-        $env:WIN_CSC_LINK = ''
-        $env:WIN_CSC_KEY_PASSWORD = ''
-        # Vidage complet du cache electron-builder pour eviter chemin sign/noop en cache
-        $ebCache = Join-Path $env:LOCALAPPDATA "electron-builder\Cache"
-        if (Test-Path $ebCache) {
-            Remove-Item $ebCache -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host "Cache electron-builder vide." -ForegroundColor Gray
-        }
-        $releaseConfigPath = Join-Path $env:TEMP "electron-builder-release-$(Get-Random).json"
-        # win: uniquement target, icon, signAndEditExecutable = false (aucun sign, cscLink, certificateFile)
-        $configObj = @{
-            appId = "fr.jobjoy.app"
-            productName = "Job-Joy"
-            directories = @{ output = "dist-electron-release" }
-            forceCodeSigning = $false
-            files = @("**/*", "!cucumber-report/**", "!test-results/**", "!playwright-report/**", "!.features-gen/**", "!coverage/**")
-            win = @{
-                target = @("nsis")
-                icon = ""
-                signAndEditExecutable = $false
-            }
-            nsis = @{ oneClick = $false; allowToChangeInstallationDirectory = $true }
-        }
-        $configObj | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $releaseConfigPath -Encoding UTF8 -NoNewline
-        try {
-            & npx --yes electron-builder --config $releaseConfigPath
-        } finally {
-            Remove-Item $releaseConfigPath -ErrorAction SilentlyContinue
-        }
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host ""
-            Write-Host "Build Electron en echec. Bump annule (version inchangee)." -ForegroundColor Red
-            Write-Host "Si erreur 'symbolic link' / winCodeSign : lancez PowerShell en Administrateur, relancez l'option 8 (une fois le cache extrait, les builds suivants pourront se faire sans admin)." -ForegroundColor Gray
-            Write-Host "Si erreur 'fichier utilise par un autre processus' : fermez l'app Job-Joy, fermez l'Explorateur sur dist-electron, puis reessayez." -ForegroundColor Gray
-            git checkout -- package.json
-            if (Test-Path "package-lock.json") { git checkout -- package-lock.json }
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-
-        $installerExe = Get-ChildItem -Path $releaseOutDir -Filter "Job-Joy Setup*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($installerExe) {
-            Write-Host "Installateur NSIS : $($installerExe.Name)" -ForegroundColor Green
-            Write-Host "(Non signe pour la beta : Windows peut afficher ""Editeur inconnu"" ; clic ""Plus d infos"" puis ""Executer quand meme"".)" -ForegroundColor Gray
-        }
-
-        Write-Host "Commit + tag + push..." -ForegroundColor Gray
         git add -A
-        git commit -m "Release $tagName"
+        git commit -m "Pre-prod $tagName"
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Commit en echec (rien a committer ?)." -ForegroundColor Red
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        # Ecraser le tag s'il existe deja (local et/ou distant)
         $tagLocal = git tag -l $tagName 2>$null
         if ($tagLocal) {
             git tag -d $tagName 2>$null
-            Write-Host "Tag local $tagName supprime (ecrasement)." -ForegroundColor Gray
+            Write-Host "Tag local $tagName supprime." -ForegroundColor Gray
         }
         $tagRemote = git ls-remote origin "refs/tags/$tagName" 2>$null
         if ($tagRemote) {
             git push origin ":refs/tags/$tagName" 2>$null
-            Write-Host "Tag distant $tagName supprime (ecrasement)." -ForegroundColor Gray
+            Write-Host "Tag distant $tagName supprime." -ForegroundColor Gray
         }
         git tag $tagName
         if ($LASTEXITCODE -ne 0) {
@@ -362,45 +271,19 @@ function Invoke-Publier-Version {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-
-        $exeDir = Join-Path $PSScriptRoot "dist-electron-release"
-        $asset = Get-ChildItem -Path $exeDir -Filter "Job-Joy Setup*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $asset) { $asset = Get-ChildItem -Path $exeDir -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
-        if (-not $asset) {
-            Write-Host "Aucun installateur NSIS (.exe) trouve dans dist-electron-release. Release GitHub non creee." -ForegroundColor Yellow
-            Write-Host "Version $tagName poussee (tag seul). Creer la release a la main sur GitHub si besoin." -ForegroundColor Gray
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-
-        $gh = Get-Command gh -ErrorAction SilentlyContinue
-        if (-not $gh) {
-            Write-Host "GitHub CLI (gh) non installe. Tag pousse ; pour creer la release avec l'archive :" -ForegroundColor Yellow
-            Write-Host "  gh release create $tagName $($asset.FullName) --title ""Release $tagName"" --notes ""Release $tagName""" -ForegroundColor Gray
-            Write-Host "Ou installez gh : winget install GitHub.cli" -ForegroundColor Gray
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-
-        Write-Host "Creation de la release GitHub $tagName avec $($asset.Name)..." -ForegroundColor Gray
-        & gh release create $tagName $asset.FullName --title "Release $tagName" --notes "Release $tagName"
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Version $tagName publiee (tag + release + installateur NSIS)." -ForegroundColor Green
-            Write-Host "Lien a partager : https://github.com/AlainMeunierFr/job-joy/releases/latest" -ForegroundColor Cyan
-        } else {
-            Write-Host "gh release create en echec (droits ? release deja existante ?)." -ForegroundColor Red
-        }
+        Write-Host "Tag $tagName pousse. GitHub Actions va construire l'exe et publier en Pre-release (pour tests mise a jour)." -ForegroundColor Green
+        Write-Host "Lien : https://github.com/AlainMeunierFr/job-joy/releases" -ForegroundColor Gray
         Write-Host ""
         Read-Host "Appuyez sur Entree pour revenir au menu"
     } catch {
-        Write-Host "Erreur inattendue : $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Erreur : $($_.Exception.Message)" -ForegroundColor Red
         Read-Host "Appuyez sur Entree pour revenir au menu"
     } finally {
         Pop-Location
     }
 }
 
-function Invoke-GitPull {
+function Invoke-Publier-Version-CI {
     Push-Location $PSScriptRoot
     try {
         if (-not (Test-Path ".git")) {
@@ -408,14 +291,98 @@ function Invoke-GitPull {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Recuperation des mises a jour (git pull)..." -ForegroundColor Cyan
-        git pull
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Pull OK." -ForegroundColor Green
-        } else {
-            Write-Host "Pull en echec (conflits ou pas de remote ?)." -ForegroundColor Red
-        }
+        Write-Host "Rendre public (bump + commit + tag v* + push ; CI construit l'exe, release stable)" -ForegroundColor Cyan
+        Write-Host "  major = marketing | schema = Airtable | feature = evolution | hotfix = correction" -ForegroundColor Gray
         Write-Host ""
+        Write-Host "  0. Version actuelle (sans bump)"
+        Write-Host "  1. major   |  2. schema   |  3. feature   |  4. hotfix"
+        Write-Host "  q. Annuler"
+        Write-Host ""
+        $typeChoix = Read-Host "Choix (0-4 ou q)"
+        $useCurrentVersion = ($typeChoix -eq "0")
+        $type = switch ($typeChoix) {
+            "1" { "major" }
+            "2" { "schema" }
+            "3" { "feature" }
+            "4" { "hotfix" }
+            default { $null }
+        }
+        if (-not $useCurrentVersion -and -not $type) {
+            Write-Host "Annule." -ForegroundColor Yellow
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+
+        Write-Host "Build (tsc)..." -ForegroundColor Gray
+        npm run build 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Build en echec." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+
+        if ($useCurrentVersion) {
+            $pkg = Get-Content "package.json" -Raw | ConvertFrom-Json
+            $nextVer = $pkg.version.Trim()
+            $parts = $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' }
+            if (-not $nextVer -or $parts.Count -ne 3) {
+                Write-Host "Version dans package.json invalide : $nextVer" -ForegroundColor Red
+                Read-Host "Appuyez sur Entree pour revenir au menu"
+                return
+            }
+            $tagName = "v$nextVer"
+        } else {
+            $bumpOut = node dist/scripts/bump-version-cli.js $type 2>&1 | Out-String
+            $verMatches = [regex]::Matches($bumpOut, '\d+\.\d+\.\d+')
+            $rawVer = if ($verMatches.Count -gt 0) { $verMatches[$verMatches.Count - 1].Value } else { $null }
+            $nextVer = if ($rawVer) { ($rawVer -replace '[^\d.]', '').Trim() } else { $null }
+            $parts = if ($nextVer) { $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' } } else { @() }
+            if (-not $nextVer -or $parts.Count -ne 3) {
+                Write-Host "Bump en echec ou version invalide." -ForegroundColor Red
+                Read-Host "Appuyez sur Entree pour revenir au menu"
+                return
+            }
+            $nextVer = $parts -join '.'
+            $tagName = "v$nextVer"
+        }
+        Write-Host "Version : $tagName" -ForegroundColor Green
+
+        git add -A
+        git commit -m "Release $tagName"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Commit en echec (rien a committer ?)." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        $tagLocal = git tag -l $tagName 2>$null
+        if ($tagLocal) {
+            git tag -d $tagName 2>$null
+            Write-Host "Tag local $tagName supprime." -ForegroundColor Gray
+        }
+        $tagRemote = git ls-remote origin "refs/tags/$tagName" 2>$null
+        if ($tagRemote) {
+            git push origin ":refs/tags/$tagName" 2>$null
+            Write-Host "Tag distant $tagName supprime." -ForegroundColor Gray
+        }
+        git tag $tagName
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Tag en echec." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        git push
+        git push origin $tagName
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Push en echec. Verifiez la remote et vos acces." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        Write-Host "Tag $tagName pousse. GitHub Actions va construire l'exe et publier la release stable." -ForegroundColor Green
+        Write-Host "Lien : https://github.com/AlainMeunierFr/job-joy/releases" -ForegroundColor Gray
+        Write-Host ""
+        Read-Host "Appuyez sur Entree pour revenir au menu"
+    } catch {
+        Write-Host "Erreur : $($_.Exception.Message)" -ForegroundColor Red
         Read-Host "Appuyez sur Entree pour revenir au menu"
     } finally {
         Pop-Location
@@ -447,13 +414,12 @@ do {
     $choix = Read-Host "Choix"
     switch ($choix) {
         "1" { Lancer-Serveur; break }
-        "2" { Lancer-Tests-Complets }
+        "2" { Forcer-Kill-Et-Relancer-Serveur; break }
         "3" { Lancer-Tests-Integration-Airtable }
-        "4" { Forcer-Kill-Et-Relancer-Serveur; break }
-        "5" { Invoke-GitStatus }
-        "6" { Invoke-Sauvegarder-GitHub }
-        "7" { Invoke-GitPull }
-        "8" { Invoke-Publier-Version }
+        "4" { Lancer-Tests-Complets }
+        "5" { Invoke-Sauvegarder-GitHub }
+        "6" { Invoke-Publier-Version-Preprod }
+        "7" { Invoke-Publier-Version-CI }
         "q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         "Q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         default { Write-Host "Choix invalide." -ForegroundColor Red; Start-Sleep -Seconds 2 }

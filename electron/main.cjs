@@ -78,9 +78,19 @@ function createWindow() {
   });
 }
 
-/** Mises à jour depuis GitHub Releases (app packagée uniquement). */
+/** Mises à jour depuis GitHub Releases (app packagée uniquement). Pré-prod : JOY_PREPROD=1 (env) ou fichier userData/.preprod (ex. %APPDATA%\\Job-Joy\\.preprod) → reçoit les Pre-releases. */
 function setupAutoUpdater() {
   if (!app.isPackaged) return;
+  const fs = require('fs');
+  const userDataDir = app.getPath('userData');
+  const preprodFile = path.join(userDataDir, '.preprod');
+  const isPreprod =
+    process.env.JOY_PREPROD === '1' ||
+    process.env.PREPROD === '1' ||
+    (fs.existsSync && fs.existsSync(preprodFile));
+  if (isPreprod) {
+    autoUpdater.allowPrerelease = true;
+  }
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = false;
 
