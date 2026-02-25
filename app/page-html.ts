@@ -591,7 +591,6 @@ export function getPageAPropos(options?: PageAProposOptions): string {
   <nav class="pageAProposSommaire" aria-label="Sommaire de la page">
     <p class="pageAProposSommaireIntro">Contenu de la page&nbsp;:</p>
     <ul>
-      <li><a href="#a-propos-diagramme">Diagramme de flux</a></li>
       <li><a href="#a-propos-discuter">Discuter avec l'auteur</a></li>
       <li><a href="#a-propos-changelog">Changelog / Release notes</a></li>
       <li><a href="#a-propos-support">Support technique</a></li>
@@ -599,13 +598,6 @@ export function getPageAPropos(options?: PageAProposOptions): string {
       <li><a href="#a-propos-mentions">Mentions légales</a></li>
     </ul>
   </nav>
-
-  <section class="pageAProposSection" aria-labelledby="a-propos-diagramme">
-    <h2 id="a-propos-diagramme">Diagramme de flux</h2>
-    <div class="pageAProposDiagrammeFlux" role="img" aria-label="Diagramme de flux Job-Joy : flux automatique et votre flux.">
-      <img src="/docs/diagramme-de-flux.png" alt="Diagramme de flux Job-Joy : géré par Job-Joy (Email BAL, Offres Airtable, Création, Enrichissement, Analyse IA, À traiter, Expiré) et géré par vous (Candidaté, Refusé, Traité, Ignoré)." />
-    </div>
-  </section>
 
   <section class="pageAProposSection" aria-labelledby="a-propos-discuter">
     <h2 id="a-propos-discuter">Discuter avec l'auteur</h2>
