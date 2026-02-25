@@ -205,13 +205,15 @@ function Invoke-Publier-Version {
         Write-Host "Publier une version (major.minor.patch)" -ForegroundColor Cyan
         Write-Host "  major = marketing (gros changement) | minor = schema (Airtable, attention) | patch = evolution et correction" -ForegroundColor Gray
         Write-Host ""
+        Write-Host "  0. Version actuelle (sans bump ; ecrase le tag si deja existant)"
         Write-Host "  1. major   (gros changement, signal marketing)"
         Write-Host "  2. schema  (changement de schema Airtable / parametres - attention)"
         Write-Host "  3. feature (evolution)"
         Write-Host "  4. hotfix  (correction de bugs)"
-        Write-Host "  0. Annuler"
+        Write-Host "  q. Annuler"
         Write-Host ""
-        $typeChoix = Read-Host "Choix du type (1-4)"
+        $typeChoix = Read-Host "Choix (0-4 ou q)"
+        $useCurrentVersion = ($typeChoix -eq "0")
         $type = switch ($typeChoix) {
             "1" { "major" }
             "2" { "schema" }
@@ -219,7 +221,7 @@ function Invoke-Publier-Version {
             "4" { "hotfix" }
             default { $null }
         }
-        if (-not $type) {
+        if (-not $useCurrentVersion -and -not $type) {
             Write-Host "Annule." -ForegroundColor Yellow
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
@@ -234,20 +236,33 @@ function Invoke-Publier-Version {
             return
         }
 
-        $bumpOut = node dist/scripts/bump-version-cli.js $type 2>&1 | Out-String
-        $verMatches = [regex]::Matches($bumpOut, '\d+\.\d+\.\d+')
-        $rawVer = if ($verMatches.Count -gt 0) { $verMatches[$verMatches.Count - 1].Value } else { $null }
-        $nextVer = if ($rawVer) { ($rawVer -replace '[^\d.]', '').Trim() } else { $null }
-        $parts = if ($nextVer) { $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' } } else { @() }
-        if (-not $nextVer -or $parts.Count -ne 3) {
-            $preview = $bumpOut.Trim(); if ($preview.Length -gt 80) { $preview = $preview.Substring(0, 80) + "..." }
-            Write-Host "Bump en echec ou version invalide (sortie : $preview)" -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
+        if ($useCurrentVersion) {
+            $pkg = Get-Content "package.json" -Raw | ConvertFrom-Json
+            $nextVer = $pkg.version.Trim()
+            $parts = $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' }
+            if (-not $nextVer -or $parts.Count -ne 3) {
+                Write-Host "Version dans package.json invalide : $nextVer" -ForegroundColor Red
+                Read-Host "Appuyez sur Entree pour revenir au menu"
+                return
+            }
+            $tagName = "v$nextVer"
+            Write-Host "Version actuelle : $tagName (tag existant sera ecrase si present)" -ForegroundColor Green
+        } else {
+            $bumpOut = node dist/scripts/bump-version-cli.js $type 2>&1 | Out-String
+            $verMatches = [regex]::Matches($bumpOut, '\d+\.\d+\.\d+')
+            $rawVer = if ($verMatches.Count -gt 0) { $verMatches[$verMatches.Count - 1].Value } else { $null }
+            $nextVer = if ($rawVer) { ($rawVer -replace '[^\d.]', '').Trim() } else { $null }
+            $parts = if ($nextVer) { $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' } } else { @() }
+            if (-not $nextVer -or $parts.Count -ne 3) {
+                $preview = $bumpOut.Trim(); if ($preview.Length -gt 80) { $preview = $preview.Substring(0, 80) + "..." }
+                Write-Host "Bump en echec ou version invalide (sortie : $preview)" -ForegroundColor Red
+                Read-Host "Appuyez sur Entree pour revenir au menu"
+                return
+            }
+            $nextVer = $parts -join '.'
+            $tagName = "v$nextVer"
+            Write-Host "Nouvelle version : $tagName (bump en attente de build Electron reussi)" -ForegroundColor Green
         }
-        $nextVer = $parts -join '.'
-        $tagName = "v$nextVer"
-        Write-Host "Nouvelle version : $tagName (bump en attente de build Electron reussi)" -ForegroundColor Green
 
         Write-Host "Arret des processus Job-Joy / Electron (eviter verrou)..." -ForegroundColor Gray
         Get-Process -Name "Job-Joy", "electron", "Electron" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -323,9 +338,20 @@ function Invoke-Publier-Version {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
+        # Ecraser le tag s'il existe deja (local et/ou distant)
+        $tagLocal = git tag -l $tagName 2>$null
+        if ($tagLocal) {
+            git tag -d $tagName 2>$null
+            Write-Host "Tag local $tagName supprime (ecrasement)." -ForegroundColor Gray
+        }
+        $tagRemote = git ls-remote origin "refs/tags/$tagName" 2>$null
+        if ($tagRemote) {
+            git push origin ":refs/tags/$tagName" 2>$null
+            Write-Host "Tag distant $tagName supprime (ecrasement)." -ForegroundColor Gray
+        }
         git tag $tagName
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Tag en echec (tag existant ?)." -ForegroundColor Red
+            Write-Host "Tag en echec." -ForegroundColor Red
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }

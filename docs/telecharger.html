@@ -1,61 +1,80 @@
-<div class="introParametrageWhy" data-section="why" aria-labelledby="titre-intro-why">
-  <h3 id="titre-intro-why" class="introParametrageSectionTitle">Pour quoi Job-Joy ?</h3>
-    <div class="introParametragePitch">
-    <p>Tu es abonné à LinkedIn, APEC, Welcome to the Jungle, Job that Make Sense… Ta boîte se remplit de notifications, d’offres en doublon, et dans 90 % des fiches tu te demandes pourquoi tu perds ton temps. <strong>Et pourtant, une pépite peut s’y cacher.</strong></p>
-    <p>Job-Joy relève ta messagerie, repère les emails utiles, en extrait les offres et les centralise (sans doublon) dans une base Airtable. Il récupère le texte complet de chaque offre (sans pubs ni « afficher la suite »), le fait évaluer par une IA qui connaît ton profil (expériences, compétences, appétences), et calcule un score selon tes critères.</p>
-    <p>Résultat : ta BAL se vide de ces notifications, toutes les offres sont au même endroit, et tu ne lis plus que celles qui correspondent vraiment à ta recherche — sans perdre ton temps ni ta patience.</p>
-  </div>
-</div>
-<div class="introParametrageWhat" data-section="what" aria-labelledby="titre-intro-what">
-  <h3 id="titre-intro-what" class="introParametrageSectionTitle">Job-Joy c'est quoi ?</h3>
-  <p class="introParametrageComposantsIntro">L'application s'appuie sur 3 composants externes avec lesquels il faudra se connecter via login et mot de passe ou ApiKey. La procédure est décrite plus bas. Voici le rôle de chaque composant :</p>
-  <ul class="introParametrageComposants">
-    <li><strong>Boîte aux lettres email</strong> : reçoit les offres (LinkedIn, APEC, etc.) ; Job-Joy s'y connecte pour relever et traiter ces emails.</li>
-    <li><strong>Airtable</strong> : pour consulter le résultat (Synthèse des offres) et gérer les statuts des offres.</li>
-    <li><strong>ClaudeCode</strong> : pour analyser et scorer les offres avec l'IA.</li>
-    <li><strong>Job-Joy</strong> : l'application qui orchestre la relève, l'enrichissement et l'analyse.</li>
-  </ul>
-  <p class="introParametrageConfigHint">Ci-dessous : Configuration Airtable, Paramétrage du compte email, Configuration ClaudeCode.</p>
-</div>
-<div class="introParametrageHow" data-section="how" aria-labelledby="titre-intro-how">
-  <h3 id="titre-intro-how" class="introParametrageSectionTitle">Comment (flux)</h3>
-  <p class="introParametragePhasesIntro">Le parcours des offres suit trois phases :</p>
-  <ul class="introParametragePhases">
-    <li><strong>Création</strong> : extraction des URLs des offres dans les emails.</li>
-    <li><strong>Enrichissement</strong> : récupération du texte complet de l'offre.</li>
-    <li><strong>Analyse IA</strong> : scoring selon ton profil et tes critères.</li>
-  </ul>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Télécharger Job-Joy</title>
+  <link rel="stylesheet" href="telecharger.css">
+</head>
+<body class="standalone">
+  <header class="page-header">
+    <h1>Job-Joy</h1>
+    <p>Téléchargez l'application et consultez la dernière version.</p>
+    <a class="download-link" href="https://github.com/AlainMeunierFr/job-joy/releases/latest">Télécharger la dernière version</a>
+  </header>
 
+  <main class="page-main introParametrage">
+    <div class="introParametrageWhy" data-section="why" aria-labelledby="titre-intro-why">
+      <h3 id="titre-intro-why" class="introParametrageSectionTitle">Pour quoi Job-Joy ?</h3>
+      <div class="introParametragePitch">
+        <p>Tu es abonné à LinkedIn, APEC, Welcome to the Jungle, Job that Make Sense… Ta boîte se remplit de notifications, d'offres en doublon, et dans 90 % des fiches tu te demandes pourquoi tu perds ton temps. <strong>Et pourtant, une pépite peut s'y cacher.</strong></p>
+        <p>Job-Joy relève ta messagerie, repère les emails utiles, en extrait les offres et les centralise (sans doublon) dans une base Airtable. Il récupère le texte complet de chaque offre (sans pubs ni « afficher la suite »), le fait évaluer par une IA qui connaît ton profil (expériences, compétences, appétences), et calcule un score selon tes critères.</p>
+        <p>Résultat : ta BAL se vide de ces notifications, toutes les offres sont au même endroit, et tu ne lis plus que celles qui correspondent vraiment à ta recherche — sans perdre ton temps ni ta patience.</p>
+      </div>
+    </div>
+    <div class="introParametrageWhat" data-section="what" aria-labelledby="titre-intro-what">
+      <h3 id="titre-intro-what" class="introParametrageSectionTitle">Job-Joy c'est quoi ?</h3>
+      <p class="introParametrageComposantsIntro">L'application s'appuie sur 3 composants externes avec lesquels il faudra se connecter via login et mot de passe ou ApiKey. La procédure est décrite plus bas. Voici le rôle de chaque composant :</p>
+      <ul class="introParametrageComposants">
+        <li><strong>Boîte aux lettres email</strong> : reçoit les offres (LinkedIn, APEC, etc.) ; Job-Joy s'y connecte pour relever et traiter ces emails.</li>
+        <li><strong>Airtable</strong> : pour consulter le résultat (Synthèse des offres) et gérer les statuts des offres.</li>
+        <li><strong>ClaudeCode</strong> : pour analyser et scorer les offres avec l'IA.</li>
+        <li><strong>Job-Joy</strong> : l'application qui orchestre la relève, l'enrichissement et l'analyse.</li>
+      </ul>
+      <p class="introParametrageConfigHint">Ci-dessous : Configuration Airtable, Paramétrage du compte email, Configuration ClaudeCode.</p>
+    </div>
+    <div class="introParametrageHow" data-section="how" aria-labelledby="titre-intro-how">
+      <h3 id="titre-intro-how" class="introParametrageSectionTitle">Comment (flux)</h3>
+      <p class="introParametragePhasesIntro">Le parcours des offres suit trois phases :</p>
+      <ul class="introParametragePhases">
+        <li><strong>Création</strong> : extraction des URLs des offres dans les emails.</li>
+        <li><strong>Enrichissement</strong> : récupération du texte complet de l'offre.</li>
+        <li><strong>Analyse IA</strong> : scoring selon ton profil et tes critères.</li>
+      </ul>
 
-  <p class="introParametragePhasesIntro">En passant dans les flux, une offre change de statut :</p>
-  <ul class="introParametragePhases">
-   <li><strong>Le logiciel</strong></li>
-   <ul class="introParametragePhases">
-	   <li><strong>A importer</strong> : ce n'est pas encore une offre, c'est un email contenant potentiellement plusieurs offres.</li>
-		<li><strong>A compléter</strong> : ce n'est que l'URL d'une offre (et éventuellement quelles informations complémentaires trouvées dans l'email).</li>
-		<li><strong>Expiré</strong> : l'URL de l'offre ne répond plus.</li>
-		<li><strong>À analyser</strong> : l'URL de l'offre a été ouverte et le texte de l'offre récupré. L'offre va pouvoir être soumise à l'IA.</li>
-		<li><strong>À traiter</strong> : tout ce qui pouvait être fait automatiquement a été fait. Des scores ont été attribués. A vous de jouer !</li>
- </ul>
-    <li><strong>Vous</strong></li>
- <ul class="introParametragePhases">
-   <li><strong>Candidaté</strong></li>
-   <li><strong>Refusé</strong></li>
-   <li><strong>Traité</strong></li>
-   <li><strong>Ignoré</strong></li>
-   <li><strong>Autre...</strong></li>
- </ul>
- </ul>
+      <p class="introParametragePhasesIntro">En passant dans les flux, une offre change de statut :</p>
+      <ul class="introParametragePhases">
+        <li><strong>Le logiciel</strong>
+          <ul class="introParametragePhases">
+            <li><strong>A importer</strong> : ce n'est pas encore une offre, c'est un email contenant potentiellement plusieurs offres.</li>
+            <li><strong>A compléter</strong> : ce n'est que l'URL d'une offre (et éventuellement quelles informations complémentaires trouvées dans l'email).</li>
+            <li><strong>Expiré</strong> : l'URL de l'offre ne répond plus.</li>
+            <li><strong>À analyser</strong> : l'URL de l'offre a été ouverte et le texte de l'offre récupéré. L'offre va pouvoir être soumise à l'IA.</li>
+            <li><strong>À traiter</strong> : tout ce qui pouvait être fait automatiquement a été fait. Des scores ont été attribués. À vous de jouer !</li>
+          </ul>
+        </li>
+        <li><strong>Vous</strong>
+          <ul class="introParametragePhases">
+            <li><strong>Candidaté</strong></li>
+            <li><strong>Refusé</strong></li>
+            <li><strong>Traité</strong></li>
+            <li><strong>Ignoré</strong></li>
+            <li><strong>Autre...</strong></li>
+          </ul>
+        </li>
+      </ul>
 
-
-  <p class="introParametrageFluxIntro">Les flux et les phases apparaissent dans le tableau de synthèse</p>
-  <div class="introParametrageFluxDiag" role="img" aria-label="Diagramme de flux Job-Joy : flux automatique et votre flux.">
-    <img src="/docs/diagramme-de-flux.png" alt="Diagramme de flux Job-Joy : géré par Job-Joy (Email BAL, Offres Airtable, Création, Enrichissement, Analyse IA, À traiter, Expiré) et géré par vous (Candidaté, Refusé, Traité, Ignoré)." />
-  </div>
-</div>
-<div class="introParametrageWhy" data-section="why" aria-labelledby="titre-intro-why">
-  <h3 id="titre-intro-why" class="introParametrageSectionTitle">Les plugin disponibles</h3>
-  <p class="IntroPlugIn">Pour les phases <strong>Création</strong> et <strong>Enrichissement</strong> du code informatique spécifique est créé pour chaque site d'offre d'emploi. Voici la liste actuellement gérée :</p>
-  <!-- INJECT_LISTE_PLUGIN -->
-  <p class="ConclusionPlugIn">Si vous souhaitez gérer d'autres sources formulez votre demande en ouvrant un <a href="/a-propos#a-propos-support">ticket</a>.</p>
-</div>
+      <p class="introParametrageFluxIntro">Les flux et les phases apparaissent dans le tableau de synthèse</p>
+      <div class="introParametrageFluxDiag" role="img" aria-label="Diagramme de flux Job-Joy : flux automatique et votre flux.">
+        <img src="diagramme-de-flux.png" alt="Diagramme de flux Job-Joy : géré par Job-Joy (Email BAL, Offres Airtable, Création, Enrichissement, Analyse IA, À traiter, Expiré) et géré par vous (Candidaté, Refusé, Traité, Ignoré).">
+      </div>
+    </div>
+    <div class="introParametrageWhy introParametragePlugins" data-section="plugins" aria-labelledby="titre-intro-plugins">
+      <h3 id="titre-intro-plugins" class="introParametrageSectionTitle">Les plugins disponibles</h3>
+      <p class="IntroPlugIn">Pour les phases <strong>Création</strong> et <strong>Enrichissement</strong> un code informatique spécifique est créé pour chaque site d'offre d'emploi. Voici la liste actuellement gérée :</p>
+      <!-- INJECT_LISTE_PLUGIN -->
+      <p class="ConclusionPlugIn">Si vous souhaitez gérer d'autres sources, formulez votre demande en ouvrant un <a href="https://github.com/AlainMeunierFr/job-joy/issues">ticket</a>.</p>
+    </div>
+  </main>
+</body>
+</html>
