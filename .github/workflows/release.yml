@@ -1,0 +1,38 @@
+# À chaque push d’un tag v* (ex. v1.0.0), build Windows et publication sur GitHub Releases.
+# Le lien de téléchargement direct sera : .../releases/latest/download/Job-Joy-Setup.exe
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync version from tag
+        run: |
+          $version = $env:GITHUB_REF -replace '^refs/tags/v', ''
+          npm pkg set version=$version
+
+      - name: Build and publish to GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:electron -- --win --publish always

@@ -227,6 +227,31 @@ export function setBddMockOffres(
   }
 }
 
+/** BDD (US-3.1) : retourne les offres à récupérer (statut Annonce à récupérer, source avec activerEnrichissement true). */
+export function getBddMockOffresARecuperer(): Array<{ id: string; url: string; statut: string; emailExpéditeur: string }> {
+  const offres = bddMockOffresStore as Array<{ idOffre: string; url: string; statut: string; sourceId: string }>;
+  return offres
+    .filter((o) => {
+      const source = bddMockSourcesStore.find((s) => s.sourceId === o.sourceId);
+      return source?.activerEnrichissement === true && (o.statut || '').trim() === 'Annonce à récupérer';
+    })
+    .map((o) => {
+      const source = bddMockSourcesStore.find((s) => s.sourceId === o.sourceId);
+      return { id: o.idOffre, url: o.url, statut: o.statut, emailExpéditeur: source?.emailExpéditeur ?? '' };
+    });
+}
+
+/** BDD (US-3.1) : retourne les offres à analyser (statut À analyser, source avec activerAnalyseIA true). */
+export function getBddMockOffresAAnalyser(): Array<{ id: string; poste?: string; ville?: string; texteOffre?: string }> {
+  const offres = bddMockOffresStore as Array<{ idOffre: string; sourceId: string; statut: string }>;
+  return offres
+    .filter((o) => {
+      const source = bddMockSourcesStore.find((s) => s.sourceId === o.sourceId);
+      return source?.activerAnalyseIA === true && (o.statut || '').trim() === 'À analyser';
+    })
+    .map((o) => ({ id: o.idOffre }));
+}
+
 function createBddMockDriverReleve(): {
   listerSources: () => Promise<SourceRuntime[]>;
   creerSource: (source: SourceEmail) => Promise<SourceRuntime>;

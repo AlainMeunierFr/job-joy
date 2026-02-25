@@ -34,6 +34,8 @@ import {
   setBddMockSources,
   setBddMockOffres,
   setBddMockTableauSynthese,
+  getBddMockOffresARecuperer,
+  getBddMockOffresAAnalyser,
   handlePostSetMockCacheAudit,
   setBddMockOffreTest,
   setBddMockTestClaudecode,
@@ -1016,6 +1018,28 @@ const server = createServer(async (req, res) => {
         setBddMockTableauSynthese(lignes);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'GET' && pathname === '/api/test/offres-a-recupérer') {
+      try {
+        const offres = getBddMockOffresARecuperer();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ offres }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'GET' && pathname === '/api/test/offres-a-analyser') {
+      try {
+        const offres = getBddMockOffresAAnalyser();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ offres }));
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, message: String(err) }));

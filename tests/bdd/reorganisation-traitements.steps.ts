@@ -221,10 +221,17 @@ Then('ce container contient le tableau de synthèse des offres', async ({ page }
   await expect(section.locator('.syntheseOffresTable')).toBeVisible();
 });
 
-Then('ce container contient le bouton "Ouvrir Airtable"', async ({ page }) => {
+Then('ce container contient le bouton {string}', async ({ page }, libelle: string) => {
   const section = page.locator('[data-layout="synthese-offres"]');
-  await expect(section.locator('[e2eid="e2eid-bouton-ouvrir-airtable"]')).toBeVisible();
-  await expect(section.locator('[e2eid="e2eid-bouton-ouvrir-airtable"]')).toContainText('Ouvrir Airtable');
+  if (libelle === 'Mise à jour') {
+    await expect(section.locator('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]')).toBeVisible();
+    await expect(section.locator('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]')).toContainText('Mise à jour');
+  } else if (libelle === 'Ouvrir Airtable') {
+    await expect(section.locator('[e2eid="e2eid-bouton-ouvrir-airtable"]')).toBeVisible();
+    await expect(section.locator('[e2eid="e2eid-bouton-ouvrir-airtable"]')).toContainText('Ouvrir Airtable');
+  } else {
+    await expect(section.getByRole('button', { name: libelle })).toBeVisible();
+  }
 });
 
 When('j\'observe le bloc Traitements', async ({ page }) => {

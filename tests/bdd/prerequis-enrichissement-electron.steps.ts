@@ -44,7 +44,7 @@ Given(
 );
 
 // --- Given : offre Cadre emploi / HelloWork / WTTJ ---
-Given('une offre Cadre emploi en statut {string} existe dans la table Offres avec une URL exploitable', async (_page, statut: string) => {
+Given('une offre Cadre emploi en statut {string} existe dans la table Offres avec une URL exploitable', async ({ page: _page }, statut: string) => {
   expect(statut).toBe('Annonce à récupérer');
   await fetch(`${getApiBase()}/api/test/set-airtable`, {
     method: 'POST',
@@ -234,7 +234,7 @@ Given(
   }
 );
 
-Given('une offre en statut {string} existe dans la table Offres pour une source nécessitant un navigateur \\(LinkedIn ou Cadre emploi) avec une URL exploitable', async (_page, statut: string) => {
+Given('une offre en statut {string} existe dans la table Offres pour une source nécessitant un navigateur \\(LinkedIn ou Cadre emploi) avec une URL exploitable', async ({ page: _page }, statut: string) => {
   expect(statut).toBe('Annonce à récupérer');
   await fetch(`${getApiBase()}/api/test/set-airtable`, {
     method: 'POST',

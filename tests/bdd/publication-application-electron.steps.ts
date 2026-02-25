@@ -348,6 +348,14 @@ Then(
   }
 );
 
+Then(
+  'ce fichier est présent dans le répertoire DATA_DIR \\(ex. %APPDATA%\\/analyse-offres ou équivalent)',
+  async () => {
+    expect(stepContext.userDataDir).not.toBeNull();
+    expect(existsSync(join(stepContext.userDataDir!, 'parametres.json'))).toBe(true);
+  }
+);
+
 // --- CA4 : Mises à jour (stub) ---
 Given(
   "l'application installée est en version {string}",

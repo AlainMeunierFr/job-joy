@@ -317,6 +317,14 @@ Given('la source {string} a {int} offres en base', async ({ page: _page }, email
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
 });
 
+Given('la source {string} a {int} offre en base', async ({ page: _page }, email: string, nb: number) => {
+  if (lastSourcesAndOffres.sources.length === 0) lastSourcesAndOffres = { sources: [], offres: [] };
+  const offres = Array.from({ length: nb }, () => ({ emailExpéditeur: email, statut: 'A compléter' }));
+  lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', ...defaultSourceActivation });
+  lastSourcesAndOffres.offres.push(...offres);
+  await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
+});
+
 Given('que la source {string} n\'a aucune offre', async ({ page: _page }, email: string) => {
   lastSourcesAndOffres.sources.push({ emailExpéditeur: email, plugin: 'Inconnu', ...defaultSourceActivation });
   await setMockSourcesAndOffres(lastSourcesAndOffres.sources, lastSourcesAndOffres.offres);
@@ -521,6 +529,10 @@ Then('les données du tableau (lignes et colonne "A importer") proviennent d\'un
   await expect(page.locator('.syntheseOffresTable thead th').filter({ hasText: 'A importer' }).first()).toBeVisible();
 });
 
+Then('les données du tableau \\(lignes et colonne {string}) proviennent d\'une seule API', async ({ page }, colonne: string) => {
+  await expect(page.locator('.syntheseOffresTable thead th').filter({ hasText: colonne }).first()).toBeVisible();
+});
+
 // --- US-3.3 CA3 : thermomètre phase 1 ---
 Given('que le bloc "Synthèse des offres" est visible', async ({ page }) => {
   await expect(page.locator('.syntheseOffres')).toBeVisible();
@@ -624,6 +636,28 @@ Given('que le cache RAM du dernier audit contient les nombres à importer suivan
   await setMockCacheAudit(entries);
 });
 
+Given('le cache RAM du dernier audit contient les nombres à importer suivants', async (
+  { page: _page },
+  dataTable: DataTable
+) => {
+  const rows = dataTable.raw();
+  if (rows.length < 2) {
+    await setMockCacheAudit([]);
+    return;
+  }
+  const headers = rows[0].map((h) => h.trim());
+  const emailIdx = headers.indexOf('emailExpéditeur');
+  const aImporterIdx = headers.indexOf('A importer');
+  const entries: Array<{ emailExpéditeur: string; 'A importer': string | number }> = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const email = emailIdx >= 0 ? (row[emailIdx] ?? '').trim() : '';
+    const aImporter = aImporterIdx >= 0 ? (row[aImporterIdx] ?? '0').trim() : '0';
+    if (email) entries.push({ emailExpéditeur: email, 'A importer': aImporter });
+  }
+  await setMockCacheAudit(entries);
+});
+
 Given('que le cache RAM du dernier audit ne contient pas d\'entrée pour {string}', async (
   { page: _page },
   email: string
@@ -631,7 +665,22 @@ Given('que le cache RAM du dernier audit ne contient pas d\'entrée pour {string
   await setMockCacheAudit([]);
 });
 
+Given('le cache RAM du dernier audit ne contient pas d\'entrée pour {string}', async (
+  { page: _page },
+  email: string
+) => {
+  await setMockCacheAudit([]);
+});
+
 Given('que le cache RAM du dernier audit contient pour {string} le nombre à importer {string}', async (
+  { page: _page },
+  email: string,
+  valeur: string
+) => {
+  await setMockCacheAudit([{ emailExpéditeur: email, 'A importer': valeur }]);
+});
+
+Given('le cache RAM du dernier audit contient pour {string} le nombre à importer {string}', async (
   { page: _page },
   email: string,
   valeur: string
@@ -672,4 +721,43 @@ Then('la cellule \\({string} × "A importer"\\) reflète le résultat du dernier
     }
   }
   throw new Error(`Ligne pour ${email} non trouvée`);
+});
+
+Then('la cellule \\(source@test.com × {string}) reflète le résultat du dernier audit', async (
+  { page },
+  colonne: string
+) => {
+  const rows = page.locator('#synthese-offres-body tr');
+  const count = await rows.count();
+  for (let i = 0; i < count; i++) {
+    const firstCell = rows.nth(i).locator('td').first();
+    if ((await firstCell.textContent())?.trim() === 'source@test.com') {
+      const cellAImporter = rows.nth(i).locator('td').nth(5);
+      await expect(cellAImporter).toHaveText(/\d+/);
+      return;
+    }
+  }
+  throw new Error('Ligne pour source@test.com non trouvée');
+});
+
+When('je clique sur le bouton {string} du bloc Traitements', async ({ page }, libelle: string) => {
+  const btn = page.getByRole('button', { name: libelle }).or(page.locator(`[e2eid="e2eid-bouton-rafraichir-synthese-offres"]`));
+  await btn.first().click();
+  await page.waitForTimeout(800);
+});
+
+When('j\'observe la zone des phases dans le bloc Traitements', async ({ page }) => {
+  await expect(page.locator('[data-layout="traitements"], .traitementsBloc').first()).toBeVisible();
+});
+
+Then('un thermomètre de progression de la phase {int} \\(création) est affiché', async ({ page }, _phase: number) => {
+  await expect(page.locator('.traitementsLignePhase[data-phase="creation"], .thermometreWorkerPhase1').first()).toBeVisible();
+});
+
+Then('un thermomètre pour la phase {int} \\(enrichissement) est affiché', async ({ page }, _phase: number) => {
+  await expect(page.locator('.traitementsLignePhase[data-phase="enrichissement"], .thermometreWorkerEnrichissement').first()).toBeVisible();
+});
+
+Then('un thermomètre pour la phase {int} \\(analyse IA) est affiché', async ({ page }, _phase: number) => {
+  await expect(page.locator('.traitementsLignePhase[data-phase="analyse-ia"], .thermometreWorkerAnalyseIA').first()).toBeVisible();
 });
