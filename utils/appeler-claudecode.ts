@@ -2,6 +2,7 @@
  * Appel à l'API Anthropic Messages pour le test ClaudeCode (US-2.4).
  * Timeout long + retry en cas d'erreur réseau ou timeout.
  */
+import { messageErreurReseau, MESSAGE_ERREUR_RESEAU } from './erreur-reseau.js';
 import { lireClaudeCode } from './parametres-claudecode.js';
 
 /** Structure jsonValidation renvoyée quand le JSON IA est valide (US-3.2 : justifications). */
@@ -113,18 +114,25 @@ export async function appelerClaudeCode(
       }
 
       const code = lastError.name === 'AbortError' ? 'timeout' : 'network_error';
+      const msgReseau = messageErreurReseau(lastError);
       const message =
         lastError.name === 'AbortError'
           ? `Délai dépassé (${TIMEOUT_MS / 1000} s). ${MAX_ATTEMPTS} tentative(s) effectuée(s).`
-          : `${lastError.message}. ${MAX_ATTEMPTS} tentative(s) effectuée(s).`;
+          : msgReseau === MESSAGE_ERREUR_RESEAU
+            ? `${msgReseau} ${MAX_ATTEMPTS} tentative(s) effectuée(s).`
+            : `${msgReseau}. ${MAX_ATTEMPTS} tentative(s) effectuée(s).`;
       return { ok: false, code, message };
     }
   }
 
   const err = lastError ?? new Error('Échec inconnu');
+  const msgReseau = messageErreurReseau(err);
   return {
     ok: false,
     code: 'network_error',
-    message: `${err.message}. ${MAX_ATTEMPTS} tentative(s) effectuée(s).`,
+    message:
+      msgReseau === MESSAGE_ERREUR_RESEAU
+        ? `${msgReseau} ${MAX_ATTEMPTS} tentative(s) effectuée(s).`
+        : `${msgReseau}. ${MAX_ATTEMPTS} tentative(s) effectuée(s).`,
   };
 }

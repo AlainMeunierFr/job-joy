@@ -9,7 +9,7 @@
 **Critères d'acceptation**
 
 **CA1 – Inviter l'utilisateur à créer son compte Airtable**
-- L'application affiche en HTML le tutoriel dont le contenu est celui du fichier `.\data\ressources\CréationCompteAirTable.html`.
+- L'application affiche en HTML le tutoriel dont le contenu est celui du fichier `.\data\ressources\CreationCompteAirTable.html`.
 - L'application propose un champ de saisie pour stocker l'API Key Airtable.
 - L'API Key est stockée dans l'objet `AirTable` , propriété `API Key` dans le fichier `.\data\parametres.json`
 

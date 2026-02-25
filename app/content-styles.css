@@ -711,6 +711,41 @@ body.appLayout {
   color: var(--color-error);
 }
 
+/* --- Page À propos (US-3.16) : changelog, support, GNU, mentions légales --- */
+.appMain .pageAPropos {
+  margin: 0;
+}
+
+.pageAPropos .pageAProposSection {
+  margin-top: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+.pageAPropos .pageAProposSection:first-of-type {
+  margin-top: 0;
+}
+
+.pageAPropos .pageAProposSection h2 {
+  margin: 0 0 var(--space-md);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pageAPropos .pageAProposSectionLegal {
+  max-width: 60rem;
+}
+
+.pageAPropos .pageAProposSectionLegal p {
+  margin: 0 0 var(--space-sm);
+}
+
+.pageAPropos .airtable-embed {
+  display: block;
+  max-width: 100%;
+  min-height: 400px;
+}
+
 /* --- Page Paramètres : titre unique h1 + deux blocs h2 (connexion, Airtable) --- */
 .appMain .pageParametres,
 .appMain .pageParametres[data-layout="page-parametres"] {
@@ -1127,6 +1162,16 @@ body.parametrageCompteEmail,
 body.parametrageCompteEmail,
 .appMain .parametrageCompteEmail .fieldGroup:last-of-type {
   margin-bottom: 0;
+}
+
+/* Consentement identification (US-3.15) : même pattern checkbox que .blocImapRow .labelCheckbox, texte long autorisé */
+.parametrageCompteEmail .fieldGroup-consentement .labelCheckbox,
+.appMain .parametrageCompteEmail .fieldGroup-consentement .labelCheckbox {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin-bottom: 0;
+  white-space: normal;
 }
 
 body.parametrageCompteEmail,

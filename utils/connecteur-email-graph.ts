@@ -4,6 +4,7 @@
  */
 import { Client } from '@microsoft/microsoft-graph-client';
 import type { ConnecteurEmail, ResultatTestConnexion } from '../types/compte.js';
+import { messageErreurReseau } from './erreur-reseau.js';
 
 /** Noms de dossiers bien connus Graph (minuscules) pour résolution directe. */
 const WELL_KNOWN_FOLDERS = new Set([
@@ -40,7 +41,7 @@ async function findChildFolder(
       message: `Sous-dossier « ${childName} » non trouvé. Sous-dossiers disponibles : ${available || '(aucun)'}`,
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = messageErreurReseau(err);
     return { ok: false, message: `Impossible de lister les sous-dossiers : ${msg}` };
   }
 }
@@ -87,7 +88,7 @@ async function resolveFolderId(
       currentFolderId = found.id;
       currentApiPath = `/me/mailFolders/${found.id}`;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = messageErreurReseau(err);
       return { ok: false, message: `Impossible de lister les dossiers : ${msg}` };
     }
   }
@@ -119,7 +120,7 @@ export function getConnecteurEmailGraph(getAccessToken: () => Promise<string>): 
       try {
         token = await getAccessToken();
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = messageErreurReseau(err);
         const messagePourUtilisateur =
           /Aucun token|cli:auth|npm run|refresh.*expiré/i.test(msg)
             ? 'Connectez-vous d\u2019abord avec Microsoft en cliquant sur \u00ab Se connecter \u00bb ci-dessus.'
@@ -155,7 +156,7 @@ export function getConnecteurEmailGraph(getAccessToken: () => Promise<string>): 
         const nbEmails = typeof folder?.totalItemCount === 'number' ? folder.totalItemCount : 0;
         return { ok: true, nbEmails };
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = messageErreurReseau(err);
         return { ok: false, message: `Erreur Graph : ${msg}` };
       }
     },

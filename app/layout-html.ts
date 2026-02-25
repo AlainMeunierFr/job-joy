@@ -4,7 +4,7 @@
  * US-1.7 : tableau de synthèse des offres (colonnes fixes + statuts Airtable).
  */
 import { STATUTS_OFFRES_AVEC_AUTRE } from '../utils/statuts-offres-airtable.js';
-export type PageActive = 'tableau-de-bord' | 'parametres';
+export type PageActive = 'tableau-de-bord' | 'parametres' | 'a-propos';
 
 export type HeaderOptions = {
   /** Si false, le lien "Tableau de bord" est masqué (config incomplète). */
@@ -14,6 +14,7 @@ export type HeaderOptions = {
 export function getHeaderHtml(active: PageActive, options?: HeaderOptions): string {
   const tableauActive = active === 'tableau-de-bord';
   const parametresActive = active === 'parametres';
+  const aProposActive = active === 'a-propos';
   const afficherTableauDeBord = options?.configComplète !== false;
   const lienTableauDeBord = afficherTableauDeBord
     ? `<li><a href="/tableau-de-bord" class="appNavLink${tableauActive ? ' appNavLinkActive' : ''}">Tableau de bord</a></li>`
@@ -24,6 +25,7 @@ export function getHeaderHtml(active: PageActive, options?: HeaderOptions): stri
     <ul class="appNavList">
       ${lienTableauDeBord}
       <li><a href="/parametres" class="appNavLink${parametresActive ? ' appNavLinkActive' : ''}">Paramètres</a></li>
+      <li><a href="/a-propos" class="appNavLink${aProposActive ? ' appNavLinkActive' : ''}">À propos</a></li>
     </ul>
   </nav>
 </header>`;

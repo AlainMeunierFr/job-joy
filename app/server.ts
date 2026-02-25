@@ -9,7 +9,7 @@ import { readFile } from 'node:fs/promises';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getPageParametres } from './page-html.js';
+import { getPageParametres, getPageAPropos } from './page-html.js';
 import { getPageTableauDeBord } from './layout-html.js';
 import type { PluginSource } from '../utils/gouvernance-sources-emails.js';
 import {
@@ -38,8 +38,18 @@ import {
   getOffreTestHasOffre,
   handleGetOffreTest,
   handlePostTestClaudecode,
+  getEnvoyeurIdentificationPort,
+  clearBddEmailsIdentificationEnvoyes,
+  handleGetEmailsIdentification,
+  setBddMockEnvoyeurIdentificationFail,
 } from './api-handlers.js';
-import { ecrireCompte, lireCompte, resetCompteStoreForTest, getCompteStoreForTest } from '../utils/compte-io.js';
+import {
+  ecrireCompte,
+  lireCompte,
+  resetCompteStoreForTest,
+  getCompteStoreForTest,
+  enregistrerCompteEtNotifierSiConsentement,
+} from '../utils/compte-io.js';
 import { ecrireAirTable, lireAirTable } from '../utils/parametres-airtable.js';
 import { ensureAirtableEnums } from '../utils/airtable-ensure-enums.js';
 import { normaliserBaseId } from '../utils/airtable-url.js';
@@ -265,6 +275,15 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/a-propos') {
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    res.end(getPageAPropos());
+    return;
+  }
+
   if (req.method === 'POST' && (pathname === '/parametres' || pathname === '/' || pathname === '/parametrage-compte-email')) {
     const raw = await new Promise<string>((resolve, reject) => {
       let b = '';
@@ -291,8 +310,20 @@ const server = createServer(async (req, res) => {
     const imapSecure = data.imapSecure !== '0' && data.imapSecure !== 'false';
     const airtableApiKey = String(data.airtableApiKey ?? '').trim();
     const airtableBase = String(data.airtableBase ?? '').trim();
+    const consentementIdentification =
+      data.consentementIdentification === '1' || data.consentementIdentification === 'true';
     try {
-      ecrireCompte(DATA_DIR, { provider, adresseEmail, motDePasse, cheminDossier, cheminDossierArchive, imapHost, imapPort, imapSecure });
+      await enregistrerCompteEtNotifierSiConsentement(DATA_DIR, {
+        provider,
+        adresseEmail,
+        motDePasse,
+        cheminDossier,
+        cheminDossierArchive,
+        imapHost,
+        imapPort,
+        imapSecure,
+        consentementIdentification,
+      }, getEnvoyeurIdentificationPort());
       const airtableUpdates: { base?: string; apiKey?: string } = { base: airtableBase || undefined };
       if (airtableApiKey) airtableUpdates.apiKey = airtableApiKey;
       ecrireAirTable(DATA_DIR, airtableUpdates);
@@ -759,8 +790,32 @@ const server = createServer(async (req, res) => {
   if (process.env.BDD_IN_MEMORY_STORE === '1') {
     if (req.method === 'POST' && pathname === '/api/test/reset-compte') {
       resetCompteStoreForTest();
+      clearBddEmailsIdentificationEnvoyes();
+      setBddMockEnvoyeurIdentificationFail(false);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+    if (req.method === 'GET' && pathname === '/api/test/emails-identification') {
+      handleGetEmailsIdentification(res);
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/clear-emails-identification') {
+      clearBddEmailsIdentificationEnvoyes();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/set-envoyeur-identification-fail') {
+      try {
+        const body = (await parseBody(req)) as { fail?: boolean };
+        setBddMockEnvoyeurIdentificationFail(body?.fail === true);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: 'parse error' }));
+      }
       return;
     }
     if (req.method === 'GET' && pathname === '/api/test/compte-store') {

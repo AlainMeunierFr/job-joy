@@ -1,10 +1,9 @@
-# GO NEXT — État après tunnel US-3.6
+# GO NEXT — État après tunnel US-3.15
 
-**Dernier tunnel** : US-3.6 (Publication application Electron) terminé. US → BDD → TDD-back-end → TDD-front-end livrés.
+**Dernier tunnel** : US-3.15 (Identification des utilisateurs) **terminé**. US → BDD → TDD-back-end → TDD-front-end → Designer livrés.
+
+**Rapport** : `.cursor/RAPPORT-revue-US-3.15-TDD-front-end.md`
 
 **Prochaines options** (au choix) :
-- **Designer** (US-3.3) : appliquer le CSS sur le tableau de bord unifié (colonne "A importer", thermomètre phase 1). Mettre en première ligne : `@Designer` puis le prompt de délégation US-3.3.
-- **CA4 US-3.6** : brancher electron-updater + GitHub Releases pour les mises à jour automatiques (nouvelle US ou extension US-3.6).
-- **Revue / tests** : lancer `npm run test`, `npm run typecheck`, éventuellement `npm run build:electron` pour valider le build Electron.
-
-Rapport tunnel : `.cursor/RAPPORT-revue-US-3.6-2026-02-24.md`
+- Démarrer une **nouvelle US** : dire **GO US** pour invoquer l’agent US.
+- Reprendre un autre tunnel en cours (ex. US-3.6, US-3.3) : mettre à jour ce fichier avec @Agent et le prompt puis dire GO NEXT.

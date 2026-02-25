@@ -10,7 +10,7 @@ Fonctionnalité: Configuration Airtable
   Scénario: La page affiche le tutoriel de création de compte Airtable
     Alors la page affiche en HTML le contenu du tutoriel défini par le projet
     """
-    Le contenu affiché est celui du fichier de tutoriel CréationCompteAirTable.html.
+    Le contenu affiché est celui du fichier de tutoriel CreationCompteAirTable.html.
     """
 
   Scénario: La page propose un champ de saisie pour l'API Key Airtable

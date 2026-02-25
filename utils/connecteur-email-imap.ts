@@ -4,11 +4,15 @@
  */
 import { ImapFlow } from 'imapflow';
 import type { ConnecteurEmail, ResultatTestConnexion, OptionsImap } from '../types/compte.js';
+import { messageErreurReseau, MESSAGE_ERREUR_RESEAU } from './erreur-reseau.js';
 
 /**
- * Rend les erreurs IMAP compréhensibles (ex. Office 365 Basic Auth bloqué).
+ * Rend les erreurs IMAP compréhensibles (ex. Office 365 Basic Auth bloqué, erreur réseau).
  */
 function messageErreurImap(err: unknown): string {
+  const messageReseau = messageErreurReseau(err);
+  if (messageReseau === MESSAGE_ERREUR_RESEAU) return messageReseau;
+
   const raw = err instanceof Error ? err.message : String(err);
   const str = (err && typeof err === 'object' && 'response' in err ? String((err as { response?: string }).response) : '') + raw;
   if (/BasicAuthBlocked|LOGONDENIED-BASICAUTHBLOCKED|authentification.*refusée/i.test(str)) {

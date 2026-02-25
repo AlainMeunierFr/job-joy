@@ -3,16 +3,23 @@
  * Délègue à parametres-io (data/parametres.json, structure connexionBoiteEmail).
  * Le mot de passe IMAP est stocké chiffré (AES-256-GCM) dans parametres.
  */
-import type { CompteLu, ParametresCompte, ProviderCompte } from '../types/compte.js';
-import type { ParametresPersistes } from '../types/parametres.js';
+import type {
+  CompteLu,
+  EnvoyeurEmailIdentification,
+  ParametresCompte,
+  ProviderCompte,
+  ResultatEnregistrementCompteAvecNotification,
+} from '../types/compte.js';
 import {
   lireParametres,
-  ecrireParametres,
   ecrireParametresFromForm,
   getCompteLuFromParametres,
   resetParametresStoreForTest,
   getParametresStoreForTest,
+  lireEmailIdentificationDejaEnvoye,
+  marquerEmailIdentificationEnvoye,
 } from './parametres-io.js';
+import { envoyerEmailIdentification } from './envoi-email-identification.js';
 
 const PROVIDER_DEFAULT: ProviderCompte = 'imap';
 
@@ -31,6 +38,33 @@ export function lireCompte(dataDir: string): CompteLu | null {
  */
 export function ecrireCompte(dataDir: string, parametres: ParametresCompte): void {
   ecrireParametresFromForm(dataDir, parametres);
+}
+
+/**
+ * Enregistre le compte puis envoie l'email d'identification si consentement et pas encore envoyé (US-3.15).
+ * Échec d'envoi non bloquant : la sauvegarde est toujours considérée réussie.
+ */
+export async function enregistrerCompteEtNotifierSiConsentement(
+  dataDir: string,
+  parametres: ParametresCompte,
+  port: EnvoyeurEmailIdentification
+): Promise<ResultatEnregistrementCompteAvecNotification> {
+  ecrireParametresFromForm(dataDir, parametres);
+  if (parametres.consentementIdentification !== true) {
+    return { sauvegardeOk: true };
+  }
+  if (lireEmailIdentificationDejaEnvoye(dataDir)) {
+    return { sauvegardeOk: true };
+  }
+  const adresse = getCompteLuFromParametres(lireParametres(dataDir))?.adresseEmail ?? '';
+  if (!adresse.trim()) {
+    return { sauvegardeOk: true };
+  }
+  const envoiResult = await envoyerEmailIdentification(adresse, port);
+  if (envoiResult.ok === true) {
+    marquerEmailIdentificationEnvoye(dataDir);
+  }
+  return { sauvegardeOk: true, envoiEmail: envoiResult };
 }
 
 /**
@@ -53,6 +87,7 @@ export function getCompteStoreForTest(): {
   imapPort: number;
   imapSecure: boolean;
   motDePasseHash: string;
+  consentementIdentification?: boolean;
 } | null {
   const p = getParametresStoreForTest();
   if (!p?.connexionBoiteEmail) return null;
@@ -85,5 +120,6 @@ export function getCompteStoreForTest(): {
     imapPort,
     imapSecure,
     motDePasseHash,
+    consentementIdentification: c.consentementIdentification === true,
   };
 }

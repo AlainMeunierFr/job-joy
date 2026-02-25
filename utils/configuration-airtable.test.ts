@@ -7,6 +7,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AirtableConfigDriver } from './configuration-airtable.js';
+import { MESSAGE_ERREUR_RESEAU } from './erreur-reseau.js';
 import {
   executerConfigurationAirtable,
   libelleStatutConfigurationAirtable,
@@ -74,6 +75,18 @@ describe('executerConfigurationAirtable (baby step 3)', () => {
     const r = await executerConfigurationAirtable('invalid-key', dataDir, driver);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toContain('Authentification Airtable échouée');
+  });
+
+  it("retourne message utilisateur clair en cas d'erreur réseau (ECONNREFUSED)", async () => {
+    const err = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+    const driver: AirtableConfigDriver = {
+      creerBaseEtTables: async () => {
+        throw err;
+      },
+    };
+    const r = await executerConfigurationAirtable('key', dataDir, driver);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toBe(MESSAGE_ERREUR_RESEAU);
   });
 
   it('avec driver par défaut retourne ok: false (non implémenté)', async () => {

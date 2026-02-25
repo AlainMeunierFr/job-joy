@@ -20,6 +20,8 @@ export interface ParametresCompte {
   imapPort?: number;
   /** Connexion sécurisée TLS (défaut true). */
   imapSecure?: boolean;
+  /** Consentement à communiquer l'email pour identification / support / retours beta (US-3.15). */
+  consentementIdentification?: boolean;
 }
 
 /** Vue legacy du compte (pour API test/compte-store). Réel stockage : data/parametres.json, mot de passe chiffré. */
@@ -33,6 +35,8 @@ export interface ComptePersiste {
   imapSecure: boolean;
   /** Hachage du mot de passe (IMAP) ou placeholder pour Microsoft/Gmail. */
   motDePasseHash: string;
+  /** Consentement identification (US-3.15). */
+  consentementIdentification?: boolean;
 }
 
 /** Compte lu pour affichage (sans mot de passe). */
@@ -44,6 +48,8 @@ export interface CompteLu {
   imapHost: string;
   imapPort: number;
   imapSecure: boolean;
+  /** Consentement identification (US-3.15). */
+  consentementIdentification?: boolean;
 }
 
 export type ResultatValidation =
@@ -69,4 +75,29 @@ export interface ConnecteurEmail {
     motDePasse: string,
     cheminDossier: string
   ): Promise<ResultatTestConnexion>;
+}
+
+/** Paramètres de l'email d'identification utilisateur (US-3.15). */
+export interface ParametresEmailIdentification {
+  from: string;
+  to: string;
+  subject: string;
+  body: string;
+}
+
+/** Résultat d'envoi d'email identification (non bloquant en cas d'échec). */
+export type ResultatEnvoiEmailIdentification =
+  | { ok: true }
+  | { ok: false; message: string };
+
+/** Port pour envoyer l'email d'identification (From=compte, To=alain@maep.fr, sujet/corps fixés). US-3.15. */
+export interface EnvoyeurEmailIdentification {
+  envoyer(params: ParametresEmailIdentification): Promise<ResultatEnvoiEmailIdentification>;
+}
+
+/** Résultat de enregistrerCompteEtNotifierSiConsentement : sauvegarde toujours réussie, envoi optionnel (échec non bloquant). */
+export interface ResultatEnregistrementCompteAvecNotification {
+  sauvegardeOk: true;
+  /** Présent si un envoi a été tenté (consentement + pas encore envoyé). */
+  envoiEmail?: ResultatEnvoiEmailIdentification;
 }

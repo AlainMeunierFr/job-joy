@@ -228,6 +228,7 @@ export function getCompteLuFromParametres(p: ParametresPersistes | null): Compte
     imapHost,
     imapPort,
     imapSecure,
+    consentementIdentification: c.consentementIdentification === true,
   };
 }
 
@@ -263,11 +264,14 @@ export function ecrireParametresFromForm(
   const dossierArchiveFromForm = String(form.cheminDossierArchive ?? '').trim();
   const dossierArchive =
     dossierArchiveFromForm !== '' ? dossierArchiveFromForm : (c.dossierArchive ?? '').trim();
+  const consentementIdentification = form.consentementIdentification === true;
   const connexion: ConnexionBoiteEmail = {
     ...c,
     mode,
     dossierAAnalyser: String(form.cheminDossier ?? existingDossierAAnalyser ?? '').trim(),
     dossierArchive,
+    consentementIdentification,
+    emailIdentificationDejaEnvoye: c.emailIdentificationDejaEnvoye,
     imap: {
       host: String(form.imapHost ?? c.imap?.host ?? '').trim(),
       port: Number(form.imapPort ?? c.imap?.port) || 993,
@@ -320,6 +324,24 @@ export function lirePartieModifiablePrompt(dataDir: string): string {
 export function ecrirePartieModifiablePrompt(dataDir: string, texte: string): void {
   const p = lireParametres(dataDir) ?? getDefaultParametres();
   p.promptIA = texte;
+  ecrireParametres(dataDir, p);
+}
+
+/**
+ * Indique si l'email d'identification a déjà été envoyé pour ce compte (US-3.15, un seul envoi).
+ */
+export function lireEmailIdentificationDejaEnvoye(dataDir: string): boolean {
+  const p = lireParametres(dataDir);
+  return p?.connexionBoiteEmail?.emailIdentificationDejaEnvoye === true;
+}
+
+/**
+ * Marque l'email d'identification comme envoyé (persisté dans connexionBoiteEmail).
+ */
+export function marquerEmailIdentificationEnvoye(dataDir: string): void {
+  const p = lireParametres(dataDir) ?? getDefaultParametres();
+  if (!p.connexionBoiteEmail) return;
+  p.connexionBoiteEmail = { ...p.connexionBoiteEmail, emailIdentificationDejaEnvoye: true };
   ecrireParametres(dataDir, p);
 }
 

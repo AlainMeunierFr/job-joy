@@ -10,7 +10,7 @@
 | Point | Attendu | Fait |
 |-------|---------|------|
 | Même page Paramètres | Un seul écran, deux conteneurs | Oui — section `configurationAirtable` après Connexion dans `getParametresContent` |
-| Tutoriel HTML | Lecture `CréationCompteAirTable.html`, injection | Oui — `readFile` + `#zone-tutoriel-airtable` |
+| Tutoriel HTML | Lecture `CreationCompteAirTable.html`, injection | Oui — `readFile` + `#zone-tutoriel-airtable` |
 | Champ API Key | e2eid `e2eid-champ-api-key-airtable` | Oui |
 | Champ URL base | Requis, e2eid `e2eid-champ-airtable-base` | Oui — `required` sur l’input |
 | Un seul Enregistrer | Soumission enregistre compte + Airtable | Oui — POST `/parametres` appelle `ecrireAirTable` en plus de `ecrireCompte` |

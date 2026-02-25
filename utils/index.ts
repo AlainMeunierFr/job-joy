@@ -3,7 +3,7 @@
  * À utiliser depuis app/, composants, scripts CLI ou steps BDD.
  */
 export { validerParametresCompte, type OptionsValidationCompte } from './validation-compte.js';
-export { ecrireCompte, lireCompte } from './compte-io.js';
+export { ecrireCompte, lireCompte, enregistrerCompteEtNotifierSiConsentement } from './compte-io.js';
 export { executerTestConnexion } from './test-connexion-compte.js';
 export {
   executerConfigurationAirtable,
@@ -19,7 +19,23 @@ export {
   type AirtableDriverReelOptions,
 } from './airtable-driver-reel.js';
 export { getUrlOuvertureBase } from './airtable-url.js';
-export type { ParametresCompte, ComptePersiste, CompteLu, ResultatValidation, ResultatTestConnexion, ConnecteurEmail } from '../types/compte.js';
+export type {
+  ParametresCompte,
+  ComptePersiste,
+  CompteLu,
+  ResultatValidation,
+  ResultatTestConnexion,
+  ConnecteurEmail,
+  ParametresEmailIdentification,
+  ResultatEnvoiEmailIdentification,
+  EnvoyeurEmailIdentification,
+  ResultatEnregistrementCompteAvecNotification,
+} from '../types/compte.js';
+export { getTexteConsentementIdentification } from './texte-consentement-identification.js';
+export {
+  getParametresEmailIdentification,
+  envoyerEmailIdentification,
+} from './envoi-email-identification.js';
 export {
   executerReleveOffresLinkedIn,
   STATUT_A_COMPLETER,

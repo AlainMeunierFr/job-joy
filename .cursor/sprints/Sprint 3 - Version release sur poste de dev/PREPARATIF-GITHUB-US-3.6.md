@@ -17,11 +17,18 @@
 - **Objectif** : à chaque tag (ex. `v1.0.0`), une action build l’exe Electron et le publie en asset de la release.
 - **Préparatif** : rien côté “paramètres” GitHub. Il suffit d’ajouter un workflow dans le repo (ex. `.github/workflows/release-electron.yml`) qui se déclenche sur `push` de tag `v*`, build avec electron-builder, et upload l’artifact sur la release. On peut le prévoir dans l’US (TDD ou script de release).
 
-## 4. Résumé
+## 4. Page de téléchargement (docs/telecharger.html)
+
+- La page « Télécharger pour Windows » (version + lien vers le .exe/.msi) est dans **docs/telecharger.html**.
+- Avec **GitHub Pages** (Settings → Pages → Source : dossier **/docs**), l’URL est simple : `https://TON_USER.github.io/job-joy/telecharger.html` (pas de « docs » dans l’URL).
+- Dans le fichier, remplacer **GITHUB_REPO** par ton dépôt (ex. `'AlainMeunierFr/job-joy'`).
+
+## 5. Résumé
 
 | Besoin                         | Préparatif GitHub |
 |--------------------------------|-------------------|
 | Télécharger un exe (manuel)    | Aucun             |
+| Page de téléchargement         | docs/telecharger.html ; GitHub Pages source /docs → URL simple |
 | Mises à jour (repo public)     | Aucun             |
 | Mises à jour (repo privé)      | Token PAT `repo`  |
 | Build auto sur tag (optionnel) | Workflow Actions  |

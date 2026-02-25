@@ -13,6 +13,7 @@ import {
   type AuthenticationResult,
   type DeviceCodeRequest,
 } from '@azure/msal-node';
+import { messageErreurReseau } from './erreur-reseau.js';
 
 const SCOPES_MAIL = [
   'https://graph.microsoft.com/Mail.ReadWrite',
@@ -330,7 +331,7 @@ export async function getValidAccessToken(): Promise<string> {
       }
       return refreshed.accessToken;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = messageErreurReseau(err);
       throw new Error(
         `Impossible de régénérer le token (refresh expiré ou invalide). Relancez : npm run cli:auth-microsoft. Détail : ${msg}`
       );

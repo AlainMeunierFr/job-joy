@@ -1,6 +1,7 @@
 /**
- * Tests pour appelerClaudeCode (US-2.4, baby step 3).
+ * Tests pour appelerClaudeCode (US-2.4, baby step 3 ; US-3.14 message erreur réseau).
  */
+import { MESSAGE_ERREUR_RESEAU } from './erreur-reseau.js';
 import { appelerClaudeCode } from './appeler-claudecode.js';
 
 describe('appelerClaudeCode', () => {
@@ -96,4 +97,21 @@ describe('appelerClaudeCode', () => {
     expect(result).toEqual({ ok: true, texte: 'OK' });
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
+
+  it(
+    'retourne message utilisateur clair après échec réseau (toutes tentatives)',
+    async () => {
+      const mockFetch = jest.fn().mockRejectedValue(new Error('fetch failed'));
+      const result = await appelerClaudeCode(
+        dataDir,
+        'System',
+        'User',
+        mockFetch,
+        () => 'sk-ant-key'
+      );
+      expect(result.ok).toBe(false);
+      expect((result as { message?: string }).message).toContain(MESSAGE_ERREUR_RESEAU);
+    },
+    15_000
+  );
 });

@@ -17,8 +17,9 @@ function Afficher-Menu {
     Write-Host "  4. Forcer kill des process sur 3001 puis relancer le serveur"
     Write-Host "  --- GitHub ---"
     Write-Host "  5. Voir l'etat Git (status)"
-    Write-Host "  6. Sauvegarder sur GitHub (add + commit + push)"
+    Write-Host "  6. Sauvegarder sur GitHub (add + commit + push, sans version)"
     Write-Host "  7. Recuperer les mises a jour (git pull)"
+    Write-Host "  8. Publier une version (bump + commit + tag + push)"
     Write-Host "  Q. Quitter"
     Write-Host ""
 }
@@ -182,6 +183,81 @@ function Invoke-Sauvegarder-GitHub {
     }
 }
 
+function Invoke-Publier-Version {
+    Push-Location $PSScriptRoot
+    try {
+        if (-not (Test-Path ".git")) {
+            Write-Host "Ce dossier n'est pas un depot Git." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        Write-Host "Publier une version (W.X.Y.Z)" -ForegroundColor Cyan
+        Write-Host "  W=major, X=schema, Y=feature, Z=hotfix" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "  1. major   (grosses modifications)"
+        Write-Host "  2. schema  (changement schéma Airtable / parametres.json)"
+        Write-Host "  3. feature (nouvelle fonctionnalite)"
+        Write-Host "  4. hotfix  (corrections de bugs)"
+        Write-Host "  0. Annuler"
+        Write-Host ""
+        $typeChoix = Read-Host "Choix du type (1-4)"
+        $type = switch ($typeChoix) {
+            "1" { "major" }
+            "2" { "schema" }
+            "3" { "feature" }
+            "4" { "hotfix" }
+            default { $null }
+        }
+        if (-not $type) {
+            Write-Host "Annule." -ForegroundColor Yellow
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+
+        Write-Host "Build puis bump version ($type)..." -ForegroundColor Gray
+        npm run build 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Build en echec." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        $nextVer = (node dist/scripts/bump-version-cli.js $type 2>&1 | Select-Object -Last 1).ToString().Trim()
+        if (-not $nextVer -or $nextVer -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+            Write-Host "Bump en echec ou version invalide : $nextVer" -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        $tagName = "v$nextVer"
+        Write-Host "Nouvelle version : $tagName" -ForegroundColor Green
+
+        git add -A
+        git commit -m "Release $tagName"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Commit en echec (rien a committer ?)." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        git tag $tagName
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Tag en echec (tag existant ?)." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        Write-Host "Push commit + tag..." -ForegroundColor Gray
+        git push
+        git push origin $tagName
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Version $tagName publiee." -ForegroundColor Green
+        } else {
+            Write-Host "Push en echec. Verifiez la remote et vos acces." -ForegroundColor Red
+        }
+        Write-Host ""
+        Read-Host "Appuyez sur Entree pour revenir au menu"
+    } finally {
+        Pop-Location
+    }
+}
+
 function Invoke-GitPull {
     Push-Location $PSScriptRoot
     try {
@@ -235,6 +311,7 @@ do {
         "5" { Invoke-GitStatus }
         "6" { Invoke-Sauvegarder-GitHub }
         "7" { Invoke-GitPull }
+        "8" { Invoke-Publier-Version }
         "q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         "Q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         default { Write-Host "Choix invalide." -ForegroundColor Red; Start-Sleep -Seconds 2 }

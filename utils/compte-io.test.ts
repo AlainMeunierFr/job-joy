@@ -5,7 +5,13 @@
 import { mkdtempSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ecrireCompte, lireCompte } from './compte-io.js';
+import type { EnvoyeurEmailIdentification } from '../types/compte.js';
+import {
+  ecrireCompte,
+  lireCompte,
+  enregistrerCompteEtNotifierSiConsentement,
+} from './compte-io.js';
+import { lireEmailIdentificationDejaEnvoye } from './parametres-io.js';
 
 const TEST_KEY = '0'.repeat(64);
 
@@ -106,5 +112,119 @@ describe('lireCompte (baby step 5)', () => {
   it('retourne null si parametres.json absent', () => {
     const lu = lireCompte(dataDir);
     expect(lu).toBeNull();
+  });
+
+  it('après écriture avec consentementIdentification true, lireCompte retourne consentementIdentification true', () => {
+    ecrireCompte(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    });
+    const lu = lireCompte(dataDir);
+    expect(lu).not.toBeNull();
+    expect(lu!.consentementIdentification).toBe(true);
+  });
+
+  it('après écriture sans consentement, lireCompte retourne consentementIdentification false', () => {
+    ecrireCompte(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+    });
+    const lu = lireCompte(dataDir);
+    expect(lu).not.toBeNull();
+    expect(lu!.consentementIdentification).toBe(false);
+  });
+});
+
+describe('enregistrerCompteEtNotifierSiConsentement (US-3.15)', () => {
+  let dataDir: string;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(join(tmpdir(), 'compte-io-notif-'));
+    process.env.PARAMETRES_ENCRYPTION_KEY = TEST_KEY;
+  });
+
+  afterEach(() => {
+    rmSync(dataDir, { recursive: true, force: true });
+    delete process.env.PARAMETRES_ENCRYPTION_KEY;
+  });
+
+  it('sauvegarde OK + envoi OK → sauvegardeOk true, envoiEmail ok true, flag envoyé à true', async () => {
+    const port: EnvoyeurEmailIdentification = {
+      async envoyer() {
+        return { ok: true };
+      },
+    };
+    const result = await enregistrerCompteEtNotifierSiConsentement(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    }, port);
+    expect(result.sauvegardeOk).toBe(true);
+    expect(result.envoiEmail).toEqual({ ok: true });
+    expect(lireEmailIdentificationDejaEnvoye(dataDir)).toBe(true);
+  });
+
+  it('sauvegarde OK + envoi KO → sauvegarde considérée réussie, envoiEmail ok false', async () => {
+    const port: EnvoyeurEmailIdentification = {
+      async envoyer() {
+        return { ok: false, message: 'SMTP refused' };
+      },
+    };
+    const result = await enregistrerCompteEtNotifierSiConsentement(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    }, port);
+    expect(result.sauvegardeOk).toBe(true);
+    expect(result.envoiEmail).toEqual({ ok: false, message: 'SMTP refused' });
+  });
+
+  it('sans consentement → pas d\'envoi, sauvegardeOk true', async () => {
+    const envoye: unknown[] = [];
+    const port: EnvoyeurEmailIdentification = {
+      async envoyer(params) {
+        envoye.push(params);
+        return { ok: true };
+      },
+    };
+    const result = await enregistrerCompteEtNotifierSiConsentement(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+      consentementIdentification: false,
+    }, port);
+    expect(result.sauvegardeOk).toBe(true);
+    expect(result.envoiEmail).toBeUndefined();
+    expect(envoye).toHaveLength(0);
+  });
+
+  it('consentement déjà envoyé → pas de second envoi', async () => {
+    const envoye: unknown[] = [];
+    const port: EnvoyeurEmailIdentification = {
+      async envoyer(params) {
+        envoye.push(params);
+        return { ok: true };
+      },
+    };
+    await enregistrerCompteEtNotifierSiConsentement(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    }, port);
+    expect(envoye).toHaveLength(1);
+    const result2 = await enregistrerCompteEtNotifierSiConsentement(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: '',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    }, port);
+    expect(result2.sauvegardeOk).toBe(true);
+    expect(envoye).toHaveLength(1);
   });
 });

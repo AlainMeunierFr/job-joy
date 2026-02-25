@@ -4,7 +4,11 @@
  * En cas de succès, écrit apiKey et IDs dans data/parametres.json.
  * Préserve l’URL de la base si elle était déjà stockée (pour le bouton « Ouvrir Airtable » du tableau de bord).
  */
+import { messageErreurReseau, MESSAGE_ERREUR_RESEAU } from './erreur-reseau.js';
 import { lireAirTable, ecrireAirTable } from './parametres-airtable.js';
+
+/** Délai avant 1 retry en cas d’erreur réseau (CA5 US-3.14). */
+const RETRY_DELAY_MS = 1500;
 
 export type ResultatConfigurationAirtable =
   | { ok: true; baseId: string; sourcesId: string; offresId: string }
@@ -31,17 +35,24 @@ export async function executerConfigurationAirtable(
     return { ok: false, message: "L'API Key est vide ou absente." };
   }
   const key = apiKey.trim();
-  try {
-    const { baseId, sourcesId, offresId } = await driver.creerBaseEtTables(key);
-    const existing = lireAirTable(dataDir);
-    const baseToStore =
-      existing?.base?.trim().startsWith('http') ? existing.base!.trim() : baseId;
-    ecrireAirTable(dataDir, { apiKey: key, base: baseToStore, sources: sourcesId, offres: offresId });
-    return { ok: true, baseId, sourcesId, offresId };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    return { ok: false, message };
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const { baseId, sourcesId, offresId } = await driver.creerBaseEtTables(key);
+      const existing = lireAirTable(dataDir);
+      const baseToStore =
+        existing?.base?.trim().startsWith('http') ? existing.base!.trim() : baseId;
+      ecrireAirTable(dataDir, { apiKey: key, base: baseToStore, sources: sourcesId, offres: offresId });
+      return { ok: true, baseId, sourcesId, offresId };
+    } catch (e) {
+      const message = messageErreurReseau(e);
+      if (message === MESSAGE_ERREUR_RESEAU && attempt === 1) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+      return { ok: false, message };
+    }
   }
+  return { ok: false, message: MESSAGE_ERREUR_RESEAU };
 }
 
 /**

@@ -108,7 +108,7 @@ export async function getParametresContent(
   const guidesDir = options?.resourcesDir
     ? join(options.resourcesDir, 'guides')
     : join(dataDir, 'ressources');
-  const pathAirtable = join(guidesDir, options?.resourcesDir ? 'CreationCompteAirtable.html' : 'CréationCompteAirTable.html');
+  const pathAirtable = join(guidesDir, 'CreationCompteAirtable.html');
   const pathClaude = join(guidesDir, 'CréationCompteClaudeCode.html');
   let tutorielAirtableHtml = '';
   try {
@@ -165,6 +165,7 @@ export async function getParametresContent(
   const imapHost = compte?.imapHost ?? '';
   const imapPort = compte?.imapPort ?? 993;
   const imapSecure = compte?.imapSecure !== false;
+  const consentementIdentification = compte?.consentementIdentification === true;
 
   const blocImapHtml = `
       <div id="bloc-imap" class="blocProvider blocProvider-imap">
@@ -378,6 +379,12 @@ export async function getParametresContent(
             <span id="resultat-test-message" class="resultatTestMessage" role="status" data-type="">Cliquez sur « Tester connexion » pour lancer le test.</span>
           </div>
         </fieldset>
+        <div class="fieldGroup fieldGroup-consentement" aria-label="Consentement identification utilisateur">
+          <label class="labelCheckbox">
+            <input type="checkbox" id="consentement-identification" name="consentementIdentification" value="1" ${consentementIdentification ? 'checked' : ''} e2eid="e2eid-champ-consentement-identification" form="form-compte" />
+            J'accepte d'informer l'équipe job-joy et de communiquer mon adresse email pour le support et les retours beta.
+          </label>
+        </div>
         <div class="actions actions-formulaire">
           <button type="button" id="bouton-annuler" class="btnSecondary" e2eid="e2eid-bouton-annuler">Annuler</button>
           <button type="submit" id="bouton-enregistrer" e2eid="e2eid-bouton-enregistrer">Enregistrer</button>
@@ -477,6 +484,8 @@ export async function getParametresContent(
         parts.push('imapHost=' + encodeURIComponent((document.getElementById('imap-host') && document.getElementById('imap-host').value) || ''));
         parts.push('imapPort=' + encodeURIComponent((document.getElementById('imap-port') && document.getElementById('imap-port').value) || '993'));
         parts.push('imapSecure=' + ((document.getElementById('imap-secure') && document.getElementById('imap-secure').checked) ? '1' : '0'));
+        var consentementEl = document.getElementById('consentement-identification');
+        parts.push('consentementIdentification=' + (consentementEl && consentementEl.checked ? '1' : '0'));
         parts.push('airtableBase=' + encodeURIComponent((document.getElementById('airtable-base') && document.getElementById('airtable-base').value) || ''));
         var apiKeyEl = document.getElementById('airtable-api-key');
         if (apiKeyEl && apiKeyEl.value) parts.push('airtableApiKey=' + encodeURIComponent(apiKeyEl.value));
@@ -828,6 +837,8 @@ export interface OptionsPageParametres {
   promptIAPartieFixe?: string;
   /** True si au moins une offre Airtable a du texte (bouton Récupérer). US-2.4 */
   offreTestHasOffre?: boolean;
+  /** Répertoire des ressources projet (guides HTML). Si fourni, les tutoriels sont lus depuis resourcesDir/guides/. */
+  resourcesDir?: string;
 }
 
 export async function getPageParametres(
@@ -838,6 +849,40 @@ export async function getPageParametres(
   return getLayoutHtml('parametres', 'Paramètres', content, {
     configComplète: options?.configComplète,
   });
+}
+
+/** Page À propos (US-3.16) : changelog, support, licence GNU, mentions légales. */
+export function getPageAPropos(): string {
+  const content = `
+<div class="pageAPropos">
+  <h1>À propos</h1>
+
+  <section class="pageAProposSection" aria-labelledby="a-propos-changelog">
+    <h2 id="a-propos-changelog">Changelog / Release notes</h2>
+    <iframe class="airtable-embed" src="https://airtable.com/embed/appjJzOR9PJ50xcl7/shrAMjz8JVh14srWm?viewControls=on" frameborder="0" onmousewheel="" width="100%" height="533" style="background: transparent; border: 1px solid #ccc;" title="Release notes Airtable"></iframe>
+  </section>
+
+  <section class="pageAProposSection" aria-labelledby="a-propos-support">
+    <h2 id="a-propos-support">Support technique</h2>
+    <iframe class="airtable-embed" src="https://airtable.com/embed/appjJzOR9PJ50xcl7/pagNfcygkjTUOKEif/form" frameborder="0" onmousewheel="" width="100%" height="533" style="background: transparent; border: 1px solid #ccc;" title="Formulaire de création de ticket support"></iframe>
+  </section>
+
+  <section class="pageAProposSection pageAProposSectionLegal" aria-labelledby="a-propos-gnu">
+    <h2 id="a-propos-gnu">Licence et conformité (GNU)</h2>
+    <p>Ce logiciel est distribué sous licence <strong>GNU AGPL v3</strong> (ou ultérieure). Il est fourni «&nbsp;tel quel&nbsp;», sans garantie d'aucune sorte, explicite ou implicite, y compris les garanties de qualité marchande ou d'adéquation à un usage particulier.</p>
+    <p>Le code source est disponible sur demande auprès de l'éditeur (voir mentions légales). Conformément à la licence GNU AGPL, toute utilisation en réseau de cette application confère aux utilisateurs le droit de recevoir le code source correspondant.</p>
+    <p>Copyright &copy; Alain MEUNIER. Tous droits réservés selon les termes de la licence GNU AGPL v3.</p>
+  </section>
+
+  <section class="pageAProposSection pageAProposSectionLegal" aria-labelledby="a-propos-mentions">
+    <h2 id="a-propos-mentions">Mentions légales</h2>
+    <p><strong>Éditeur et responsable de publication</strong></p>
+    <p>Alain MEUNIER<br>
+    Email&nbsp;: <a href="mailto:alain@maep.fr">alain@maep.fr</a><br>
+    Site web&nbsp;: <a href="https://m-alain-et-possible.fr/" target="_blank" rel="noopener noreferrer">https://m-alain-et-possible.fr/</a></p>
+  </section>
+</div>`;
+  return getLayoutHtml('a-propos', 'À propos', content);
 }
 
 /** @deprecated Utiliser getPageParametres pour le layout avec menu. Conservé pour compatibilité (ex. BDD). */

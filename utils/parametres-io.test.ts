@@ -11,8 +11,11 @@ import {
   getDefaultParametres,
   lireParametres,
   ecrireParametres,
+  ecrireParametresFromForm,
   lirePartieModifiablePrompt,
   ecrirePartieModifiablePrompt,
+  lireEmailIdentificationDejaEnvoye,
+  marquerEmailIdentificationEnvoye,
 } from './parametres-io.js';
 
 const TEST_ENCRYPTION_KEY = '0'.repeat(64);
@@ -144,5 +147,57 @@ describe('section Paramétrage IA dans parametres.json', () => {
     });
     expect(lu?.parametrageIA?.scoresOptionnels).toEqual([]);
     expect(lu?.parametrageIA?.autresRessources).toBe('');
+  });
+});
+
+describe('emailIdentificationDejaEnvoye (US-3.15)', () => {
+  let dataDir: string;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(join(tmpdir(), 'parametres-io-ident-'));
+    process.env.PARAMETRES_ENCRYPTION_KEY = TEST_ENCRYPTION_KEY;
+  });
+
+  afterEach(() => {
+    rmSync(dataDir, { recursive: true, force: true });
+    delete process.env.PARAMETRES_ENCRYPTION_KEY;
+  });
+
+  it('après enregistrement compte avec consentement, emailIdentificationDejaEnvoye est false', () => {
+    ecrireParametresFromForm(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    });
+    expect(lireEmailIdentificationDejaEnvoye(dataDir)).toBe(false);
+  });
+
+  it('après marquerEmailIdentificationEnvoye, lireEmailIdentificationDejaEnvoye retourne true', () => {
+    ecrireParametresFromForm(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    });
+    marquerEmailIdentificationEnvoye(dataDir);
+    expect(lireEmailIdentificationDejaEnvoye(dataDir)).toBe(true);
+  });
+
+  it('ré-enregistrement avec consentement préserve le flag emailIdentificationDejaEnvoye', () => {
+    ecrireParametresFromForm(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    });
+    marquerEmailIdentificationEnvoye(dataDir);
+    ecrireParametresFromForm(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: '',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    });
+    expect(lireEmailIdentificationDejaEnvoye(dataDir)).toBe(true);
   });
 });

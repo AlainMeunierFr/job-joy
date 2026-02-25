@@ -3,6 +3,9 @@
  * Lance le serveur Node (dist/app/server.js) avec JOB_JOY_USER_DATA = userData,
  * attend que le serveur réponde, puis ouvre une BrowserWindow sur http://127.0.0.1:PORT.
  * Port 3002 pour Electron afin de coexister avec la version dev (port 3001) sur la même machine.
+ *
+ * US-3.12 Single instance : une seule instance, focus au second lancement.
+ * Vérification : scénarios BDD tests/bdd/single-instance.feature (E2E).
  */
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
@@ -11,6 +14,8 @@ const { spawn } = require('child_process');
 
 const PORT = Number(process.env.ELECTRON_APP_PORT) || 3002;
 let serverProcess = null;
+/** Référence à la fenêtre principale (US-3.12) pour focus/restore au second lancement. */
+let mainWindow = null;
 
 function getServerPath() {
   return path.join(app.getAppPath(), 'dist', 'app', 'server.js');
@@ -41,11 +46,28 @@ function createWindow() {
     height: 800,
     webPreferences: { nodeIntegration: false, contextIsolation: true },
   });
+  mainWindow = win;
   win.loadURL(`http://127.0.0.1:${PORT}`);
-  win.on('closed', () => { win.destroy(); });
+  win.on('closed', () => {
+    mainWindow = null;
+    win.destroy();
+  });
 }
 
+/** US-3.12 : second lancement → focus/restore la fenêtre existante, pas de nouvelle fenêtre. */
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
 app.whenReady().then(async () => {
+  if (!app.requestSingleInstanceLock()) {
+    app.quit();
+    return;
+  }
   const userDataDir = app.getPath('userData');
   const serverPath = getServerPath();
   const env = {

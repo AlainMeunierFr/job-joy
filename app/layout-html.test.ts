@@ -18,6 +18,15 @@ describe('getHeaderHtml', () => {
     expect(html).toContain('/parametres');
     expect(html).toContain('Paramètres');
   });
+
+  it('affiche le lien À propos et le marque actif sur la page À propos (US-3.16)', () => {
+    const htmlParametres = getHeaderHtml('parametres');
+    expect(htmlParametres).toContain('/a-propos');
+    expect(htmlParametres).toContain('À propos');
+    const htmlAPropos = getHeaderHtml('a-propos');
+    expect(htmlAPropos).toContain('appNavLinkActive');
+    expect(htmlAPropos).toContain('/a-propos');
+  });
 });
 
 describe('getPageTableauDeBord', () => {

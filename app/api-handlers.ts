@@ -27,7 +27,12 @@ import {
   getAnalyseIABackgroundState,
   type ResultatAnalyseIABackground,
 } from '../scripts/run-analyse-ia-background.js';
-import type { ConnecteurEmail, OptionsImap } from '../types/compte.js';
+import type {
+  ConnecteurEmail,
+  EnvoyeurEmailIdentification,
+  OptionsImap,
+  ParametresEmailIdentification,
+} from '../types/compte.js';
 import { maskEmail } from '../utils/mask-email.js';
 import { chargerEnvLocal } from '../utils/load-env-local.js';
 import { lireParametres } from '../utils/parametres-io.js';
@@ -86,6 +91,46 @@ export function setBddMockTestClaudecode(resultat: ResultatAppelClaude | null): 
 /** BDD : définir les lignes du tableau synthèse offres (null = utiliser produireTableauSynthese). */
 export function setBddMockTableauSynthese(lignes: LigneTableauSynthese[] | null | unknown): void {
   bddMockTableauSyntheseStore = Array.isArray(lignes) ? (lignes as LigneTableauSynthese[]) : null;
+}
+
+/** BDD (US-3.15) : spy des emails d'identification envoyés. Vidé au reset-compte. */
+const bddEmailsIdentificationEnvoyes: ParametresEmailIdentification[] = [];
+/** BDD : si true, le port spy simule un échec d'envoi. */
+let bddEnvoyeurIdentificationDoFail = false;
+
+const noopEnvoyeurIdentification: EnvoyeurEmailIdentification = {
+  envoyer: async () => ({ ok: true }),
+};
+
+const spyEnvoyeurIdentification: EnvoyeurEmailIdentification = {
+  envoyer: async (params: ParametresEmailIdentification) => {
+    if (bddEnvoyeurIdentificationDoFail) {
+      return { ok: false, message: 'mock failure' };
+    }
+    bddEmailsIdentificationEnvoyes.push(params);
+    return { ok: true };
+  },
+};
+
+/** Port d'envoi email identification : spy en BDD, noop sinon. */
+export function getEnvoyeurIdentificationPort(): EnvoyeurEmailIdentification {
+  return process.env.BDD_IN_MEMORY_STORE === '1' ? spyEnvoyeurIdentification : noopEnvoyeurIdentification;
+}
+
+/** BDD : vide la liste des emails enregistrés (appelé au reset-compte). */
+export function clearBddEmailsIdentificationEnvoyes(): void {
+  bddEmailsIdentificationEnvoyes.length = 0;
+}
+
+/** BDD : fait échouer le prochain envoi (scénario échec non bloquant). */
+export function setBddMockEnvoyeurIdentificationFail(fail: boolean): void {
+  bddEnvoyeurIdentificationDoFail = fail;
+}
+
+/** GET /api/test/emails-identification : retourne la liste des emails envoyés (spy BDD). */
+export function handleGetEmailsIdentification(res: ServerResponse): void {
+  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(bddEmailsIdentificationEnvoyes));
 }
 
 /** POST /api/test/set-mock-cache-audit : définit le cache RAM du dernier audit (US-3.3 BDD). Body: { entries?: Array<{ emailExpéditeur: string; "A importer"?: string | number }> }. */
@@ -1138,6 +1183,7 @@ export function handlePostCompte(
   const imapHost = String(body.imapHost ?? '').trim();
   const imapPort = Number(body.imapPort) || 993;
   const imapSecure = body.imapSecure !== '0' && body.imapSecure !== 'false';
+  const consentementIdentification = body.consentementIdentification === true || body.consentementIdentification === 'true';
   try {
     ecrireCompte(dataDir, {
       provider,
@@ -1148,6 +1194,7 @@ export function handlePostCompte(
       imapHost,
       imapPort,
       imapSecure,
+      consentementIdentification,
     });
     sendJson(res, 200, { ok: true });
   } catch (err) {
