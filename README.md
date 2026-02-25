@@ -1,22 +1,15 @@
-# Analyse offres
+# Job-Joy
 
-## Développement
+Tu es abonné à LinkedIn, APEC, Welcome to the Jungle, Job that Make Sense… Ta boîte se remplit de notifications, d’offres en doublon, et dans 90 % des fiches tu te demandes pourquoi tu perds ton temps. Et pourtant, une pépite peut s’y cacher.
 
-```bash
-npm run dev
-```
+**Job-Joy** relève ta messagerie, repère les emails utiles (par expéditeur), en extrait les offres et les centralise dans une base Airtable — en dédoublonnant. Il récupère le texte complet de chaque offre (sans pubs ni « afficher la suite »), le fait évaluer par une IA qui connaît ton profil (expériences, compétences, appétences), et calcule un score selon tes critères.
 
-Lance un build TypeScript puis le serveur (port 3001). Le serveur ne redémarre pas tout seul : après une modification du code, arrêter (Ctrl+C) puis relancer `npm run dev`.
+**Résultat** : ta BAL se vide de ces notifications, toutes les offres sont au même endroit, et tu ne lis plus que celles qui correspondent vraiment à ta recherche — sans perdre ton temps ni ta patience.
 
-- **`npm start`** : lance le serveur une seule fois (build manuel requis). Pour prod ou run ponctuel.
-- **`npm run dev`** : build + serveur. Pour le développement.
+---
 
-## Build et run
+## Télécharger (Windows)
 
-- **`npm run build`** : compile le TypeScript et génère `dist/app/site.css` (fusion globals + content-styles). À utiliser avant un déploiement ou `npm start`.
-- **`npm run dev`** : utilise `tsc` seul (pas de script CSS) ; le serveur sert le CSS depuis `app/*.css` à la volée.
+**[Télécharger la dernière version](https://github.com/AlainMeunierFr/job-joy/releases/latest)**
 
-```bash
-npm run build
-npm start
-```
+Exécutez l’installateur (.exe), choisissez le dossier d’installation. Raccourcis Bureau / Menu Démarrer créés. *(POC : certificat auto-signé — Windows peut afficher « Éditeur inconnu ».)*

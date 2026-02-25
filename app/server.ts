@@ -84,10 +84,21 @@ import { getUrlOuvertureBase } from '../utils/airtable-url.js';
 import { enregistrerAppel } from '../utils/log-appels-api.js';
 import { getDataDir } from '../utils/data-dir.js';
 
+process.on('uncaughtException', (err) => {
+  console.error('\n[ERREUR] Exception non gérée au démarrage ou en cours d’exécution:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('\n[ERREUR] Rejet non géré:', reason);
+  process.exit(1);
+});
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..');
 /** Répertoire des ressources projet (guides HTML, exemples) à la racine du projet. */
 const RESOURCES_DIR = join(PROJECT_ROOT, 'ressources');
+/** Répertoire docs (page téléchargement / À propos) pour GitHub et /docs/ */
+const DOCS_DIR = join(PROJECT_ROOT, 'docs');
 /**
  * DATA_DIR : en dev = projet/data (npm run dev), en version packagée Electron = userData (npm run start:electron).
  * Pour tester en mode "packagé" sans installer : lancer le serveur avec JOB_JOY_USER_DATA défini.
@@ -264,6 +275,7 @@ const server = createServer(async (req, res) => {
         promptIAPartieFixe: getPartieFixePromptIA(parametres?.parametrageIA ?? null),
         offreTestHasOffre,
         resourcesDir: RESOURCES_DIR,
+        docsDir: DOCS_DIR,
       })
     );
     return;
@@ -420,6 +432,30 @@ const server = createServer(async (req, res) => {
     });
     res.end(css);
     return;
+  }
+
+  if (req.method === 'GET' && pathname.startsWith('/docs/')) {
+    const name = pathname.slice('/docs/'.length).replace(/\/.*$/, '');
+    if (name && !name.includes('..') && !name.includes('\\')) {
+      const filePath = join(DOCS_DIR, name);
+      try {
+        const content = await readFile(filePath);
+        const ext = name.split('.').pop()?.toLowerCase();
+        const contentType =
+          ext === 'html' ? 'text/html; charset=utf-8'
+            : ext === 'png' ? 'image/png'
+            : ext === 'svg' ? 'image/svg+xml'
+            : 'application/octet-stream';
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=3600',
+        });
+        res.end(content);
+        return;
+      } catch {
+        /* fall through to 404 */
+      }
+    }
   }
 
   if (req.method === 'GET' && pathname.startsWith('/ressources/guides/')) {
@@ -1187,7 +1223,13 @@ server.listen(
   { port: PORT, host: '127.0.0.1', reuseAddress: true },
   () => {
     console.log(`Server listening on http://127.0.0.1:${PORT}`);
-    console.log(`Paramètres (parametres.json): ${join(DATA_DIR, 'parametres.json')}`);
+    const parametresPath = join(DATA_DIR, 'parametres.json');
+    console.log(`Paramètres (parametres.json): ${parametresPath}`);
+    if (existsSync(parametresPath) && lireParametres(DATA_DIR) === null) {
+      console.warn(
+        '[parametres] Le fichier parametres.json existe mais n’a pas pu être chargé (JSON invalide ou structure incorrecte). Corrigez le fichier ou renommez-le pour repartir des valeurs par défaut.'
+      );
+    }
     // Énumérations Airtable en arrière-plan (ne bloque pas).
     (async () => {
       try {

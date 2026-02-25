@@ -6,6 +6,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { lireCompte, lireAirTable } from '../utils/index.js';
+import { getListePluginsPourAvantPropos } from '../utils/source-plugins.js';
 import { maskEmail } from '../utils/mask-email.js';
 import { getLayoutHtml } from './layout-html.js';
 import type { ParametrageIA, Rehibitoire, ScoreOptionnel, ScoresIncontournables } from '../types/parametres.js';
@@ -28,6 +29,19 @@ const PLACEHOLDERS_SCORES_INCONTOURNABLES = [
 const PLACEHOLDER_OPTIONNEL_TITRE = "Ex. Langues, outils, secteur";
 const PLACEHOLDER_OPTIONNEL_ATTENTE =
   "Ex. Anglais C1, expérience Jira ou équivalent, secteur tech ou conseil. Attente ou grille de scoring.";
+
+/** Formate une date-heure ISO pour affichage rappel consentement (US-3.15 CA6). */
+function formatConsentementDateHeure(iso: string): { date: string; heure: string } {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return { date: iso, heure: '' };
+    const date = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return { date, heure };
+  } catch {
+    return { date: iso, heure: '' };
+  }
+}
 
 function normalizeParametrageIA(ia?: ParametrageIA | null): {
   rehibitoires: Rehibitoire[];
@@ -85,6 +99,8 @@ export interface OptionsParametresContent {
   offreTestHasOffre?: boolean;
   /** Répertoire des ressources projet (guides HTML, etc.). Si fourni, les tutoriels sont lus depuis resourcesDir/guides/ au lieu de dataDir/ressources/. */
   resourcesDir?: string;
+  /** Répertoire docs (ex. pour Avant propos = docs/telecharger.html). Si fourni, le bloc Avant propos charge ce fichier. */
+  docsDir?: string;
 }
 
 function getFlashMessageText(flash: FlashMicrosoft): string {
@@ -125,9 +141,39 @@ export async function getParametresContent(
   let tutorielClaudeCodeHtml = '';
   try {
     tutorielClaudeCodeHtml = await readFile(pathClaude, 'utf-8');
-    tutorielClaudeCodeHtml = tutorielClaudeCodeHtml.replace(/<!-- INJECT_CHAMP_API_KEY -->/g, '');
+    tutorielClaudeCodeHtml = tutorielClaudeCodeHtml
+      .replace(/<!-- INJECT_CHAMP_API_KEY -->/g, '')
+      .replace(/<\/script>/gi, '<\\/script>');
   } catch {
     tutorielClaudeCodeHtml = '<p class="tutorielAbsent">Fichier tutoriel absent.</p>';
+  }
+  let avantProposHtml = '';
+  if (options?.docsDir) {
+    try {
+      avantProposHtml = await readFile(join(options.docsDir, 'telecharger.html'), 'utf-8');
+      const listePlugins = getListePluginsPourAvantPropos();
+      const tablePluginsHtml =
+        '<table class="introParametrageListePlugins" aria-label="Liste des plugins par source">' +
+        '<thead><tr><th scope="col">Email</th><th scope="col">Plugin</th><th scope="col">Création</th><th scope="col">Enrichissement</th></tr></thead><tbody>' +
+        listePlugins
+          .map(
+            (l) =>
+              '<tr><td>' +
+              escapeHtml(l.email) +
+              '</td><td>' +
+              escapeHtml(l.plugin) +
+              '</td><td>' +
+              (l.creation ? 'Oui' : 'Non') +
+              '</td><td>' +
+              (l.enrichissement ? 'Oui' : 'Non') +
+              '</td></tr>'
+          )
+          .join('') +
+        '</tbody></table>';
+      avantProposHtml = avantProposHtml.replace(/<!-- INJECT_LISTE_PLUGIN -->/g, tablePluginsHtml);
+    } catch {
+      avantProposHtml = '<p class="tutorielAbsent">Fichier docs/telecharger.html absent.</p>';
+    }
   }
   const airtable = lireAirTable(dataDir);
   const hasApiKey = !!(airtable?.apiKey?.trim());
@@ -149,6 +195,7 @@ export async function getParametresContent(
   const compteEmailConfigured = !!(dossierAAnalyserConfigure && modeConnexionOk);
   const airtableOuvert = !tablesAirtableCreees;
   const connexionOuvert = !compteEmailConfigured || (options?.flashConfigManque && options.flashConfigManque.length > 0);
+  const introOuvert = !!(options?.flashConfigManque && options.flashConfigManque.length > 0);
   const flash = options?.flash;
   const baseUrl = (options?.baseUrl ?? '').replace(/\/$/, '');
   const hrefMicrosoft = baseUrl ? `${baseUrl}/api/auth/microsoft` : '/api/auth/microsoft';
@@ -172,6 +219,13 @@ export async function getParametresContent(
   const imapPort = compte?.imapPort ?? 993;
   const imapSecure = compte?.imapSecure !== false;
   const consentementIdentification = compte?.consentementIdentification === true;
+  const consentementEnvoyeLe = compte?.consentementEnvoyeLe ?? null;
+  const consentementDejaEnvoye =
+    typeof consentementEnvoyeLe === 'string' && consentementEnvoyeLe.trim() !== '';
+  const { date: consentementDate, heure: consentementHeure } = consentementDejaEnvoye
+    ? formatConsentementDateHeure(consentementEnvoyeLe.trim())
+    : { date: '', heure: '' };
+  /* Désactivation des boutons Tester connexion / Enregistrer : gérée en CSS (:has(#consentement-identification:not(:checked))) + JS (attribut disabled pour a11y). */
 
   const blocImapHtml = `
       <div id="bloc-imap" class="blocProvider blocProvider-imap">
@@ -220,10 +274,10 @@ export async function getParametresContent(
         ${flashDansBlocMicrosoft ? `<p class="flashSuccessMicrosoft" id="hint-microsoft">Connecté avec Microsoft. Vous n'aurez plus à ressaisir votre mot de passe pendant des mois.</p>` : `<p class="providerHint" id="hint-microsoft">Connecté avec Microsoft.</p>`}
         ${adresseDisplay ? `<p class="providerEmailInfo" aria-label="Adresse du compte">${escapeHtml(adresseDisplay)}</p>` : ''}
         ${joursRestantsHtml}
-        <p style="margin-top:var(--space-sm)"><a href="${hrefMicrosoft}" class="btnSecondary" style="text-decoration:none;display:inline-block;padding:var(--space-xs) var(--space-md);font-size:0.875rem" id="bouton-se-reconnecter-microsoft">Renouveler la connexion</a></p>
+        <p style="margin-top:var(--space-sm)"><a href="${hrefMicrosoft}" target="_blank" rel="noopener noreferrer" class="btnSecondary" style="text-decoration:none;display:inline-block;padding:var(--space-xs) var(--space-md);font-size:0.875rem" id="bouton-se-reconnecter-microsoft">Renouveler la connexion</a></p>
       </div>`
     : `<div id="bloc-microsoft" class="blocProvider blocProvider-microsoft">
-        <form method="get" action="${hrefMicrosoft}" style="display:inline">
+        <form method="get" action="${hrefMicrosoft}" target="_blank" style="display:inline">
           <button type="submit" class="btnPrimary" id="bouton-se-connecter-microsoft" e2eid="e2eid-bouton-se-connecter-microsoft">Se connecter</button>
         </form>
       </div>`;
@@ -242,7 +296,8 @@ export async function getParametresContent(
       </div>`;
   tutorielAirtableHtml = tutorielAirtableHtml
     .replace(INJECT_CHAMP_URL_BASE, champUrlBaseHtml)
-    .replace(INJECT_CHAMP_API_KEY, champApiKeyHtml);
+    .replace(INJECT_CHAMP_API_KEY, champApiKeyHtml)
+    .replace(/<\/script>/gi, '<\\/script>');
 
   const ia = normalizeParametrageIA(options?.parametrageIA);
   const scoresIncontournablesRemplis =
@@ -250,7 +305,10 @@ export async function getParametresContent(
       (v) => (v ?? '').trim() !== ''
     );
   const parametrageIAConfigured = scoresIncontournablesRemplis;
-  const parametrageIAOuvert = !parametrageIAConfigured;
+  /** Paramétrage prompt de l'IA : rester ouvert (ajustements fréquents). */
+  const parametrageIAOuvert = true;
+  /** Configuration ClaudeCode : enroulé une fois l'API Key configurée. */
+  const claudecodeOuvert = !options?.claudecodeHasApiKey;
   const zoneRehibitoiresHtml = `
     <div class="zoneParametrageIA zoneRehibitoires" data-zone="rehibitoires" aria-labelledby="titre-zone-rehibitoires">
       <h3 id="titre-zone-rehibitoires" class="zoneParametrageIATitle">Rédhibitoires</h3>
@@ -317,6 +375,18 @@ export async function getParametresContent(
       <div class="actions actionsPromptIA">
         <button type="button" id="bouton-proposer-prompt" e2eid="e2eid-bouton-proposer-prompt">Proposer un prompt</button>
       </div>
+      <hr class="formDivider parametrageIADivider" aria-hidden="true" />
+      <div class="zoneTestClaudecode" data-layout="zone-test-claudecode" aria-labelledby="label-texte-offre-test">
+        <div class="fieldGroup">
+          <label for="texte-offre-test" id="label-texte-offre-test">Texte d'offre à tester</label>
+          <textarea id="texte-offre-test" name="texteOffreTest" rows="6" class="zoneTexteOffreTest" e2eid="e2eid-texte-offre-test" aria-label="Texte d'offre à tester"></textarea>
+        </div>
+        ${options?.offreTestHasOffre === true ? '<div class="actions actions-recuperer-offre"><button type="button" id="bouton-recuperer-texte-offre" e2eid="e2eid-bouton-recuperer-texte-offre">Récupérer le texte d\'une offre</button></div>' : ''}
+        <div class="actions actions-tester-api">
+          <button type="button" id="bouton-tester-api" e2eid="e2eid-bouton-tester-api">Tester API</button>
+        </div>
+        <div id="zone-resultat-test-claudecode" class="zoneResultatTestClaudecode" role="status" aria-live="polite" data-type="" aria-label="Résultat du test API ClaudeCode"></div>
+      </div>
     </div>`;
 
   const parametrageIASectionHtml = `
@@ -340,8 +410,17 @@ export async function getParametresContent(
       </div>
     </details>`;
 
+  const introParametrageHtml = `
+    <details class="blocParametrage blocParametrage-intro introParametrage" data-layout="intro-parametrage" aria-labelledby="titre-intro-parametrage" ${introOuvert ? 'open' : ''}>
+      <summary id="titre-intro-parametrage" class="blocParametrageSummary introParametrageTitle">Avant propos</summary>
+      <div class="blocParametrageContent blocParametrageContent-avantPropos">
+        ${avantProposHtml}
+      </div>
+    </details>`;
+
   return `<div class="pageParametres parametrageCompteEmail" data-layout="page-parametres">
     <h1 class="pageParametresTitle">Paramètres</h1>
+    ${introParametrageHtml}
     <details class="blocParametrage blocParametrage-airtable configurationAirtable" data-layout="configuration-airtable" aria-labelledby="titre-airtable" ${airtableOuvert ? 'open' : ''}>
       <summary id="titre-airtable" class="blocParametrageSummary">Configuration Airtable</summary>
       <div class="blocParametrageContent">
@@ -383,17 +462,19 @@ export async function getParametresContent(
             <label for="chemin-dossier-archive">Dossier pour archiver</label>
             <input type="text" id="chemin-dossier-archive" name="cheminDossierArchive" value="${escapeHtml(dossierArchive)}" placeholder="INBOX/Traité" e2eid="e2eid-champ-chemin-dossier-archive" />
           </div>
+        <div class="fieldGroup fieldGroup-consentement" aria-label="Consentement identification utilisateur">
+          ${consentementDejaEnvoye ? `<p class="consentementRappel">Le consentement a été donné le ${escapeHtml(consentementDate)} à ${escapeHtml(consentementHeure)}.</p>` : `
+          <label class="labelCheckbox">
+            <input type="checkbox" id="consentement-identification" name="consentementIdentification" value="1" ${consentementIdentification ? 'checked' : ''} e2eid="e2eid-champ-consentement-identification" form="form-compte" />
+            En cochant cette case j'accepte qu'un email soit envoyé à Alain Meunier, auteur de job-joy, pour l'informer que j'utilise le logiciel. Il sera utilisé pour le support et les retours du beta-test.
+          </label>
+        `}
+        </div>
           <div class="actions actions-dossier">
             <button type="button" id="bouton-test-connexion" e2eid="e2eid-bouton-test-connexion">Tester connexion</button>
             <span id="resultat-test-message" class="resultatTestMessage" role="status" data-type="">Cliquez sur « Tester connexion » pour lancer le test.</span>
           </div>
         </fieldset>
-        <div class="fieldGroup fieldGroup-consentement" aria-label="Consentement identification utilisateur">
-          <label class="labelCheckbox">
-            <input type="checkbox" id="consentement-identification" name="consentementIdentification" value="1" ${consentementIdentification ? 'checked' : ''} e2eid="e2eid-champ-consentement-identification" form="form-compte" />
-            J'accepte d'informer l'équipe job-joy et de communiquer mon adresse email pour le support et les retours beta.
-          </label>
-        </div>
         <div class="actions actions-formulaire">
           <button type="button" id="bouton-annuler" class="btnSecondary" e2eid="e2eid-bouton-annuler">Annuler</button>
           <button type="submit" id="bouton-enregistrer" e2eid="e2eid-bouton-enregistrer">Enregistrer</button>
@@ -417,8 +498,7 @@ export async function getParametresContent(
     <div id="feedback-enregistrement" class="feedbackEnregistrement${feedbackErreurClass}" aria-live="polite" data-type="${flashTextConfig ? 'erreur' : 'info'}">${escapeHtml(flashText)}</div>
       </div>
     </details>
-    ${parametrageIASectionHtml}
-    <details class="blocParametrage blocParametrage-claudecode" data-layout="configuration-claudecode" aria-labelledby="titre-claudecode">
+    <details class="blocParametrage blocParametrage-claudecode" data-layout="configuration-claudecode" aria-labelledby="titre-claudecode" ${claudecodeOuvert ? 'open' : ''}>
       <summary id="titre-claudecode" class="blocParametrageSummary">Configuration ClaudeCode</summary>
       <div class="blocParametrageContent detailsBlocParametrageClaudecode">
         <div id="zone-tutoriel-claudecode" class="zoneTutorielClaudecode" aria-label="Tutoriel création compte ClaudeCode et obtention API Key">${tutorielClaudeCodeHtml}</div>
@@ -430,427 +510,11 @@ export async function getParametresContent(
         <div class="actions actions-configuration-claudecode">
           <button type="button" id="bouton-enregistrer-claudecode" e2eid="e2eid-bouton-enregistrer-claudecode">Enregistrer</button>
         </div>
-        <hr class="formDivider" aria-hidden="true" />
-        <div class="zoneTestClaudecode" data-layout="zone-test-claudecode" aria-labelledby="label-texte-offre-test">
-          <div class="fieldGroup">
-            <label for="texte-offre-test" id="label-texte-offre-test">Texte d'offre à tester</label>
-            <textarea id="texte-offre-test" name="texteOffreTest" rows="6" class="zoneTexteOffreTest" e2eid="e2eid-texte-offre-test" aria-label="Texte d'offre à tester"></textarea>
-          </div>
-          ${options?.offreTestHasOffre === true ? '<div class="actions actions-recuperer-offre"><button type="button" id="bouton-recuperer-texte-offre" e2eid="e2eid-bouton-recuperer-texte-offre">Récupérer le texte d\'une offre</button></div>' : ''}
-          <div class="actions actions-tester-api">
-            <button type="button" id="bouton-tester-api" e2eid="e2eid-bouton-tester-api">Tester API</button>
-          </div>
-          <div id="zone-resultat-test-claudecode" class="zoneResultatTestClaudecode" role="status" aria-live="polite" data-type="" aria-label="Résultat du test API ClaudeCode"></div>
-        </div>
       </div>
     </details>
+    ${parametrageIASectionHtml}
   </div>
-  <script>
-    function escapeHtml(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-    document.addEventListener('click', function(e) {
-      var t = e.target;
-      if (!t) return;
-      var origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
-      if (t.id === 'toggle-password' || (t.closest && t.closest('#toggle-password'))) {
-        e.preventDefault();
-        var pwd = document.getElementById('mot-de-passe');
-        var btn = document.getElementById('toggle-password');
-        if (pwd && btn) {
-          var isPwd = pwd.type === 'password';
-          pwd.type = isPwd ? 'text' : 'password';
-          btn.setAttribute('aria-label', isPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
-          btn.setAttribute('title', isPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
-          var eye = btn.querySelector('.iconEye');
-          var eyeOff = btn.querySelector('.iconEyeOff');
-          if (eye) eye.hidden = !isPwd;
-          if (eyeOff) eyeOff.hidden = isPwd;
-        }
-        return;
-      }
-      if (t.id === 'bouton-annuler' || (t.closest && t.closest('#bouton-annuler'))) {
-        e.preventDefault();
-        window.location.href = origin + '/tableau-de-bord';
-        return;
-      }
-      if (t.id === 'bouton-enregistrer' || (t.closest && t.closest('#bouton-enregistrer'))) {
-        e.preventDefault();
-        var formEl = document.getElementById('form-compte');
-        if (!formEl) return;
-        var providerEl = document.querySelector('input[name="provider"]:checked');
-        var providerVal = providerEl ? providerEl.value : 'imap';
-        var adresse = (document.getElementById('adresse-email') && document.getElementById('adresse-email').value) || '';
-        if (providerVal === 'microsoft' && !adresse.trim()) {
-          var mb = document.getElementById('bloc-microsoft');
-          var pe = mb && mb.querySelector('.providerEmailInfo');
-          adresse = (pe && pe.textContent && pe.textContent.trim()) || '';
-        }
-        var parts = [];
-        parts.push('provider=' + encodeURIComponent(providerVal));
-        parts.push('adresseEmail=' + encodeURIComponent(adresse));
-        parts.push('motDePasse=' + encodeURIComponent((document.getElementById('mot-de-passe') && document.getElementById('mot-de-passe').value) || ''));
-        parts.push('cheminDossier=' + encodeURIComponent((document.getElementById('chemin-dossier') && document.getElementById('chemin-dossier').value) || ''));
-        parts.push('cheminDossierArchive=' + encodeURIComponent((document.getElementById('chemin-dossier-archive') && document.getElementById('chemin-dossier-archive').value) || ''));
-        parts.push('imapHost=' + encodeURIComponent((document.getElementById('imap-host') && document.getElementById('imap-host').value) || ''));
-        parts.push('imapPort=' + encodeURIComponent((document.getElementById('imap-port') && document.getElementById('imap-port').value) || '993'));
-        parts.push('imapSecure=' + ((document.getElementById('imap-secure') && document.getElementById('imap-secure').checked) ? '1' : '0'));
-        var consentementEl = document.getElementById('consentement-identification');
-        parts.push('consentementIdentification=' + (consentementEl && consentementEl.checked ? '1' : '0'));
-        parts.push('airtableBase=' + encodeURIComponent((document.getElementById('airtable-base') && document.getElementById('airtable-base').value) || ''));
-        var apiKeyEl = document.getElementById('airtable-api-key');
-        if (apiKeyEl && apiKeyEl.value) parts.push('airtableApiKey=' + encodeURIComponent(apiKeyEl.value));
-        var body = parts.join('&');
-        var btnSave = document.getElementById('bouton-enregistrer');
-        var feedbackSave = document.getElementById('feedback-enregistrement');
-        if (btnSave) btnSave.disabled = true;
-        if (feedbackSave) { feedbackSave.textContent = ''; feedbackSave.removeAttribute('data-type'); }
-        fetch(origin + '/parametres', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
-          .then(function(r) {
-            if (!r.ok) {
-              return r.json().then(function(b) {
-                var msg = (b && b.message) ? b.message : 'Erreur lors de l\'enregistrement.';
-                if (feedbackSave) {
-                  feedbackSave.textContent = msg;
-                  feedbackSave.setAttribute('data-type', 'erreur');
-                  feedbackSave.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-                throw new Error(msg);
-              });
-            }
-            window.location.href = origin + '/tableau-de-bord';
-          })
-          .catch(function(err) {
-            if (feedbackSave && !feedbackSave.textContent) {
-              feedbackSave.textContent = (err && err.message) ? err.message : 'Requête échouée. Les données n\'ont pas été enregistrées.';
-              feedbackSave.setAttribute('data-type', 'erreur');
-              feedbackSave.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-          })
-          .finally(function() { if (btnSave) btnSave.disabled = false; });
-        return;
-      }
-      if (t.id === 'bouton-test-connexion' || (t.closest && t.closest('#bouton-test-connexion'))) {
-        e.preventDefault();
-        e.stopPropagation();
-        var zone = document.getElementById('resultat-test-message');
-        if (!zone) return;
-        var form = document.getElementById('form-compte');
-        var providerEl = document.querySelector('input[name="provider"]:checked');
-        var providerVal = providerEl ? providerEl.value : 'imap';
-        var adresseFromForm = (document.getElementById('adresse-email') && document.getElementById('adresse-email').value) || '';
-        if (providerVal === 'microsoft' && !adresseFromForm) {
-          var microsoftBloc = document.getElementById('bloc-microsoft');
-          var emailEl = microsoftBloc && microsoftBloc.querySelector('.providerEmailInfo');
-          adresseFromForm = (emailEl && emailEl.textContent && emailEl.textContent.trim()) || '';
-        }
-        var payload = {
-          provider: providerVal,
-          adresseEmail: adresseFromForm,
-          motDePasse: (document.getElementById('mot-de-passe') && document.getElementById('mot-de-passe').value) || '',
-          cheminDossier: (document.getElementById('chemin-dossier') && document.getElementById('chemin-dossier').value) || '',
-          cheminDossierArchive: (document.getElementById('chemin-dossier-archive') && document.getElementById('chemin-dossier-archive').value) || '',
-          imapHost: (document.getElementById('imap-host') && document.getElementById('imap-host').value) || '',
-          imapPort: (document.getElementById('imap-port') && document.getElementById('imap-port').value) ? Number(document.getElementById('imap-port').value) : 993,
-          imapSecure: (document.getElementById('imap-secure') && document.getElementById('imap-secure').checked)
-        };
-        var tokenTestEl = document.getElementById('token-test');
-        if (tokenTestEl && tokenTestEl.value) payload.accessToken = tokenTestEl.value;
-        var tab = document.getElementById('tableau-resultat');
-        var tb = tab ? tab.querySelector('tbody') : null;
-        var btnTest = document.getElementById('bouton-test-connexion');
-        zone.textContent = 'test en cours';
-        zone.setAttribute('data-type', 'attente');
-        if (btnTest) btnTest.disabled = true;
-        var sectionTest = document.getElementById('zone-resultat-test');
-        if (sectionTest) sectionTest.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        fetch(origin + '/api/test-connexion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-          .then(function(r) { return r.text(); })
-          .then(function(text) {
-            var data;
-            try { data = text ? JSON.parse(text) : null; } catch (err) { data = { ok: false, message: 'Réponse invalide' }; }
-            var type = data && data.ok ? 'succès' : 'erreur';
-            var nb = (data && data.ok && data.nbEmails != null) ? data.nbEmails : 0;
-            var msg = (data && data.ok)
-              ? ('Dossier « ' + escapeHtml(payload.cheminDossier || '') + ' » trouvé. ' + nb + ' email(s) à l\\'intérieur.')
-              : ((data && data.message) || 'Erreur inconnue');
-            if (type === 'erreur' && (msg === 'Command failed' || /^Command failed/i.test(msg))) {
-              msg = 'Connexion au serveur impossible. Vérifiez l\'hôte IMAP, le port, le mot de passe (ou mot de passe d\'application) et le chemin du dossier.';
-            }
-            zone.textContent = type + ': ' + msg;
-            zone.setAttribute('data-type', type);
-            if (tab) tab.hidden = false;
-            if (tb) tb.innerHTML = '<tr><td>' + escapeHtml(payload.adresseEmail) + '</td><td>[masqué]</td><td>' + escapeHtml(payload.cheminDossier) + '</td><td>' + type + '</td><td>' + escapeHtml(msg) + '</td></tr>';
-            if (sectionTest) sectionTest.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          })
-          .catch(function(err) {
-            var msg = (err && err.message) ? err.message : 'requête échouée';
-            if (msg === 'Command failed' || /^Command failed/i.test(msg)) {
-              msg = 'Connexion au serveur impossible. Vérifiez l\'hôte IMAP, le port, le mot de passe (ou mot de passe d\'application) et le chemin du dossier.';
-            }
-            zone.textContent = 'erreur: ' + msg;
-            zone.setAttribute('data-type', 'erreur');
-            if (tab) tab.hidden = false;
-            if (tb) tb.innerHTML = '';
-            if (sectionTest) sectionTest.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          })
-          .finally(function() { if (btnTest) btnTest.disabled = false; });
-        return;
-      }
-      if (t.id === 'bouton-enregistrer-parametrage-ia' || (t.closest && t.closest('#bouton-enregistrer-parametrage-ia'))) {
-        e.preventDefault();
-        var rehibitoires = [];
-        for (var ri = 0; ri < 4; ri++) {
-          var titreEl = document.getElementById('parametrage-ia-rehibitoires-' + ri + '-titre');
-          var descEl = document.getElementById('parametrage-ia-rehibitoires-' + ri + '-description');
-          rehibitoires.push({ titre: titreEl ? titreEl.value : '', description: descEl ? descEl.value : '' });
-        }
-        var scoresIncontournables = {
-          localisation: (document.getElementById('parametrage-ia-scores-incontournables-localisation') && document.getElementById('parametrage-ia-scores-incontournables-localisation').value) || '',
-          salaire: (document.getElementById('parametrage-ia-scores-incontournables-salaire') && document.getElementById('parametrage-ia-scores-incontournables-salaire').value) || '',
-          culture: (document.getElementById('parametrage-ia-scores-incontournables-culture') && document.getElementById('parametrage-ia-scores-incontournables-culture').value) || '',
-          qualiteOffre: (document.getElementById('parametrage-ia-scores-incontournables-qualiteOffre') && document.getElementById('parametrage-ia-scores-incontournables-qualiteOffre').value) || ''
-        };
-        var scoresOptionnels = [];
-        for (var si = 0; si < 4; si++) {
-          var stEl = document.getElementById('parametrage-ia-scores-optionnels-' + si + '-titre');
-          var saEl = document.getElementById('parametrage-ia-scores-optionnels-' + si + '-attente');
-          scoresOptionnels.push({ titre: stEl ? stEl.value : '', attente: saEl ? saEl.value : '' });
-        }
-        var autresRessourcesEl = document.getElementById('parametrage-ia-autres-ressources');
-        var autresRessources = autresRessourcesEl ? autresRessourcesEl.value : '';
-        var taPrompt = document.getElementById('prompt-ia-partie-modifiable');
-        var partieModifiable = (taPrompt && taPrompt.value) ? taPrompt.value : '';
-        var btnIa = document.getElementById('bouton-enregistrer-parametrage-ia');
-        if (btnIa) btnIa.disabled = true;
-        fetch(origin + '/api/parametrage-ia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rehibitoires: rehibitoires, scoresIncontournables: scoresIncontournables, scoresOptionnels: scoresOptionnels, autresRessources: autresRessources }) })
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (!data || !data.ok) return;
-            return fetch(origin + '/api/prompt-ia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ partieModifiable: partieModifiable }) })
-              .then(function(r2) { return r2.json(); })
-              .then(function(data2) { if (data2 && data2.ok) window.location.reload(); });
-          })
-          .finally(function() { if (btnIa) btnIa.disabled = false; });
-        return;
-      }
-      if (t.id === 'bouton-proposer-prompt' || (t.closest && t.closest('#bouton-proposer-prompt'))) {
-        e.preventDefault();
-        var ta = document.getElementById('prompt-ia-partie-modifiable');
-        if (!ta) return;
-        var btnProposer = document.getElementById('bouton-proposer-prompt');
-        if (btnProposer) btnProposer.disabled = true;
-        fetch(origin + '/api/prompt-ia')
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (data && typeof data.partieModifiableDefaut === 'string') ta.value = data.partieModifiableDefaut;
-          })
-          .finally(function() { if (btnProposer) btnProposer.disabled = false; });
-        return;
-      }
-      if (t.id === 'bouton-lancer-configuration-airtable' || (t.closest && t.closest('#bouton-lancer-configuration-airtable'))) {
-        e.preventDefault();
-        var statutEl = document.getElementById('statut-configuration-airtable');
-        var apiKeyEl = document.getElementById('airtable-api-key');
-        var baseEl = document.getElementById('airtable-base');
-        if (!statutEl) return;
-        var apiKey = (apiKeyEl && apiKeyEl.value) ? apiKeyEl.value.trim() : '';
-        var base = (baseEl && baseEl.value) ? baseEl.value.trim() : '';
-        statutEl.textContent = 'Configuration en cours…';
-        var btnConfig = document.getElementById('bouton-lancer-configuration-airtable');
-        if (btnConfig) btnConfig.disabled = true;
-        fetch(origin + '/api/configuration-airtable', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey: apiKey, base: base })
-        })
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            statutEl.textContent = (data && data.status) ? data.status : (data && data.ok ? 'AirTable prêt' : 'Erreur avec AirTable');
-          })
-          .catch(function(err) {
-            statutEl.textContent = 'Erreur avec AirTable : ' + (err && err.message ? err.message : 'requête échouée');
-          })
-          .finally(function() { if (btnConfig) btnConfig.disabled = false; });
-      }
-      if (t.id === 'bouton-enregistrer-claudecode' || (t.closest && t.closest('#bouton-enregistrer-claudecode'))) {
-        e.preventDefault();
-        var claudecodeInput = document.getElementById('claudecode-api-key');
-        var value = (claudecodeInput && claudecodeInput.value) ? claudecodeInput.value.trim() : '';
-        var body = value ? { apiKey: value } : {};
-        var btnClaude = document.getElementById('bouton-enregistrer-claudecode');
-        if (btnClaude) btnClaude.disabled = true;
-        fetch(origin + '/api/claudecode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-          .then(function(r) { return r.json(); })
-          .then(function(data) { if (data && data.ok) { window.location.reload(); } })
-          .finally(function() { if (btnClaude) btnClaude.disabled = false; });
-      }
-      if (t.id === 'bouton-recuperer-texte-offre' || (t.closest && t.closest('#bouton-recuperer-texte-offre'))) {
-        e.preventDefault();
-        var ta = document.getElementById('texte-offre-test');
-        var btnRecup = document.getElementById('bouton-recuperer-texte-offre');
-        if (!ta) return;
-        if (btnRecup) btnRecup.disabled = true;
-        fetch(origin + '/api/offre-test')
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (data && typeof data.texte === 'string') ta.value = data.texte;
-          })
-          .finally(function() { if (btnRecup) btnRecup.disabled = false; });
-      }
-      if (t.id === 'bouton-tester-api' || (t.closest && t.closest('#bouton-tester-api'))) {
-        e.preventDefault();
-        var taTest = document.getElementById('texte-offre-test');
-        var zoneResultat = document.getElementById('zone-resultat-test-claudecode');
-        var btnTester = document.getElementById('bouton-tester-api');
-        if (!zoneResultat) return;
-        var texteOffre = (taTest && taTest.value) ? taTest.value : '';
-        if (btnTester) btnTester.disabled = true;
-        zoneResultat.setAttribute('data-type', '');
-        zoneResultat.classList.remove('zoneResultatTestClaudecode--erreur');
-        zoneResultat.removeAttribute('role');
-        zoneResultat.textContent = 'Test en cours…';
-        zoneResultat.setAttribute('aria-label', 'Résultat du test API ClaudeCode');
-        fetch(origin + '/api/test-claudecode', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ texteOffre: texteOffre })
-        })
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            zoneResultat.setAttribute('role', 'status');
-            if (data && data.ok === true) {
-              zoneResultat.setAttribute('data-type', 'succes');
-              zoneResultat.setAttribute('aria-label', 'Résultat du test API ClaudeCode');
-              var txt = (typeof data.texte === 'string') ? data.texte : '';
-              var html = '<pre class="resultatTestClaudecodeTexte">' + escapeHtml(txt) + '</pre>';
-              var jv = data.jsonValidation;
-              if (jv && typeof jv === 'object') {
-                if (jv.valid === true) {
-                  html += '<p class="resultatTestClaudecodeValidation resultatTestClaudecodeValidation--ok">JSON valide.</p>';
-                  if (jv.conform === true) {
-                    html += '<p class="resultatTestClaudecodeValidation resultatTestClaudecodeValidation--ok">Conforme au schéma attendu.</p>';
-                  } else if (jv.conform === false && Array.isArray(jv.validationErrors) && jv.validationErrors.length) {
-                    html += '<p class="resultatTestClaudecodeValidation resultatTestClaudecodeValidation--erreur">Non conforme au schéma :</p><ul class="resultatTestClaudecodeValidationListe">';
-                    jv.validationErrors.forEach(function(e) {
-                      html += '<li>' + escapeHtml(String(e)) + '</li>';
-                    });
-                    html += '</ul>';
-                  }
-                  if (jv.json && typeof jv.json === 'object') {
-                    html += '<section class="zoneResultatRehibitoires" data-layout="zone-resultat-rehibitoires" aria-labelledby="titre-resultat-rehibitoires"><h4 id="titre-resultat-rehibitoires" class="zoneResultatRehibitoiresTitle">Réhibitoires</h4>';
-                    for (var ri = 1; ri <= 4; ri++) {
-                      var keyRehib = 'Réhibitoire' + ri;
-                      var valRehib = jv.json[keyRehib];
-                      var justif = (typeof valRehib === 'string' && valRehib.trim()) ? valRehib.trim() : '';
-                      var estRehibitoire = justif !== '';
-                      html += '<div class="blocResultatRehibitoire" data-layout="bloc-resultat-rehibitoire" data-rehibitoire-index="' + ri + '">';
-                      html += '<span class="blocResultatRehibitoireLabel">Réhibitoire ' + ri + '</span> ';
-                      html += '<span class="blocResultatRehibitoireValeur">' + (estRehibitoire ? 'true' : 'false') + '</span>';
-                      if (justif !== '') {
-                        html += '<p class="blocResultatRehibitoireJustification">' + escapeHtml(justif) + '</p>';
-                      }
-                      html += '</div>';
-                    }
-                    html += '</section>';
-                  }
-                } else if (jv.valid === false && typeof jv.error === 'string') {
-                  html += '<p class="resultatTestClaudecodeValidation resultatTestClaudecodeValidation--erreur">JSON invalide : ' + escapeHtml(jv.error) + '</p>';
-                }
-              }
-              zoneResultat.innerHTML = html;
-            } else {
-              zoneResultat.setAttribute('data-type', 'erreur');
-              zoneResultat.classList.add('zoneResultatTestClaudecode--erreur');
-              zoneResultat.setAttribute('aria-label', 'Erreur du test API ClaudeCode');
-              var code = (data && data.code) ? String(data.code) : '';
-              var msg = (data && data.message) ? String(data.message) : '';
-              zoneResultat.textContent = code ? (msg ? code + ' : ' + msg : code) : (msg || 'Erreur inconnue');
-            }
-          })
-          .catch(function(err) {
-            zoneResultat.setAttribute('role', 'status');
-            zoneResultat.setAttribute('data-type', 'erreur');
-            zoneResultat.classList.add('zoneResultatTestClaudecode--erreur');
-            zoneResultat.textContent = 'Erreur : ' + (err && err.message ? err.message : 'requête échouée');
-          })
-          .finally(function() { if (btnTester) btnTester.disabled = false; });
-      }
-    });
-    function runParametres() {
-      var origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
-      var form = document.getElementById('form-compte');
-      var formUserEdited = false;
-      var initialChecked = document.querySelector('input[name="provider"]:checked');
-      var initialProvider = initialChecked ? initialChecked.value : null;
-      var storedProvider = typeof localStorage !== 'undefined' ? localStorage.getItem('parametresProvider') : null;
-      if (initialProvider !== 'microsoft' && initialProvider !== 'gmail' && (storedProvider === 'imap' || storedProvider === 'microsoft' || storedProvider === 'gmail')) {
-        var radio = document.querySelector('input[name="provider"][value="' + storedProvider + '"]');
-        if (radio) radio.checked = true;
-      }
-      var radios = document.querySelectorAll('input[name="provider"]');
-      for (var i = 0; i < radios.length; i++) {
-        radios[i].addEventListener('change', function() {
-          var r = document.querySelector('input[name="provider"]:checked');
-          if (r && typeof localStorage !== 'undefined') localStorage.setItem('parametresProvider', r.value);
-        });
-      }
-      var r = document.querySelector('input[name="provider"]:checked');
-      if (r && typeof localStorage !== 'undefined') localStorage.setItem('parametresProvider', r.value);
-      var adresseInput = document.getElementById('adresse-email');
-      var motDePasseInput = document.getElementById('mot-de-passe');
-      var cheminInput = document.getElementById('chemin-dossier');
-      var cheminArchiveInput = document.getElementById('chemin-dossier-archive');
-      var togglePwd = document.getElementById('toggle-password');
-      var resultatMessage = document.getElementById('resultat-test-message');
-      var tableauResultat = document.getElementById('tableau-resultat');
-      var tbody = tableauResultat ? tableauResultat.querySelector('tbody') : null;
-      var feedbackEnregistrement = document.getElementById('feedback-enregistrement');
-
-      var imapHostInput = document.getElementById('imap-host');
-      var imapPortInput = document.getElementById('imap-port');
-      var imapSecureInput = document.getElementById('imap-secure');
-
-      function marquerEditionUtilisateur() {
-        formUserEdited = true;
-      }
-      if (form) {
-        form.addEventListener('input', marquerEditionUtilisateur, { once: true });
-        form.addEventListener('change', marquerEditionUtilisateur, { once: true });
-      }
-
-      function appliquerParametres(data) {
-        if (adresseInput && data.adresseEmail != null) adresseInput.value = data.adresseEmail;
-        if (cheminInput && data.cheminDossier != null) cheminInput.value = data.cheminDossier;
-        if (cheminArchiveInput && data.cheminDossierArchive != null) cheminArchiveInput.value = data.cheminDossierArchive;
-        if (imapHostInput && data.imapHost != null) imapHostInput.value = data.imapHost;
-        if (imapPortInput && data.imapPort != null) imapPortInput.value = String(data.imapPort);
-        if (imapSecureInput) imapSecureInput.checked = data.imapSecure !== false;
-        if (motDePasseInput) motDePasseInput.value = '';
-        if (data.provider) {
-          var r = document.querySelector('input[name="provider"][value="' + data.provider + '"]');
-          if (r) r.checked = true;
-        }
-        if (resultatMessage) { resultatMessage.textContent = 'Cliquez sur « Tester connexion » pour lancer le test.'; resultatMessage.removeAttribute('data-type'); }
-        if (feedbackEnregistrement) feedbackEnregistrement.textContent = '';
-      }
-
-      if (adresseInput || cheminInput || cheminArchiveInput || imapHostInput) {
-        fetch(origin + '/api/compte')
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            // Evite d'écraser une saisie manuelle si l'utilisateur a déjà modifié le formulaire.
-            if (formUserEdited) return;
-            if (data && (data.adresseEmail != null || data.cheminDossier != null || data.cheminDossierArchive != null || data.provider)) appliquerParametres(data);
-          })
-          .catch(function() {});
-      }
-
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', runParametres);
-    } else {
-      runParametres();
-    }
-  </script>`;
+  <script src="/scripts/parametres.js"></script>`;
 }
 
 export interface OptionsPageParametres {
@@ -876,6 +540,8 @@ export interface OptionsPageParametres {
   offreTestHasOffre?: boolean;
   /** Répertoire des ressources projet (guides HTML). Si fourni, les tutoriels sont lus depuis resourcesDir/guides/. */
   resourcesDir?: string;
+  /** Répertoire des docs (ex. guides). Utilisé côté page pour liens ou chemins. */
+  docsDir?: string;
 }
 
 export async function getPageParametres(
@@ -888,21 +554,62 @@ export async function getPageParametres(
   });
 }
 
-/** Page À propos (US-3.16) : changelog, support, licence GNU, mentions légales. */
-export function getPageAPropos(): string {
+/** Options pour la page À propos : version et date/heure de publication. */
+export interface PageAProposOptions {
+  version?: string;
+  buildTime?: string | null;
+}
+
+/** Formate une date ISO en français (ex. "21 février 2025 à 14:30"). */
+function formatBuildTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return `${date} à ${time}`;
+  } catch {
+    return iso;
+  }
+}
+
+/** Page À propos (US-3.16) : version, date de publication, changelog, support, licence GNU, mentions légales. */
+export function getPageAPropos(options?: PageAProposOptions): string {
+  const { version, buildTime } = options ?? {};
+  const versionLine = version ? `<p class="pageAProposVersion">Version ${version}</p>` : '';
+  const buildTimeLine = buildTime
+    ? `<p class="pageAProposBuildTime">Publiée le&nbsp;: ${formatBuildTime(buildTime)}</p>`
+    : '';
   const content = `
 <div class="pageAPropos">
   <h1>À propos</h1>
+  ${versionLine}
+  ${buildTimeLine}
 
   <nav class="pageAProposSommaire" aria-label="Sommaire de la page">
     <p class="pageAProposSommaireIntro">Contenu de la page&nbsp;:</p>
     <ul>
+      <li><a href="#a-propos-diagramme">Diagramme de flux</a></li>
+      <li><a href="#a-propos-discuter">Discuter avec l'auteur</a></li>
       <li><a href="#a-propos-changelog">Changelog / Release notes</a></li>
       <li><a href="#a-propos-support">Support technique</a></li>
       <li><a href="#a-propos-gnu">Licence et conformité (GNU)</a></li>
       <li><a href="#a-propos-mentions">Mentions légales</a></li>
     </ul>
   </nav>
+
+  <section class="pageAProposSection" aria-labelledby="a-propos-diagramme">
+    <h2 id="a-propos-diagramme">Diagramme de flux</h2>
+    <div class="pageAProposDiagrammeFlux" role="img" aria-label="Diagramme de flux Job-Joy : flux automatique et votre flux.">
+      <img src="/docs/diagramme-de-flux.png" alt="Diagramme de flux Job-Joy : géré par Job-Joy (Email BAL, Offres Airtable, Création, Enrichissement, Analyse IA, À traiter, Expiré) et géré par vous (Candidaté, Refusé, Traité, Ignoré)." />
+    </div>
+  </section>
+
+  <section class="pageAProposSection" aria-labelledby="a-propos-discuter">
+    <h2 id="a-propos-discuter">Discuter avec l'auteur</h2>
+    <p>Je suis Alain Meunier.</p>
+    <p>Pour discuter du produit ou simplement faire connaissance, prenez un rendez-vous de <a href="https://zcal.co/alain-meunier/30min" target="_blank" rel="noopener noreferrer">30&nbsp;mn en visio avec moi</a>.</p>
+    <p>A bientôt.</p>
+  </section>
 
   <section class="pageAProposSection" aria-labelledby="a-propos-changelog">
     <h2 id="a-propos-changelog">Changelog / Release notes</h2>

@@ -19,9 +19,11 @@ export interface ConnexionBoiteEmail {
   microsoft: MicrosoftParams;
   /** Paramètres Gmail (à venir). */
   gmail: GmailParams;
-  /** Consentement à communiquer l'email pour identification (US-3.15). */
+  /** Source de vérité unique : si vide/null/absent = consentement pas donné ; si contient une date = donné (US-3.15). */
+  consentementEnvoyeLe?: string;
+  /** Dérivé à la lecture pour compatibilité ; ne plus écrire. */
   consentementIdentification?: boolean;
-  /** Email identification déjà envoyé (un seul envoi, US-3.15). */
+  /** Conservé pour compatibilité lecture uniquement ; ne plus écrire. */
   emailIdentificationDejaEnvoye?: boolean;
 }
 

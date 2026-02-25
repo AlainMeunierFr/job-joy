@@ -49,6 +49,23 @@ ${getHeaderHtml(active, options)}
   <main class="appMain">
 ${mainContent}
   </main>
+  <script>
+  (function() {
+    document.addEventListener('click', function(e) {
+      var a = e.target.closest('a[href^="http"]');
+      if (!a || a.target === '_blank' || a.getAttribute('target')) return;
+      try {
+        var u = new URL(a.href);
+        var defPort = location.protocol === 'https:' ? 443 : 80;
+        var locPort = location.port ? parseInt(location.port, 10) : defPort;
+        var urlPort = u.port ? parseInt(u.port, 10) : (u.protocol === 'https:' ? 443 : 80);
+        if (u.hostname === location.hostname && urlPort === locPort) return;
+      } catch (_) { return; }
+      e.preventDefault();
+      window.open(a.href, '_blank', 'noopener,noreferrer');
+    });
+  })();
+  </script>
 </body>
 </html>`;
 }
@@ -92,6 +109,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
         <button type="button" class="btnSecondary boutonRafraichirSynthese" e2eid="e2eid-bouton-rafraichir-synthese-offres">Mise à jour</button>
         <button type="button" class="boutonOuvrirAirtable" e2eid="e2eid-bouton-ouvrir-airtable" data-airtable-url="${airtableUrlAttr}"${boutonOuvrirAirtableDisabled}>Ouvrir Airtable</button>
       </div>
+      <div id="synthese-offres-message" class="syntheseOffresMessage" role="alert" aria-live="polite" e2eid="e2eid-message-mise-a-jour-synthese"></div>
     </section>
 
     <section class="traitementsBloc" aria-labelledby="titre-traitements" data-layout="traitements">
@@ -159,6 +177,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   var syntheseOffresHead = null;
   var syntheseOffresBody = null;
   var btnRefreshSynthese = null;
+  var syntheseOffresMessage = null;
   var DEFAULT_STATUTS_ORDER = ${JSON.stringify([...STATUTS_OFFRES_AVEC_AUTRE])};
   var STATUTS_ORDER = DEFAULT_STATUTS_ORDER.slice();
 
@@ -239,12 +258,15 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       }
       var phase3Impl = !!(ligne && ligne.phase3Implemented === true);
       if (ligne && ligne.phase3Implemented == null) phase3Impl = phase2Impl;
+      var aImporterLigne = (ligne && typeof ligne.aImporter === 'number') ? ligne.aImporter : 0;
+      var aCompleterLigne = (ligne && ligne.statuts && ligne.statuts['A compléter'] != null) ? ligne.statuts['A compléter'] : 0;
+      var aAnalyserLigne = (ligne && ligne.statuts && ligne.statuts['À analyser'] != null) ? ligne.statuts['À analyser'] : 0;
       var phase1Html;
       if (!phase1Impl) {
         phase1Html = '<span class="phaseEtat phaseEtat--ko" title="Phase 1 non implémentée">❌</span>';
       } else if (!actifCreation) {
         phase1Html = '<span class="phaseEtat phaseEtat--inactive" title="Phase 1 implémentée, source désactivée">😴</span>';
-      } else if (workerCreationEnCours && totalAImporter > 0) {
+      } else if (workerCreationEnCours && aImporterLigne > 0) {
         phase1Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 1 activée – worker en cours">🏃</span>';
       } else if (workerCreationEnCours) {
         phase1Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 1 activée">✅</span>';
@@ -256,7 +278,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
         phase2Html = '<span class="phaseEtat phaseEtat--ko" title="Phase 2 non implémentée">❌</span>';
       } else if (!actifEnrichissement) {
         phase2Html = '<span class="phaseEtat phaseEtat--inactive" title="Phase 2 implémentée, source désactivée">😴</span>';
-      } else if (workerEnrichissementEnCours && totalACompleter > 0) {
+      } else if (workerEnrichissementEnCours && aCompleterLigne > 0) {
         phase2Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 2 activée – worker en cours">🏃</span>';
       } else if (workerEnrichissementEnCours) {
         phase2Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 2 activée">✅</span>';
@@ -268,7 +290,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
         phase3Html = '<span class="phaseEtat phaseEtat--ko" title="Phase 3 non implémentée">❌</span>';
       } else if (!actifAnalyseIA) {
         phase3Html = '<span class="phaseEtat phaseEtat--inactive" title="Phase 3 implémentée, source désactivée">😴</span>';
-      } else if (workerAnalyseIAEnCours && totalAAnalyser > 0) {
+      } else if (workerAnalyseIAEnCours && aAnalyserLigne > 0) {
         phase3Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 3 activée – worker en cours">🏃</span>';
       } else if (workerAnalyseIAEnCours) {
         phase3Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 3 activée">✅</span>';
@@ -286,8 +308,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       else if (pluginSlug === 'hellowork') pluginSlug = 'hellowork';
       else if (pluginSlug === 'cadre-emploi' || pluginSlug === 'cadreemploi') pluginSlug = 'cadreemploi';
       var pluginCapsule = '<span class="synthesePluginCapsule synthesePluginCapsule--' + escapeHtmlSynthese(pluginSlug) + '">' + escapeHtmlSynthese(pluginLabel) + '</span>';
-      var aImporter = (ligne && typeof ligne.aImporter === 'number') ? ligne.aImporter : 0;
-      var cellAImporter = '<td class="syntheseOffresCellAImporter">' + escapeHtmlSynthese(String(aImporter)) + '</td>';
+      var cellAImporter = '<td class="syntheseOffresCellAImporter">' + escapeHtmlSynthese(String(aImporterLigne)) + '</td>';
       var statutsCells = STATUTS_ORDER.map(function(statut) {
         var n = (ligne && ligne.statuts && ligne.statuts[statut] != null) ? ligne.statuts[statut] : 0;
         return '<td>' + escapeHtmlSynthese(String(n)) + '</td>';
@@ -306,7 +327,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
         + '</tr>';
     }).join('');
     var ligneTotauxHtml = '<tr class="syntheseOffresLigneTotaux" e2eid="e2eid-synthese-offres-ligne-totaux">'
-      + '<td>Totaux</td><td></td><td></td><td></td><td></td><td></td>';
+      + '<td>Totaux</td><td></td><td></td><td></td><td></td><td class="syntheseOffresCellAImporter">' + escapeHtmlSynthese(String(totalAImporter)) + '</td>';
     STATUTS_ORDER.forEach(function(statut) {
       var n = (totauxColonnes[statut] != null) ? totauxColonnes[statut] : 0;
       ligneTotauxHtml += '<td>' + escapeHtmlSynthese(String(n)) + '</td>';
@@ -349,6 +370,8 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     fetch('/api/tableau-synthese-offres', { cache: 'no-store' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
+        if (data && data.avertissement) setSyntheseMessage(data.avertissement, 'warning');
+        else setSyntheseMessage('', false);
         var statutsOrdre = data && Array.isArray(data.statutsOrdre) && data.statutsOrdre.length > 0
           ? data.statutsOrdre
           : DEFAULT_STATUTS_ORDER;
@@ -360,15 +383,26 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       .catch(function() {});
   }
 
+  /** type: false = clear, true = error (red), 'warning' = warning (orange) */
+  function setSyntheseMessage(text, type) {
+    if (!syntheseOffresMessage) return;
+    syntheseOffresMessage.textContent = text || '';
+    syntheseOffresMessage.classList.toggle('syntheseOffresMessage--error', type === true);
+    syntheseOffresMessage.classList.toggle('syntheseOffresMessage--warning', type === 'warning');
+  }
+
   /** Audit puis chargement du tableau (colonne "A importer" à jour). Réutilisé au chargement et sur clic "Mise à jour". */
   function loadTableauAvecAudit() {
     return fetch('/api/tableau-synthese-offres/refresh', { method: 'POST' })
       .then(function(r) { return r.json(); })
-      .then(function() {
+      .then(function(body) {
+        if (body && body.ok === false && body.message) setSyntheseMessage(body.message, true);
         return fetch('/api/tableau-synthese-offres', { cache: 'no-store' });
       })
       .then(function(r) { return r.json(); })
       .then(function(data) {
+        if (data && data.avertissement) setSyntheseMessage(data.avertissement, 'warning');
+        else setSyntheseMessage('', false);
         var statutsOrdre = data && Array.isArray(data.statutsOrdre) && data.statutsOrdre.length > 0
           ? data.statutsOrdre
           : DEFAULT_STATUTS_ORDER;
@@ -381,9 +415,14 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
 
   /** Mise à jour (US-3.3 CA2, US-3.5 CA4) : un clic déclenche l'audit puis le chargement du tableau. */
   function onMiseAJourSyntheseClick() {
+    setSyntheseMessage('Mise à jour en cours…');
     if (btnRefreshSynthese) btnRefreshSynthese.disabled = true;
     loadTableauAvecAudit()
-      .catch(function() {})
+      .then(function() { setSyntheseMessage('', false); })
+      .catch(function(err) {
+        setSyntheseMessage('Erreur lors de la mise à jour.', true);
+        console.error('Mise à jour synthèse offres', err);
+      })
       .finally(function() {
         if (btnRefreshSynthese) btnRefreshSynthese.disabled = false;
       });
@@ -411,6 +450,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   window.__renderTableauSyntheseOffres = renderTableauSyntheseOffres;
   window.__refreshTableauSyntheseOffres = refreshTableauSyntheseOffres;
   window.__refreshTableauSyntheseOffresStatutsOnly = refreshTableauSyntheseOffresStatutsOnly;
+  window.__loadTableauAvecAudit = loadTableauAvecAudit;
   window.__updateTableauSyntheseWorkerState = function() {
     if (lastSyntheseLignes && lastSyntheseStatutsOrder && syntheseOffresBody) {
       renderTableauSyntheseOffres(lastSyntheseLignes, lastSyntheseStatutsOrder, lastSyntheseTotaux);
@@ -422,8 +462,12 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     syntheseOffresHead = document.getElementById('synthese-offres-head');
     syntheseOffresBody = document.getElementById('synthese-offres-body');
     btnRefreshSynthese = document.querySelector('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]');
+    syntheseOffresMessage = document.querySelector('[e2eid="e2eid-message-mise-a-jour-synthese"]');
     renderTableauSyntheseHead(DEFAULT_STATUTS_ORDER);
-    loadTableauAvecAudit().catch(function() {});
+    loadTableauAvecAudit().catch(function(err) {
+      setSyntheseMessage('Erreur lors du chargement.', true);
+      console.error('Chargement synthèse offres', err);
+    });
     if (btnRefreshSynthese) {
       btnRefreshSynthese.addEventListener('click', onMiseAJourSyntheseClick);
     }
@@ -454,6 +498,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   var pollTimerWorker = null;
   var syntheseRefreshWhenWorkerRunning = null;
   var workerWasRunning = false;
+  var creationWasRunning = false;
   function afficher(texte, isError) {
     if (!zone) return;
     zone.textContent = texte;
@@ -551,7 +596,10 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
         var enrich = data.enrichissement || {};
         var analyseIA = data.analyseIA || {};
         window.__workerEnCours = running;
-        window.__workerCreationEnCours = !!(data.creation && data.creation.running) || !!(enrich.running);
+        var creation = data.creation || {};
+        var creationRunning = !!(creation && creation.running);
+        if (creationRunning) creationWasRunning = true;
+        window.__workerCreationEnCours = creationRunning || !!(enrich.running);
         window.__workerEnrichissementEnCours = !!(enrich.running);
         window.__workerAnalyseIAEnCours = !!(analyseIA.running) || (running && !enrich.running);
         if (typeof window.__updateTableauSyntheseWorkerState === 'function') {
@@ -564,9 +612,8 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
             window.__refreshTableauSyntheseOffresStatutsOnly();
             syntheseRefreshWhenWorkerRunning = setInterval(function() {
               window.__refreshTableauSyntheseOffresStatutsOnly();
-            }, 20000);
+            }, 5000);
           }
-          var creation = data.creation || {};
           var pCreation = creation.currentProgress;
           if (pCreation && pCreation.total > 0) {
             var percentCreation = Math.round(((pCreation.index + 1) / pCreation.total) * 100);
@@ -611,6 +658,11 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
             workerWasRunning = false;
             if (window.__refreshTableauSyntheseOffresStatutsOnly) window.__refreshTableauSyntheseOffresStatutsOnly();
           }
+          var creationStopped = data.creation && !data.creation.running;
+          if (creationWasRunning && creationStopped) {
+            creationWasRunning = false;
+            if (typeof window.__loadTableauAvecAudit === 'function') window.__loadTableauAvecAudit().catch(function() {});
+          }
           hideWorkerProgressPhase1();
           hideWorkerProgress();
           hideWorkerProgressAnalyseIA();
@@ -619,7 +671,10 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
           if (zoneWorkerPhase1) {
             var resCreation = creation.lastResult || data.creationLastResult;
             if (resCreation && resCreation.ok) {
-              zoneWorkerPhase1.textContent = 'Terminé : ' + (resCreation.nbCreees ?? 0) + ' créée(s), ' + (resCreation.nbEchecs ?? 0) + ' échec(s).';
+              var nbCreees = (resCreation.nbCreees != null ? resCreation.nbCreees : resCreation.nbOffresCreees) ?? 0;
+              var nbEchecs = resCreation.nbEchecs ?? 0;
+              var nbDeja = (resCreation.nbOffresDejaPresentes ?? 0) > 0 ? ', ' + resCreation.nbOffresDejaPresentes + ' déjà présente(s)' : '';
+              zoneWorkerPhase1.textContent = 'Terminé : ' + nbCreees + ' créée(s)' + (nbEchecs > 0 ? ', ' + nbEchecs + ' échec(s)' : '') + nbDeja + '.';
               zoneWorkerPhase1.className = 'resultatWorkerEnrichissement';
             } else if (creation.lastError) {
               zoneWorkerPhase1.textContent = creation.lastError;

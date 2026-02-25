@@ -23,3 +23,11 @@ export function getDernierAudit(): Record<string, number> {
 export function getNombreAImporter(email: string): number {
   return dernierAudit[normaliserEmail(email)] ?? 0;
 }
+
+/** Décrémente le nombre "A importer" pour une source (ex. après traitement d’un email). */
+export function decrementAImporter(email: string, by: number): void {
+  const key = normaliserEmail(email);
+  if (!key) return;
+  const prev = dernierAudit[key] ?? 0;
+  dernierAudit[key] = Math.max(0, prev - by);
+}

@@ -11,6 +11,8 @@ const appDir = join(projectRoot, 'app');
 const distAppDir = join(projectRoot, 'dist', 'app');
 
 mkdirSync(distAppDir, { recursive: true });
+mkdirSync(join(distAppDir, 'scripts'), { recursive: true });
+copyFileSync(join(appDir, 'scripts', 'parametres.js'), join(distAppDir, 'scripts', 'parametres.js'));
 
 const designSystem = readFileSync(join(appDir, 'globals.css'), 'utf-8');
 const contentStyles = readFileSync(join(appDir, 'content-styles.css'), 'utf-8');

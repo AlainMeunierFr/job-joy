@@ -25,11 +25,22 @@ function Afficher-Menu {
 }
 
 function Lancer-Serveur {
-    $env:PORT = "3001"
-    Write-Host "Serveur de dev : build + demarrage sur http://127.0.0.1:3001" -ForegroundColor Gray
-    Write-Host "Apres modification du code : Ctrl+C puis relancer (pas de redemarrage auto)." -ForegroundColor Green
-    Write-Host "Arreter avec Ctrl+C" -ForegroundColor Gray
-    npm run dev
+    Push-Location $PSScriptRoot
+    try {
+        $env:PORT = "3001"
+        Write-Host "Serveur de dev : build + demarrage sur http://127.0.0.1:3001" -ForegroundColor Gray
+        Write-Host "Repertoire : $PSScriptRoot" -ForegroundColor Gray
+        Write-Host "Apres modification du code : Ctrl+C puis relancer (pas de redemarrage auto)." -ForegroundColor Green
+        Write-Host "Arreter avec Ctrl+C" -ForegroundColor Gray
+        npm run dev
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host ""
+            Write-Host "Le serveur s'est arrete (code $LASTEXITCODE). Verifiez les messages d'erreur ci-dessus." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+        }
+    } finally {
+        Pop-Location
+    }
 }
 
 function Get-Pids-Par-Port([int]$Port) {
@@ -65,7 +76,7 @@ function Forcer-Kill-Et-Relancer-Serveur {
                 Write-Host "Impossible de terminer PID $procId : $($_.Exception.Message)" -ForegroundColor Red
             }
         }
-        Start-Sleep -Milliseconds 500
+        Start-Sleep -Seconds 2
         $restants = Get-Pids-Par-Port -Port $port
         if ($restants -and $restants.Count -gt 0) {
             Write-Host "Attention: le port $port est encore occupe par: $($restants -join ', ')" -ForegroundColor Red
@@ -191,13 +202,13 @@ function Invoke-Publier-Version {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Publier une version (W.X.Y.Z)" -ForegroundColor Cyan
-        Write-Host "  W=major, X=schema, Y=feature, Z=hotfix" -ForegroundColor Gray
+        Write-Host "Publier une version (major.minor.patch)" -ForegroundColor Cyan
+        Write-Host "  major = marketing (gros changement) | minor = schema (Airtable, attention) | patch = evolution et correction" -ForegroundColor Gray
         Write-Host ""
-        Write-Host "  1. major   (grosses modifications)"
-        Write-Host "  2. schema  (changement schéma Airtable / parametres.json)"
-        Write-Host "  3. feature (nouvelle fonctionnalite)"
-        Write-Host "  4. hotfix  (corrections de bugs)"
+        Write-Host "  1. major   (gros changement, signal marketing)"
+        Write-Host "  2. schema  (changement de schema Airtable / parametres - attention)"
+        Write-Host "  3. feature (evolution)"
+        Write-Host "  4. hotfix  (correction de bugs)"
         Write-Host "  0. Annuler"
         Write-Host ""
         $typeChoix = Read-Host "Choix du type (1-4)"
@@ -214,22 +225,97 @@ function Invoke-Publier-Version {
             return
         }
 
-        Write-Host "Build puis bump version ($type)..." -ForegroundColor Gray
-        npm run build 2>&1 | Out-Null
+        Write-Host "Build..." -ForegroundColor Gray
+        $buildOut = npm run build 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Build en echec." -ForegroundColor Red
+            Write-Host $buildOut -ForegroundColor Gray
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        $nextVer = (node dist/scripts/bump-version-cli.js $type 2>&1 | Select-Object -Last 1).ToString().Trim()
-        if (-not $nextVer -or $nextVer -notmatch '^\d+\.\d+\.\d+\.\d+$') {
-            Write-Host "Bump en echec ou version invalide : $nextVer" -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-        $tagName = "v$nextVer"
-        Write-Host "Nouvelle version : $tagName" -ForegroundColor Green
 
+        $bumpOut = node dist/scripts/bump-version-cli.js $type 2>&1 | Out-String
+        $verMatches = [regex]::Matches($bumpOut, '\d+\.\d+\.\d+')
+        $rawVer = if ($verMatches.Count -gt 0) { $verMatches[$verMatches.Count - 1].Value } else { $null }
+        $nextVer = if ($rawVer) { ($rawVer -replace '[^\d.]', '').Trim() } else { $null }
+        $parts = if ($nextVer) { $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' } } else { @() }
+        if (-not $nextVer -or $parts.Count -ne 3) {
+            $preview = $bumpOut.Trim(); if ($preview.Length -gt 80) { $preview = $preview.Substring(0, 80) + "..." }
+            Write-Host "Bump en echec ou version invalide (sortie : $preview)" -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        $nextVer = $parts -join '.'
+        $tagName = "v$nextVer"
+        Write-Host "Nouvelle version : $tagName (bump en attente de build Electron reussi)" -ForegroundColor Green
+
+        Write-Host "Arret des processus Job-Joy / Electron (eviter verrou)..." -ForegroundColor Gray
+        Get-Process -Name "Job-Joy", "electron", "Electron" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        Get-Process | Where-Object { $_.Path -and $_.Path -like "*job-joy*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+        $releaseOutDir = Join-Path $PSScriptRoot "dist-electron-release"
+        if (Test-Path $releaseOutDir) {
+            Remove-Item $releaseOutDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        Write-Host "Build Electron (dossier de sortie : dist-electron-release)..." -ForegroundColor Gray
+        npm run build 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Build (tsc) en echec." -ForegroundColor Red
+            git checkout -- package.json
+            if (Test-Path "package-lock.json") { git checkout -- package-lock.json }
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
+        $env:CSC_LINK = ''
+        $env:CSC_KEY_PASSWORD = ''
+        $env:WIN_CSC_LINK = ''
+        $env:WIN_CSC_KEY_PASSWORD = ''
+        # Vidage complet du cache electron-builder pour eviter chemin sign/noop en cache
+        $ebCache = Join-Path $env:LOCALAPPDATA "electron-builder\Cache"
+        if (Test-Path $ebCache) {
+            Remove-Item $ebCache -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "Cache electron-builder vide." -ForegroundColor Gray
+        }
+        $releaseConfigPath = Join-Path $env:TEMP "electron-builder-release-$(Get-Random).json"
+        # win: uniquement target, icon, signAndEditExecutable = false (aucun sign, cscLink, certificateFile)
+        $configObj = @{
+            appId = "fr.jobjoy.app"
+            productName = "Job-Joy"
+            directories = @{ output = "dist-electron-release" }
+            forceCodeSigning = $false
+            files = @("**/*", "!cucumber-report/**", "!test-results/**", "!playwright-report/**", "!.features-gen/**", "!coverage/**")
+            win = @{
+                target = @("nsis")
+                icon = ""
+                signAndEditExecutable = $false
+            }
+            nsis = @{ oneClick = $false; allowToChangeInstallationDirectory = $true }
+        }
+        $configObj | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $releaseConfigPath -Encoding UTF8 -NoNewline
+        try {
+            & npx --yes electron-builder --config $releaseConfigPath
+        } finally {
+            Remove-Item $releaseConfigPath -ErrorAction SilentlyContinue
+        }
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host ""
+            Write-Host "Build Electron en echec. Bump annule (version inchangee)." -ForegroundColor Red
+            Write-Host "Si erreur 'symbolic link' / winCodeSign : lancez PowerShell en Administrateur, relancez l'option 8 (une fois le cache extrait, les builds suivants pourront se faire sans admin)." -ForegroundColor Gray
+            Write-Host "Si erreur 'fichier utilise par un autre processus' : fermez l'app Job-Joy, fermez l'Explorateur sur dist-electron, puis reessayez." -ForegroundColor Gray
+            git checkout -- package.json
+            if (Test-Path "package-lock.json") { git checkout -- package-lock.json }
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+
+        $installerExe = Get-ChildItem -Path $releaseOutDir -Filter "Job-Joy Setup*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($installerExe) {
+            Write-Host "Installateur NSIS : $($installerExe.Name)" -ForegroundColor Green
+            Write-Host "(Non signe pour la beta : Windows peut afficher ""Editeur inconnu"" ; clic ""Plus d infos"" puis ""Executer quand meme"".)" -ForegroundColor Gray
+        }
+
+        Write-Host "Commit + tag + push..." -ForegroundColor Gray
         git add -A
         git commit -m "Release $tagName"
         if ($LASTEXITCODE -ne 0) {
@@ -243,7 +329,6 @@ function Invoke-Publier-Version {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Push commit + tag..." -ForegroundColor Gray
         git push
         git push origin $tagName
         if ($LASTEXITCODE -ne 0) {
@@ -252,18 +337,11 @@ function Invoke-Publier-Version {
             return
         }
 
-        Write-Host "Build Electron (installateur Windows)..." -ForegroundColor Gray
-        npm run build:electron 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Build Electron en echec." -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-
-        $exeDir = Join-Path $PSScriptRoot "dist-electron"
-        $exe = Get-ChildItem -Path $exeDir -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $exe) {
-            Write-Host "Aucun .exe trouve dans dist-electron. Release GitHub non creee." -ForegroundColor Yellow
+        $exeDir = Join-Path $PSScriptRoot "dist-electron-release"
+        $asset = Get-ChildItem -Path $exeDir -Filter "Job-Joy Setup*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $asset) { $asset = Get-ChildItem -Path $exeDir -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
+        if (-not $asset) {
+            Write-Host "Aucun installateur NSIS (.exe) trouve dans dist-electron-release. Release GitHub non creee." -ForegroundColor Yellow
             Write-Host "Version $tagName poussee (tag seul). Creer la release a la main sur GitHub si besoin." -ForegroundColor Gray
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
@@ -271,22 +349,25 @@ function Invoke-Publier-Version {
 
         $gh = Get-Command gh -ErrorAction SilentlyContinue
         if (-not $gh) {
-            Write-Host "GitHub CLI (gh) non installe. Tag pousse ; pour creer la release avec l'exe :" -ForegroundColor Yellow
-            Write-Host "  gh release create $tagName $($exe.FullName) --title ""Release $tagName"" --notes ""Release $tagName""" -ForegroundColor Gray
+            Write-Host "GitHub CLI (gh) non installe. Tag pousse ; pour creer la release avec l'archive :" -ForegroundColor Yellow
+            Write-Host "  gh release create $tagName $($asset.FullName) --title ""Release $tagName"" --notes ""Release $tagName""" -ForegroundColor Gray
             Write-Host "Ou installez gh : winget install GitHub.cli" -ForegroundColor Gray
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
 
-        Write-Host "Creation de la release GitHub $tagName avec $($exe.Name)..." -ForegroundColor Gray
-        & gh release create $tagName $exe.FullName --title "Release $tagName" --notes "Release $tagName"
+        Write-Host "Creation de la release GitHub $tagName avec $($asset.Name)..." -ForegroundColor Gray
+        & gh release create $tagName $asset.FullName --title "Release $tagName" --notes "Release $tagName"
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "Version $tagName publiee (tag + release + exe)." -ForegroundColor Green
+            Write-Host "Version $tagName publiee (tag + release + installateur NSIS)." -ForegroundColor Green
             Write-Host "Lien a partager : https://github.com/AlainMeunierFr/job-joy/releases/latest" -ForegroundColor Cyan
         } else {
             Write-Host "gh release create en echec (droits ? release deja existante ?)." -ForegroundColor Red
         }
         Write-Host ""
+        Read-Host "Appuyez sur Entree pour revenir au menu"
+    } catch {
+        Write-Host "Erreur inattendue : $($_.Exception.Message)" -ForegroundColor Red
         Read-Host "Appuyez sur Entree pour revenir au menu"
     } finally {
         Pop-Location

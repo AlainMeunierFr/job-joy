@@ -55,6 +55,32 @@ const cadreemploiEmailPlugin: SourceEmailPlugin = {
   extraireOffresDepuisEmail: extractCadreemploiOffresFromHtml,
 };
 
+/** Entrée pour la liste des plugins affichée dans Avant propos (tableau email / plugin / création / enrichissement). */
+export interface LigneListePlugin {
+  email: string;
+  plugin: string;
+  creation: boolean;
+  enrichissement: boolean;
+}
+
+/** Retourne la liste des plugins avec création et/ou enrichissement pour injection dans AvantPropos.html. */
+export function getListePluginsPourAvantPropos(): LigneListePlugin[] {
+  const registry = createSourcePluginsRegistry();
+  const pluginsAvecSource: { plugin: PluginSource; email: string }[] = [
+    { plugin: 'Linkedin', email: 'notifications@linkedin.com' },
+    { plugin: 'HelloWork', email: 'notification@emails.hellowork.com' },
+    { plugin: 'Welcome to the Jungle', email: 'alerts@welcometothejungle.com' },
+    { plugin: 'Job That Make Sense', email: 'jobs@makesense.org' },
+    { plugin: 'Cadre Emploi', email: 'offres@alertes.cadremploi.fr' },
+  ];
+  return pluginsAvecSource.map(({ plugin, email }) => ({
+    email,
+    plugin,
+    creation: !!registry.getEmailPlugin(plugin),
+    enrichissement: !!registry.getOfferFetchPlugin(plugin)?.stage2Implemented,
+  }));
+}
+
 export function createSourcePluginsRegistry(): SourcePluginsRegistry {
   const offerFetchPlugins: SourceOfferFetchPlugin[] = [
     createLinkedinOfferFetchPlugin(),

@@ -12,6 +12,19 @@ describe('getPageAPropos (US-3.16)', () => {
     expect(html).toContain('<h1>À propos</h1>');
   });
 
+  it('contient la section Discuter avec l\'auteur avec lien zcal avant le Changelog', () => {
+    const html = getPageAPropos();
+    expect(html).toContain('id="a-propos-discuter"');
+    expect(html).toContain('Discuter avec l\'auteur');
+    expect(html).toContain('Alain Meunier');
+    expect(html).toContain('https://zcal.co/alain-meunier/30min');
+    expect(html).toContain('30');
+    expect(html).toContain('visio');
+    const idxDiscuter = html.indexOf('a-propos-discuter');
+    const idxChangelog = html.indexOf('a-propos-changelog');
+    expect(idxDiscuter).toBeLessThan(idxChangelog);
+  });
+
   it('contient la section Changelog avec iframe Airtable release notes', () => {
     const html = getPageAPropos();
     expect(html).toContain('id="a-propos-changelog"');
@@ -44,5 +57,23 @@ describe('getPageAPropos (US-3.16)', () => {
     expect(html).toContain('Alain MEUNIER');
     expect(html).toContain('alain@maep.fr');
     expect(html).toContain('m-alain-et-possible.fr');
+  });
+
+  it('affiche le numéro de version et la date/heure de publication quand fournis', () => {
+    const html = getPageAPropos({
+      version: '1.0.2',
+      buildTime: '2025-02-21T14:30:00.000Z',
+    });
+    expect(html).toContain('Version 1.0.2');
+    expect(html).toContain('Publiée le');
+    expect(html).toContain('pageAProposVersion');
+    expect(html).toContain('pageAProposBuildTime');
+    expect(html).toMatch(/février|21.*2025|14\s*:\s*30/);
+  });
+
+  it('n\'affiche pas version ni date quand non fournis', () => {
+    const html = getPageAPropos();
+    expect(html).not.toContain('pageAProposVersion');
+    expect(html).not.toContain('pageAProposBuildTime');
   });
 });

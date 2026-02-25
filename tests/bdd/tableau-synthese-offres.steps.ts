@@ -644,10 +644,7 @@ When('je rafraîchis le tableau de synthèse des offres', async ({ page }) => {
   await page.waitForTimeout(800);
 });
 
-When('je clique sur le bouton "Mise à jour" du bloc Synthèse des offres', async ({ page }) => {
-  await page.locator('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]').click();
-  await page.waitForTimeout(2000);
-});
+// Step "je clique sur le bouton \"Mise à jour\" du bloc Synthèse des offres" défini dans reorganisation-traitements.steps.ts (éviter doublon bddgen).
 
 Then('le serveur exécute l\'audit puis le rafraîchissement des statuts', async ({ page }) => {
   await expect(page.locator('.syntheseOffresTable')).toBeVisible();

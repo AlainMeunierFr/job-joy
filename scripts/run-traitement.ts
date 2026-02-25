@@ -26,6 +26,8 @@ export type ResultatTraitement =
 export interface OptionsRunTraitement {
   onProgress?: (message: string) => void;
   onEmailLu?: (email: { sourceNom: string; index: number; total: number; html: string }) => void;
+  /** Appelé après chaque email traité avec succès (offres créées), pour mise à jour cache et parallélisme. */
+  onSourceProgress?: (emailExpediteur: string, nbProcessed: number) => void;
   deps?: {
     compte?: ReturnType<typeof lireCompte>;
     airtable?: ReturnType<typeof lireAirTable>;
@@ -225,6 +227,7 @@ export async function runTraitement(dataDir: string, options: OptionsRunTraiteme
         }
         nbOffresCreees += result.nbCreees;
         nbOffresDejaPresentes += result.nbDejaPresentes;
+        options.onSourceProgress?.(source.emailExpéditeur, 1);
         return { ok: true };
       },
       deplacerVersTraite: async (email) => {

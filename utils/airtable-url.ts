@@ -16,6 +16,18 @@ export function extraireBaseIdDepuisUrl(urlOuId: string): string | null {
 }
 
 /**
+ * Extrait l'ID de table depuis une URL Airtable (ex. https://airtable.com/appXXX/tblYYY/viwZZZ...).
+ * Retourne l'ID (tblYYY) ou null si non trouvé.
+ */
+export function extraireTableIdDepuisUrl(url: string): string | null {
+  const s = url.trim().replace(/\?.*$/, '');
+  const match = s.match(/\/tbl([A-Za-z0-9]+)/);
+  if (match) return 'tbl' + match[1];
+  if (/^tbl[A-Za-z0-9]+$/.test(s)) return s;
+  return null;
+}
+
+/**
  * Prend une valeur (URL ou ID brut) et retourne l'ID de la base si détecté, sinon la valeur telle quelle si elle ressemble à un baseId (appXXX).
  */
 export function normaliserBaseId(urlOuId: string): string {

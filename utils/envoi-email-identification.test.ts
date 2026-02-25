@@ -20,10 +20,14 @@ describe('getParametresEmailIdentification', () => {
     expect(params.from).toBe('moncompte@domaine.fr');
   });
 
-  it('retourne body = texte du consentement', () => {
+  it('retourne body qui commence par le texte du consentement et peut inclure version + date en fin', () => {
     const params = getParametresEmailIdentification('user@test.fr');
     const texteConsentement = getTexteConsentementIdentification();
-    expect(params.body).toBe(texteConsentement);
+    expect(params.body.startsWith(texteConsentement)).toBe(true);
+    if (params.body.length > texteConsentement.length) {
+      expect(params.body).toMatch(/Version .+/);
+      expect(params.body).toMatch(/Publiée le/);
+    }
   });
 });
 
@@ -42,7 +46,7 @@ describe('envoyerEmailIdentification', () => {
     expect(envoye[0].from).toBe(adresseCompte);
     expect(envoye[0].to).toBe(DESTINATAIRE_ATTENDU);
     expect(envoye[0].subject).toBe(SUJET_ATTENDU);
-    expect(envoye[0].body).toBe(getTexteConsentementIdentification());
+    expect(envoye[0].body.startsWith(getTexteConsentementIdentification())).toBe(true);
   });
 
   it('retourne le résultat du port (ok: true)', async () => {

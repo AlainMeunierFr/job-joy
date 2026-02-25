@@ -15,6 +15,7 @@ import {
   lirePartieModifiablePrompt,
   ecrirePartieModifiablePrompt,
   lireEmailIdentificationDejaEnvoye,
+  lireConsentementEnvoyeLe,
   marquerEmailIdentificationEnvoye,
 } from './parametres-io.js';
 
@@ -199,5 +200,19 @@ describe('emailIdentificationDejaEnvoye (US-3.15)', () => {
       consentementIdentification: true,
     });
     expect(lireEmailIdentificationDejaEnvoye(dataDir)).toBe(true);
+  });
+
+  it('après marquerEmailIdentificationEnvoye, lireConsentementEnvoyeLe retourne une date-heure ISO', () => {
+    ecrireParametresFromForm(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+      consentementIdentification: true,
+    });
+    expect(lireConsentementEnvoyeLe(dataDir)).toBeNull();
+    marquerEmailIdentificationEnvoye(dataDir);
+    const iso = lireConsentementEnvoyeLe(dataDir);
+    expect(iso).not.toBeNull();
+    expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 });

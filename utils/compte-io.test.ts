@@ -11,7 +11,7 @@ import {
   lireCompte,
   enregistrerCompteEtNotifierSiConsentement,
 } from './compte-io.js';
-import { lireEmailIdentificationDejaEnvoye } from './parametres-io.js';
+import { lireEmailIdentificationDejaEnvoye, marquerEmailIdentificationEnvoye } from './parametres-io.js';
 
 const TEST_KEY = '0'.repeat(64);
 
@@ -114,7 +114,7 @@ describe('lireCompte (baby step 5)', () => {
     expect(lu).toBeNull();
   });
 
-  it('après écriture avec consentementIdentification true, lireCompte retourne consentementIdentification true', () => {
+  it('après écriture formulaire avec case consentement cochée, consentementIdentification reste false tant que consentementEnvoyeLe non posé', () => {
     ecrireCompte(dataDir, {
       adresseEmail: 'user@test.fr',
       motDePasse: 'secret',
@@ -123,7 +123,21 @@ describe('lireCompte (baby step 5)', () => {
     });
     const lu = lireCompte(dataDir);
     expect(lu).not.toBeNull();
+    expect(lu!.consentementIdentification).toBe(false);
+  });
+
+  it('après marquerEmailIdentificationEnvoye, lireCompte retourne consentementIdentification true et consentementEnvoyeLe défini', () => {
+    ecrireCompte(dataDir, {
+      adresseEmail: 'user@test.fr',
+      motDePasse: 'secret',
+      cheminDossier: 'INBOX',
+    });
+    marquerEmailIdentificationEnvoye(dataDir);
+    const lu = lireCompte(dataDir);
+    expect(lu).not.toBeNull();
     expect(lu!.consentementIdentification).toBe(true);
+    expect(lu!.consentementEnvoyeLe).toBeDefined();
+    expect(lu!.consentementEnvoyeLe!.length).toBeGreaterThan(0);
   });
 
   it('après écriture sans consentement, lireCompte retourne consentementIdentification false', () => {

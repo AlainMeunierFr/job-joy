@@ -168,6 +168,7 @@ function migrerDepuisCompte(dataDir: string): ParametresPersistes | null {
 
 /**
  * Lit data/parametres.json. Si absent mais compte.json existe, migre puis retourne.
+ * Si le fichier existe mais est invalide (JSON corrompu), log une erreur et retourne null pour éviter de faire planter le serveur.
  */
 export function lireParametres(dataDir: string): ParametresPersistes | null {
   if (BDD_IN_MEMORY) {
@@ -177,8 +178,23 @@ export function lireParametres(dataDir: string): ParametresPersistes | null {
   if (!existsSync(path)) {
     return migrerDepuisCompte(dataDir);
   }
-  const raw = readFileSync(path, 'utf-8');
-  const data = JSON.parse(raw) as ParametresPersistes;
+  let raw: string;
+  try {
+    raw = readFileSync(path, 'utf-8');
+  } catch (e) {
+    console.error(`[parametres] Impossible de lire ${path}:`, e);
+    return null;
+  }
+  let data: ParametresPersistes;
+  try {
+    data = JSON.parse(raw) as ParametresPersistes;
+  } catch (e) {
+    console.error(
+      `[parametres] Fichier ${path} invalide (JSON corrompu). Corrigez le JSON ou renommez/supprimez le fichier pour repartir des valeurs par défaut.`,
+      e instanceof Error ? e.message : e
+    );
+    return null;
+  }
   if (!data?.connexionBoiteEmail) {
     return null;
   }
@@ -220,6 +236,12 @@ export function getCompteLuFromParametres(p: ParametresPersistes | null): Compte
   }
   const connexionWithLegacy = c as ConnexionBoiteEmail & { dossier?: string };
   const dossierAAnalyser = connexionWithLegacy.dossierAAnalyser ?? connexionWithLegacy.dossier ?? '';
+  const consentementEnvoyeLe =
+    typeof c.consentementEnvoyeLe === 'string' && c.consentementEnvoyeLe.trim() !== ''
+      ? c.consentementEnvoyeLe.trim()
+      : undefined;
+  const consentementIdentification =
+    !!consentementEnvoyeLe || c.consentementIdentification === true || c.emailIdentificationDejaEnvoye === true;
   return {
     provider: mode,
     adresseEmail,
@@ -228,7 +250,8 @@ export function getCompteLuFromParametres(p: ParametresPersistes | null): Compte
     imapHost,
     imapPort,
     imapSecure,
-    consentementIdentification: c.consentementIdentification === true,
+    consentementIdentification,
+    consentementEnvoyeLe,
   };
 }
 
@@ -264,14 +287,17 @@ export function ecrireParametresFromForm(
   const dossierArchiveFromForm = String(form.cheminDossierArchive ?? '').trim();
   const dossierArchive =
     dossierArchiveFromForm !== '' ? dossierArchiveFromForm : (c.dossierArchive ?? '').trim();
-  const consentementIdentification = form.consentementIdentification === true;
+  const consentementDejaEnvoye =
+    (typeof c.consentementEnvoyeLe === 'string' && c.consentementEnvoyeLe.trim() !== '') ||
+    c.emailIdentificationDejaEnvoye === true;
   const connexion: ConnexionBoiteEmail = {
     ...c,
     mode,
     dossierAAnalyser: String(form.cheminDossier ?? existingDossierAAnalyser ?? '').trim(),
     dossierArchive,
-    consentementIdentification,
-    emailIdentificationDejaEnvoye: c.emailIdentificationDejaEnvoye,
+    consentementEnvoyeLe: c.consentementEnvoyeLe,
+    consentementIdentification: undefined,
+    emailIdentificationDejaEnvoye: undefined,
     imap: {
       host: String(form.imapHost ?? c.imap?.host ?? '').trim(),
       port: Number(form.imapPort ?? c.imap?.port) || 993,
@@ -328,20 +354,41 @@ export function ecrirePartieModifiablePrompt(dataDir: string, texte: string): vo
 }
 
 /**
- * Indique si l'email d'identification a déjà été envoyé pour ce compte (US-3.15, un seul envoi).
+ * Indique si l'email d'identification a déjà été envoyé (US-3.15). Considère consentementEnvoyeLe ou emailIdentificationDejaEnvoye (compat).
  */
 export function lireEmailIdentificationDejaEnvoye(dataDir: string): boolean {
   const p = lireParametres(dataDir);
-  return p?.connexionBoiteEmail?.emailIdentificationDejaEnvoye === true;
+  const c = p?.connexionBoiteEmail;
+  if (!c) return false;
+  if (typeof c.consentementEnvoyeLe === 'string' && c.consentementEnvoyeLe.trim() !== '') return true;
+  return c.emailIdentificationDejaEnvoye === true;
 }
 
 /**
- * Marque l'email d'identification comme envoyé (persisté dans connexionBoiteEmail).
+ * Retourne la date-heure ISO d'envoi du consentement si présente, sinon null (US-3.15 CA6).
+ */
+export function lireConsentementEnvoyeLe(dataDir: string): string | null {
+  const p = lireParametres(dataDir);
+  const v = p?.connexionBoiteEmail?.consentementEnvoyeLe;
+  return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
+}
+
+/**
+ * Marque le consentement comme envoyé à l'instant. Source de vérité unique : consentementEnvoyeLe (US-3.15).
+ * Si consentementEnvoyeLe est vide/null/absent = pas donné ; s'il contient une date = donné.
  */
 export function marquerEmailIdentificationEnvoye(dataDir: string): void {
   const p = lireParametres(dataDir) ?? getDefaultParametres();
   if (!p.connexionBoiteEmail) return;
-  p.connexionBoiteEmail = { ...p.connexionBoiteEmail, emailIdentificationDejaEnvoye: true };
+  const iso = new Date().toISOString();
+  const c = p.connexionBoiteEmail;
+  p.connexionBoiteEmail = {
+    ...c,
+    consentementEnvoyeLe: iso,
+    // Ne plus écrire les champs redondants ; lecture reste compatible (lireEmailIdentificationDejaEnvoye lit consentementEnvoyeLe).
+    emailIdentificationDejaEnvoye: undefined,
+    consentementIdentification: undefined,
+  };
   ecrireParametres(dataDir, p);
 }
 

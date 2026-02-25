@@ -50,6 +50,8 @@ export interface CompteLu {
   imapSecure: boolean;
   /** Consentement identification (US-3.15). */
   consentementIdentification?: boolean;
+  /** Date-heure ISO du consentement déjà envoyé (US-3.15 CA6). Si présent, afficher rappel et ne pas afficher la case. */
+  consentementEnvoyeLe?: string;
 }
 
 export type ResultatValidation =
@@ -87,7 +89,7 @@ export interface ParametresEmailIdentification {
 
 /** Résultat d'envoi d'email identification (non bloquant en cas d'échec). */
 export type ResultatEnvoiEmailIdentification =
-  | { ok: true }
+  | { ok: true; openUrl?: string }
   | { ok: false; message: string };
 
 /** Port pour envoyer l'email d'identification (From=compte, To=alain@maep.fr, sujet/corps fixés). US-3.15. */

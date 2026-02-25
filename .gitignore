@@ -1,5 +1,8 @@
 node_modules/
 dist/
+dist-electron/
+dist-electron-release/
+tools/
 .env
 .env.local
 data/parametres.json

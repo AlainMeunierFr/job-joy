@@ -5,12 +5,13 @@
  * Port 3002 pour Electron afin de coexister avec la version dev (port 3001) sur la même machine.
  *
  * US-3.12 Single instance : une seule instance, focus au second lancement.
- * Vérification : scénarios BDD tests/bdd/single-instance.feature (E2E).
+ * Mises à jour : electron-updater (GitHub Releases), vérification au démarrage (app packagée uniquement).
  */
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, dialog } = require('electron');
 const path = require('path');
 const http = require('http');
 const { spawn } = require('child_process');
+const { autoUpdater } = require('electron-updater');
 
 const PORT = Number(process.env.ELECTRON_APP_PORT) || 3002;
 let serverProcess = null;
@@ -77,6 +78,35 @@ function createWindow() {
   });
 }
 
+/** Mises à jour depuis GitHub Releases (app packagée uniquement). */
+function setupAutoUpdater() {
+  if (!app.isPackaged) return;
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = false;
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('Mise à jour disponible:', info.version);
+  });
+  autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBox(mainWindow ?? undefined, {
+      type: 'info',
+      title: 'Mise à jour prête',
+      message: 'Une nouvelle version a été téléchargée. Redémarrer maintenant pour l\'installer ?',
+      buttons: ['Redémarrer maintenant', 'Plus tard'],
+      defaultId: 0,
+    }).then(({ response }) => {
+      if (response === 0) autoUpdater.quitAndInstall(false, true);
+    });
+  });
+  autoUpdater.on('error', (err) => {
+    console.error('Erreur mise à jour:', err.message);
+  });
+
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch(() => {});
+  }, 3000);
+}
+
 /** US-3.12 : second lancement → focus/restore la fenêtre existante, pas de nouvelle fenêtre. */
 app.on('second-instance', () => {
   if (mainWindow) {
@@ -115,6 +145,7 @@ app.whenReady().then(async () => {
   try {
     await waitForServer(Number(PORT), 15000);
     createWindow();
+    setupAutoUpdater();
   } catch (err) {
     console.error('Server failed to start:', err);
     if (serverProcess) serverProcess.kill('SIGTERM');

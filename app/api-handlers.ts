@@ -41,7 +41,10 @@ import {
   marquerEmailIdentificationEnvoye,
 } from '../utils/parametres-io.js';
 import { envoyerEmailIdentification } from '../utils/envoi-email-identification.js';
-import { createEnvoyeurIdentificationAirtable } from '../utils/envoi-identification-airtable.js';
+import {
+  createEnvoyeurIdentificationAirtable,
+  createEnvoyeurIdentificationFormUrl,
+} from '../utils/envoi-identification-airtable.js';
 import { createLecteurEmailsMock } from '../utils/lecteur-emails-mock.js';
 import type { SourceEmail, TypeSource } from '../utils/gouvernance-sources-emails.js';
 import {
@@ -50,7 +53,7 @@ import {
   mergeCacheDansLignes,
 } from '../utils/tableau-synthese-offres.js';
 import type { LigneTableauSynthese } from '../utils/tableau-synthese-offres.js';
-import { getDernierAudit, setDernierAudit } from '../utils/cache-audit-ram.js';
+import { decrementAImporter, getDernierAudit, setDernierAudit } from '../utils/cache-audit-ram.js';
 import { createAirtableReleveDriver } from '../utils/airtable-releve-driver.js';
 import { normaliserBaseId } from '../utils/airtable-url.js';
 import { createSourcePluginsRegistry } from '../utils/source-plugins.js';
@@ -122,6 +125,8 @@ const spyEnvoyeurIdentification: EnvoyeurEmailIdentification = {
 /** Port d'envoi identification : BDD → spy ; si AIRTABLE_SUIVI_* configuré → inscription Airtable ; sinon noop. */
 export function getEnvoyeurIdentificationPort(): EnvoyeurEmailIdentification {
   if (process.env.BDD_IN_MEMORY_STORE === '1') return spyEnvoyeurIdentification;
+  const formUrl = createEnvoyeurIdentificationFormUrl();
+  if (formUrl) return formUrl;
   const airtable = createEnvoyeurIdentificationAirtable();
   if (airtable) return airtable;
   return noopEnvoyeurIdentification;
@@ -445,6 +450,9 @@ async function runOneEnrichissementBatch(dataDir: string): Promise<void> {
       enrichissementWorker.lastError = result.message;
     } else {
       enrichissementWorker.lastError = undefined;
+      if ((result.nbEnrichies ?? 0) > 0) {
+        runOneAnalyseIABatch(dataDir).catch(() => {});
+      }
     }
   } catch (err) {
     enrichissementWorker.lastRunAt = Date.now();
@@ -728,6 +736,9 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
   const offresId = airtable.offres.trim();
   statutsOrdre = [...STATUTS_OFFRES_AVEC_AUTRE];
 
+  /** Si l'ID Offres est une vue (viw...), l'API ne renvoie que les enregistrements de cette vue, pas toute la table. */
+  const offresIdEstUneVue = offresId.toLowerCase().startsWith('viw');
+
   try {
     const driver = createAirtableReleveDriver({
       apiKey,
@@ -763,13 +774,18 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
     }, statutsOrdre);
     lignes = mergeCacheDansLignes(lignes, getDernierAudit());
     const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
-    sendJson(res, 200, {
+    const payload: Record<string, unknown> = {
       lignes: enrichirPhasesImplementation(lignes),
       statutsOrdre,
       totauxColonnes: totaux.totalParColonne,
       totalParLigne: totaux.totalParLigne,
       totalGeneral: totaux.totalGeneral,
-    }, {
+    };
+    if (offresIdEstUneVue) {
+      payload.avertissement =
+        'L\'ID configuré pour la table Offres est un ID de vue (viw...). Une vue n\'affiche qu\'une partie des enregistrements. Pour le tableau de synthèse complet, configurez l\'ID de la table (tbl...) dans Paramètres.';
+    }
+    sendJson(res, 200, payload, {
       'Cache-Control': 'no-store',
     });
   } catch (err) {
@@ -1143,12 +1159,20 @@ export function handlePostEnrichissementWorkerStart(dataDir: string, res: Server
     creationWorkerState.lastError = undefined;
     creationWorkerState.lastResult = undefined;
     creationWorkerState.currentProgress = undefined;
+    let enrichissementTriggered = false;
     void runCreation(dataDir, {
       onProgress: (message) => {
         if (!creationWorkerState.running) return;
         const m = /(\d+)\/(\d+)/.exec(message);
         if (m) {
           creationWorkerState.currentProgress = { index: parseInt(m[1], 10) - 1, total: parseInt(m[2], 10) };
+        }
+      },
+      onSourceProgress: (emailExpediteur, nbProcessed) => {
+        decrementAImporter(emailExpediteur, nbProcessed);
+        if (!enrichissementTriggered) {
+          enrichissementTriggered = true;
+          runOneEnrichissementBatch(dataDir).catch(() => {});
         }
       },
     })
@@ -1192,20 +1216,24 @@ export interface OptionsTestConnexionConsentement {
   portEnvoiConsentement: EnvoyeurEmailIdentification;
 }
 
+/** Retourne l'URL à ouvrir (formulaire Airtable prérempli) si le port en fournit une. */
 async function envoyerConsentementSiDemande(
   body: Record<string, unknown>,
   adresseEmail: string,
   options: OptionsTestConnexionConsentement | undefined
-): Promise<void> {
-  if (!options || !adresseEmail.trim()) return;
+): Promise<string | undefined> {
+  if (!options || !adresseEmail.trim()) return undefined;
   const consentement =
     body.consentementIdentification === true || body.consentementIdentification === 'true';
-  if (!consentement) return;
-  if (lireEmailIdentificationDejaEnvoye(options.dataDir)) return;
+  if (!consentement) return undefined;
+  if (lireEmailIdentificationDejaEnvoye(options.dataDir)) return undefined;
   const envoiResult = await envoyerEmailIdentification(adresseEmail, options.portEnvoiConsentement);
   if (envoiResult.ok === true) {
     marquerEmailIdentificationEnvoye(options.dataDir);
+    const url = 'openUrl' in envoiResult && typeof envoiResult.openUrl === 'string' ? envoiResult.openUrl : undefined;
+    return url;
   }
+  return undefined;
 }
 
 /**
@@ -1248,8 +1276,8 @@ export async function handlePostTestConnexion(
     });
     const result = await executerTestConnexion(adresseEmail, '', cheminDossier, connecteur);
     if (result.ok) {
-      await envoyerConsentementSiDemande(body, adresseEmail, optionsConsentement);
-      sendJson(res, 200, { ok: true, nbEmails: result.nbEmails });
+      const openFormUrl = await envoyerConsentementSiDemande(body, adresseEmail, optionsConsentement);
+      sendJson(res, 200, { ok: true, nbEmails: result.nbEmails, ...(openFormUrl && { openFormUrl }) });
     } else {
       sendJson(res, 200, { ok: false, message: result.message });
     }
@@ -1264,8 +1292,8 @@ export async function handlePostTestConnexion(
   const connecteur = getConnecteurEmailFn({ host: imapHost, port: imapPort, secure: imapSecure });
   const result = await executerTestConnexion(adresseEmail, motDePasse, cheminDossier, connecteur);
   if (result.ok) {
-    await envoyerConsentementSiDemande(body, adresseEmail, optionsConsentement);
-    sendJson(res, 200, { ok: true, nbEmails: result.nbEmails });
+    const openFormUrl = await envoyerConsentementSiDemande(body, adresseEmail, optionsConsentement);
+    sendJson(res, 200, { ok: true, nbEmails: result.nbEmails, ...(openFormUrl && { openFormUrl }) });
   } else {
     sendJson(res, 200, { ok: false, message: result.message });
   }

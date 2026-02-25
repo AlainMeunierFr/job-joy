@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">98.03% </span>
+                <span class="strong">97.72% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>50/51</span>
+                <span class='fraction'>43/44</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">84.21% </span>
+                <span class="strong">82.35% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>32/38</span>
+                <span class='fraction'>28/34</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>35/35</span>
+                <span class='fraction'>30/30</span>
             </div>
         
             
@@ -117,23 +117,19 @@
 <a name='L52'></a><a href='#L52'>52</a>
 <a name='L53'></a><a href='#L53'>53</a>
 <a name='L54'></a><a href='#L54'>54</a>
-<a name='L55'></a><a href='#L55'>55</a>
-<a name='L56'></a><a href='#L56'>56</a>
-<a name='L57'></a><a href='#L57'>57</a>
-<a name='L58'></a><a href='#L58'>58</a>
-<a name='L59'></a><a href='#L59'>59</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L55'></a><a href='#L55'>55</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -148,20 +144,16 @@
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">12x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">24x</span>
@@ -206,20 +198,16 @@ export function jsonToChampsOffreAirtable(
   if (texte(json.Département)) champs.Département = texte(json.Département);
   if (texte(json.Salaire)) champs.Salaire = texte(json.Salaire);
   if (texte(json.Date_offre)) champs.DateOffre = texte(json.Date_offre);
+  // US-2.1 / US-3.2 : CritèreRéhibitoire1..4 sont des colonnes "texte une seule ligne" dans Airtable (pas des cases à cocher).
+  // On envoie la justification (chaîne) ou une chaîne vide si le critère n'est pas rédhibitoire.
   for (let i = 1; i &lt;= 4; i++) {
     const v = json[`Réhibitoire${i}`];
-    if (typeof v === 'boolean') (champs as Record&lt;string, unknown&gt;)[`CritèreRéhibitoire${i}`] = v;
-  }
-  for (let i = 1; i &lt;= 4; i++) {
-    const v = json[`JustificationRéhibitoire${i}`];
-    if (typeof v === 'string') {
-      const s = v.trim();
-      if (s) {
-        const truncated =
-          s.length &gt; MAX_LONGUEUR_JUSTIFICATION_AIRTABLE ? s.slice(0, MAX_LONGUEUR_JUSTIFICATION_AIRTABLE) : s;
-        (champs as Record&lt;string, unknown&gt;)[`JustificationRéhibitoire${i}`] = truncated;
-      }
-    }
+    const justification = typeof v === 'string' ? v.trim() : '';
+    const truncated =
+      justification.length &gt; MAX_LONGUEUR_JUSTIFICATION_AIRTABLE
+        ? justification.slice(0, MAX_LONGUEUR_JUSTIFICATION_AIRTABLE)
+        : justification;
+    (champs as Record&lt;string, unknown&gt;)[`CritèreRéhibitoire${i}`] = truncated;
   }
   const score = (v: unknown) =&gt;
     typeof v === 'number' &amp;&amp; Number.isInteger(v) &amp;&amp; v &gt;= 0 &amp;&amp; v &lt;= 20 ? v : undefined;
@@ -244,7 +232,7 @@ export function jsonToChampsOffreAirtable(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-24T10:10:47.428Z
+                at 2026-02-25T11:03:54.960Z
             </div>
         <script src="prettify.js"></script>
         <script>

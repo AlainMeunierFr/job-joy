@@ -1,6 +1,6 @@
 {
   "name": "job-joy",
-  "version": "1.0.0.1",
+  "version": "1.0.1",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -9,6 +9,7 @@
     "start": "node dist/app/server.js",
     "dev": "npm run build:dev && node dist/app/server.js",
     "build:electron": "npm run build && electron-builder",
+    "release:test-build": "npm run build && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-electron-build.ps1",
     "start:electron": "npm run build:dev && electron .",
     "typecheck": "tsc --noEmit",
     "test": "jest",

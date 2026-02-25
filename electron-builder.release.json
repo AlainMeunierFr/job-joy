@@ -1,0 +1,1 @@
+{"appId":"fr.jobjoy.app","productName":"Job-Joy","directories":{"output":"dist-electron-release"},"forceCodeSigning":false,"files":["**/*","!cucumber-report/**","!test-results/**","!playwright-report/**","!.features-gen/**","!coverage/**"],"win":{"target":["nsis"],"icon":"","signAndEditExecutable":false},"nsis":{"oneClick":false,"allowToChangeInstallationDirectory":true}}

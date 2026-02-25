@@ -564,6 +564,20 @@ body.appLayout {
   gap: var(--space-sm);
 }
 
+.pageTableauDeBord .syntheseOffresMessage {
+  margin-top: var(--space-sm);
+  min-height: 1.5em;
+  color: var(--color-text-secondary, #555);
+}
+
+.pageTableauDeBord .syntheseOffresMessage.syntheseOffresMessage--error {
+  color: var(--color-error, #c00);
+}
+
+.pageTableauDeBord .syntheseOffresMessage.syntheseOffresMessage--warning {
+  color: var(--color-warning, #b8860b);
+}
+
 .pageTableauDeBord .syntheseOffresActionsOneLine .syntheseOffresThermo {
   display: flex;
   flex-direction: column;
@@ -711,9 +725,16 @@ body.appLayout {
   color: var(--color-error);
 }
 
-/* --- Page À propos (US-3.16) : changelog, support, GNU, mentions légales --- */
+/* --- Page À propos (US-3.16) : version, date publication, changelog, support, GNU, mentions légales --- */
 .appMain .pageAPropos {
   margin: 0;
+}
+
+.pageAPropos .pageAProposVersion,
+.pageAPropos .pageAProposBuildTime {
+  margin: 0 0 var(--space-xs);
+  font-size: 0.9375rem;
+  color: var(--color-text-muted, #57606a);
 }
 
 .pageAPropos .pageAProposSommaire {
@@ -758,6 +779,17 @@ body.appLayout {
   margin-top: 0;
 }
 
+.pageAPropos .pageAProposDiagrammeFlux {
+  margin-top: var(--space-md);
+}
+
+.pageAPropos .pageAProposDiagrammeFlux img {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .pageAPropos .pageAProposSection h2 {
   margin: 0 0 var(--space-md);
   font-size: 1.25rem;
@@ -777,6 +809,173 @@ body.appLayout {
   display: block;
   max-width: 100%;
   min-height: 400px;
+}
+
+/* --- US-4.5 Introduction au process de paramétrage --- */
+.appMain .introParametrage,
+.appMain details.introParametrage[data-layout="intro-parametrage"] {
+  margin: 0 0 var(--space-xl);
+}
+
+.introParametrage .introParametrageTitle {
+  margin: 0 0 var(--space-lg);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.introParametrage .introParametrageWhy,
+.introParametrage .introParametrageWhat,
+.introParametrage .introParametrageHow {
+  margin-top: var(--space-xl);
+}
+
+.introParametrage .introParametrageWhy:first-of-type,
+.introParametrage [data-section="why"]:first-of-type {
+  margin-top: 0;
+}
+
+.introParametrage .introParametrageSectionTitle {
+  margin: 0 0 var(--space-md);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.introParametrage .introParametragePitch {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.introParametrage .introParametragePhasesIntro,
+.introParametrage .introParametrageComposantsIntro,
+.introParametrage .introParametrageFluxIntro {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.introParametrage .introParametragePhases,
+.introParametrage .introParametrageTermesTableau {
+  margin: 0 0 var(--space-md);
+  padding-left: var(--space-lg);
+  list-style: disc;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.introParametrage .introParametragePhases li,
+.introParametrage .introParametrageTermesTableau li {
+  margin-bottom: var(--space-xs);
+}
+
+.introParametrage .introParametragePhases li:last-child,
+.introParametrage .introParametrageTermesTableau li:last-child {
+  margin-bottom: 0;
+}
+
+.introParametrage .introParametrageComposants {
+  margin: 0 0 var(--space-md);
+  padding-left: var(--space-lg);
+  list-style: disc;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.introParametrage .introParametrageComposants li {
+  margin-bottom: var(--space-xs);
+}
+
+.introParametrage .introParametrageComposants li:last-child {
+  margin-bottom: 0;
+}
+
+.introParametrage .introParametrageConfigHint {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Schéma HOW : flux horizontal (blocs + flèches), lisible et accessible */
+.introParametrage .introParametrageSchema {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.introParametrage .introParametrageSchemaBlock {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.introParametrage .introParametrageSchemaArrow {
+  flex-shrink: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+@media (max-width: 639px) {
+  .introParametrage .introParametrageSchema {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-xs) var(--space-sm);
+  }
+
+  .introParametrage .introParametrageSchemaBlock {
+    font-size: 0.875rem;
+    padding: var(--space-xs) var(--space-sm);
+    white-space: normal;
+    max-width: 100%;
+  }
+}
+
+/* Diagramme flux HOW : image chargée depuis ressources/guides/diagramme-de-flux.html */
+.introParametrage .introParametrageFluxDiag {
+  margin-top: var(--space-md);
+}
+
+.introParametrage .introParametrageFluxDiag img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.introParametrage .introParametrageListePlugins {
+  width: 100%;
+  margin: var(--space-sm) 0;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.introParametrage .introParametrageListePlugins th,
+.introParametrage .introParametrageListePlugins td {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.introParametrage .introParametrageListePlugins th {
+  background: var(--color-bg);
+  font-weight: 600;
 }
 
 /* --- Page Paramètres : titre unique h1 + deux blocs h2 (connexion, Airtable) --- */
@@ -1212,6 +1411,13 @@ body.parametrageCompteEmail,
   margin-bottom: 0;
 }
 
+/* Consentement identification (US-3.15) : rappel date/heure quand déjà envoyé */
+.parametrageCompteEmail .fieldGroup-consentement .consentementRappel,
+.appMain .parametrageCompteEmail .fieldGroup-consentement .consentementRappel {
+  margin: 0;
+  color: var(--text-secondary, #555);
+}
+
 /* Consentement identification (US-3.15) : même pattern checkbox que .blocImapRow .labelCheckbox, texte long autorisé */
 .parametrageCompteEmail .fieldGroup-consentement .labelCheckbox,
 .appMain .parametrageCompteEmail .fieldGroup-consentement .labelCheckbox {
@@ -1220,6 +1426,14 @@ body.parametrageCompteEmail,
   gap: var(--space-xs);
   margin-bottom: 0;
   white-space: normal;
+}
+
+/* Désactiver Tester connexion et Enregistrer tant que la case consentement n’est pas cochée (CSS seul, :has()) */
+#form-compte:has(#consentement-identification:not(:checked)) #bouton-test-connexion,
+#form-compte:has(#consentement-identification:not(:checked)) #bouton-enregistrer {
+  pointer-events: none;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 body.parametrageCompteEmail,
@@ -1320,11 +1534,19 @@ body.parametrageCompteEmail,
   display: block;
 }
 
-/* Dossier à analyser : bouton Tester connexion */
+/* Dossier à analyser : bouton Tester connexion (z-index pour éviter qu'un overlay intercepte le clic) */
 body.parametrageCompteEmail .actions-dossier,
 .appMain .parametrageCompteEmail .actions-dossier {
   margin-top: var(--space-sm);
   margin-bottom: 0;
+  position: relative;
+  z-index: 1;
+}
+body.parametrageCompteEmail .actions-dossier #bouton-test-connexion,
+.appMain .parametrageCompteEmail .actions-dossier #bouton-test-connexion {
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
 }
 
 /* Boutons du formulaire : Annuler, Enregistrer */
@@ -1702,9 +1924,11 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
   box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
 }
 
-/* --- Zone test ClaudeCode (US-2.4) : textarea, boutons, zone résultat --- */
+/* --- Zone test ClaudeCode (US-2.4) : textarea, boutons, zone résultat (dans Paramétrage IA ou anciennement ClaudeCode) --- */
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode[data-layout="zone-test-claudecode"],
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode[data-layout="zone-test-claudecode"] {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode[data-layout="zone-test-claudecode"],
+.pageParametres .blocParametrage-ia .zoneTestClaudecode[data-layout="zone-test-claudecode"],
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode[data-layout="zone-test-claudecode"] {
   margin-top: var(--space-lg);
   width: 100%;
   max-width: 100%;
@@ -1712,14 +1936,18 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 }
 
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup,
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .fieldGroup,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .fieldGroup {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
 
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest,
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest {
   width: 100%;
   max-width: 100%;
   min-height: 8rem;
@@ -1736,7 +1964,9 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 }
 
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest:focus,
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest:focus {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest:focus,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest:focus,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .fieldGroup textarea.zoneTexteOffreTest:focus {
   outline: none;
   border-color: var(--color-border-focus);
   box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
@@ -1745,7 +1975,11 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre,
 .appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre,
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api,
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-recuperer-offre,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-recuperer-offre,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-tester-api,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-tester-api {
   margin-top: var(--space-md);
   display: flex;
   flex-wrap: wrap;
@@ -1754,7 +1988,9 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 }
 
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button,
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-recuperer-offre button,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-recuperer-offre button {
   color: var(--color-text);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -1768,12 +2004,16 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 }
 
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button:hover,
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button:hover {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre button:hover,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-recuperer-offre button:hover,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-recuperer-offre button:hover {
   background: var(--color-bg-hover);
 }
 
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button,
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-tester-api button,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-tester-api button {
   color: var(--color-on-primary);
   background: var(--color-primary);
   border: none;
@@ -1787,19 +2027,25 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 }
 
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button:hover,
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button:hover {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api button:hover,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-tester-api button:hover,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .actions.actions-tester-api button:hover {
   background: var(--color-primary-hover);
 }
 
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions button:focus,
-.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions button:focus {
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions button:focus,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .actions button:focus,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .actions button:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
 }
 
 /* Zone résultat test API ClaudeCode */
 .pageParametres .blocParametrage-claudecode #zone-resultat-test-claudecode,
-.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode {
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode,
+.pageParametres .blocParametrage-ia #zone-resultat-test-claudecode,
+.appMain .pageParametres .blocParametrage-ia .zoneResultatTestClaudecode {
   margin-top: var(--space-lg);
   padding: var(--space-md);
   border-radius: var(--radius-sm);
@@ -1815,20 +2061,27 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 
 /* État attente (ex. "Test en cours…") ou vide */
 .pageParametres .blocParametrage-claudecode #zone-resultat-test-claudecode:not([data-type="succes"]):not(.zoneResultatTestClaudecode--erreur),
-.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode:not([data-type="succes"]):not(.zoneResultatTestClaudecode--erreur) {
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode:not([data-type="succes"]):not(.zoneResultatTestClaudecode--erreur),
+.pageParametres .blocParametrage-ia #zone-resultat-test-claudecode:not([data-type="succes"]):not(.zoneResultatTestClaudecode--erreur),
+.appMain .pageParametres .blocParametrage-ia .zoneResultatTestClaudecode:not([data-type="succes"]):not(.zoneResultatTestClaudecode--erreur) {
   color: var(--color-text-muted);
   background: var(--color-bg);
 }
 
 .pageParametres .blocParametrage-claudecode #zone-resultat-test-claudecode[data-type="succes"],
-.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode[data-type="succes"] {
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode[data-type="succes"],
+.pageParametres .blocParametrage-ia #zone-resultat-test-claudecode[data-type="succes"],
+.appMain .pageParametres .blocParametrage-ia .zoneResultatTestClaudecode[data-type="succes"] {
   color: var(--color-text);
   background: var(--color-bg);
 }
 
 .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode--erreur,
 .appMain .pageParametres .blocParametrage-claudecode #zone-resultat-test-claudecode.zoneResultatTestClaudecode--erreur,
-.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode.zoneResultatTestClaudecode--erreur {
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode.zoneResultatTestClaudecode--erreur,
+.pageParametres .blocParametrage-ia .zoneResultatTestClaudecode--erreur,
+.appMain .pageParametres .blocParametrage-ia #zone-resultat-test-claudecode.zoneResultatTestClaudecode--erreur,
+.appMain .pageParametres .blocParametrage-ia .zoneResultatTestClaudecode.zoneResultatTestClaudecode--erreur {
   color: var(--color-error);
   background: var(--color-error-bg);
   font-weight: 500;
@@ -1836,7 +2089,9 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 
 /* Bloc de texte du résultat (succès) — affichage lisible avec retours à la ligne, pas JSON brut */
 .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeTexte,
-.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeTexte {
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeTexte,
+.pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeTexte,
+.appMain .pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeTexte {
   margin: 0;
   padding: var(--space-md);
   white-space: pre-wrap;
@@ -1855,22 +2110,30 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 }
 
 .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation,
-.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation {
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation,
+.pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeValidation,
+.appMain .pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeValidation {
   margin: var(--space-sm) 0 0;
   font-size: 0.875rem;
 }
 .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--ok,
-.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--ok {
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--ok,
+.pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--ok,
+.appMain .pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--ok {
   color: var(--color-success, #0d7d3d);
 }
 .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--erreur,
-.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--erreur {
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--erreur,
+.pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--erreur,
+.appMain .pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeValidation--erreur {
   color: var(--color-error);
   font-weight: 500;
 }
 
 .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidationListe,
-.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidationListe {
+.appMain .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidationListe,
+.pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeValidationListe,
+.appMain .pageParametres .blocParametrage-ia .zoneResultatTestClaudecode .resultatTestClaudecodeValidationListe {
   margin: var(--space-xs) 0 0 var(--space-md);
   padding-left: var(--space-md);
   font-size: 0.875rem;

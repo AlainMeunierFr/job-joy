@@ -5,8 +5,8 @@
  * - Stockage du refresh token et rÃ©gÃ©nÃ©ration automatique de l'access token.
  */
 import { createHash, randomBytes } from 'node:crypto';
-import { join } from 'node:path';
 import { lireParametres, ecrireParametres, getDefaultParametres } from './parametres-io.js';
+import { getDataDir as getDataDirFromUtil } from './data-dir.js';
 import {
   PublicClientApplication,
   type Configuration,
@@ -36,8 +36,14 @@ export interface MicrosoftTokensFile {
 let cachedAccessToken: { token: string; expiresAt: number } | null = null;
 const CACHE_MARGIN_MS = 5 * 60 * 1000; // considÃ©rer expirÃ© 5 min avant la vraie date
 
+/** Même logique que le serveur : JOB_JOY_USER_DATA => userData, sinon cwd/data (dev). */
 function getDataDir(): string {
-  return join(process.cwd(), 'data');
+  const hasUserData =
+    process.env.JOB_JOY_USER_DATA !== undefined && process.env.JOB_JOY_USER_DATA !== '';
+  return getDataDirFromUtil({
+    isPackaged: !!hasUserData,
+    userDataDir: hasUserData ? process.env.JOB_JOY_USER_DATA : undefined,
+  });
 }
 
 /**
