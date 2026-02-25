@@ -252,7 +252,7 @@ When(
 );
 
 Then(
-  'la réponse contient les champs Réhibitoire1 à RéhibitoireN (string justification) pour chaque réhibitoire configuré',
+  'la réponse contient les champs Réhibitoire1 à RéhibitoireN \\(string justification) pour chaque réhibitoire configuré',
   async () => {
     expect(lastTestClaudecodeResponse).toBeDefined();
     const jv = lastTestClaudecodeResponse?.jsonValidation as { valid?: boolean; json?: Record<string, unknown> } | undefined;
@@ -264,7 +264,7 @@ Then(
 );
 
 Then(
-  'chaque justification est une chaîne de caractères (texte court)',
+  'chaque justification est une chaîne de caractères \\(texte court)',
   async () => {
     const jv = lastTestClaudecodeResponse?.jsonValidation as { json?: Record<string, unknown> } | undefined;
     const json = jv?.json;
@@ -331,7 +331,7 @@ Given(
 let lastOffreApiResponse: Record<string, unknown> | null = null;
 
 When(
-  "je récupère les données de cette offre via l'API (détail offre, liste ou synthèse)",
+  "je récupère les données de cette offre via l'API \\(détail offre, liste ou synthèse)",
   async () => {
     const apiRes = await fetch(`${API_BASE}/api/tableau-synthese-offres`);
     lastOffreApiResponse = (await apiRes.json()) as Record<string, unknown>;
@@ -339,7 +339,7 @@ When(
 );
 
 Then(
-  'la réponse inclut les champs de justification (JustificationRéhibitoire1 à JustificationRéhibitoire4) pour les réhibitoires configurés',
+  'la réponse inclut les champs de justification \\(JustificationRéhibitoire1 à JustificationRéhibitoire4) pour les réhibitoires configurés',
   async () => {
     expect(lastOffreApiResponse).toBeDefined();
     const lignes = lastOffreApiResponse?.lignes as Array<Record<string, unknown>> | undefined;
@@ -374,7 +374,7 @@ Then(
 );
 
 Then(
-  "pour chaque critère rédhibitoire affiché (Réhibitoire1 à N), la justification associée est affichée à côté ou en dessous du booléen",
+  "pour chaque critère rédhibitoire affiché \\(Réhibitoire1 à N), la justification associée est affichée à côté ou en dessous du booléen",
   async ({ page }) => {
     const zone = page.locator('#zone-resultat-test-claudecode');
     const sectionRehib = zone.locator('[data-layout="zone-resultat-rehibitoires"]');
@@ -412,7 +412,7 @@ Then(
 );
 
 Then(
-  'la zone de résultat affiche les critères rédhibitoires dans l\'ordre (1 puis 2 puis 3 puis 4)',
+  'la zone de résultat affiche les critères rédhibitoires dans l\'ordre \\({int} puis {int} puis {int} puis {int})',
   async ({ page }) => {
     const zone = page.locator('#zone-resultat-test-claudecode');
     const sectionRehib = zone.locator('[data-layout="zone-resultat-rehibitoires"]');
@@ -431,7 +431,7 @@ Then(
 );
 
 Then(
-  'chaque justification est affichée à côté du bon critère (justification 1 avec réhibitoire 1, etc.)',
+  'chaque justification est affichée à côté du bon critère \\(justification {int} avec réhibitoire {int}, etc.)',
   async ({ page }) => {
     const zone = page.locator('#zone-resultat-test-claudecode');
     const sectionRehib = zone.locator('[data-layout="zone-resultat-rehibitoires"]');

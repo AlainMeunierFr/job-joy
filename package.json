@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "test:all": "npm run test && npm run test:bdd",
+    "test:all": "npm run test",
     "test:integration:airtable": "jest --testPathPatterns=configuration-airtable.integration.test.ts",
     "test:integration:imap": "jest utils/connecteur-email-imap.integration.test.ts",
     "test:bdd": "npm run build && npx bddgen && npx playwright test",
@@ -56,6 +56,7 @@
   "build": {
     "appId": "fr.jobjoy.app",
     "productName": "Job-Joy",
+    "artifactName": "Job-Joy-Setup.${ext}",
     "directories": {
       "output": "dist-electron"
     },

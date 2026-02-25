@@ -30,7 +30,7 @@ describe('page Paramètres - case consentement identification (US-3.15)', () => 
     expect(html).toContain('name="consentementIdentification"');
     expect(html).toContain('job-joy');
     expect(html).toContain('support');
-    expect(html).toContain('retours beta');
+    expect(html).toContain('retours du beta-test');
   });
 
   it('précoche la case lorsque le compte a consentementIdentification true', async () => {

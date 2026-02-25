@@ -150,7 +150,8 @@ export async function getParametresContent(
   let avantProposHtml = '';
   if (options?.docsDir) {
     try {
-      avantProposHtml = await readFile(join(options.docsDir, 'telecharger.html'), 'utf-8');
+      const pathTelecharger = join(options.docsDir, 'telecharger.html');
+      avantProposHtml = await readFile(pathTelecharger, 'utf-8');
       const listePlugins = getListePluginsPourAvantPropos();
       const tablePluginsHtml =
         '<table class="introParametrageListePlugins" aria-label="Liste des plugins par source">' +
@@ -172,8 +173,10 @@ export async function getParametresContent(
         '</tbody></table>';
       avantProposHtml = avantProposHtml.replace(/<!-- INJECT_LISTE_PLUGIN -->/g, tablePluginsHtml);
     } catch {
-      avantProposHtml = '<p class="tutorielAbsent">Fichier docs/telecharger.html absent.</p>';
+      avantProposHtml = '<p class="tutorielAbsent">Avant propos absent (fichier docs/telecharger.html absent).</p>';
     }
+  } else {
+    avantProposHtml = '<p class="tutorielAbsent">Avant propos absent.</p>';
   }
   const airtable = lireAirTable(dataDir);
   const hasApiKey = !!(airtable?.apiKey?.trim());

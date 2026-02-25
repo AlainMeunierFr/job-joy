@@ -59,12 +59,9 @@ describe('executerEnrichissementOffres', () => {
       expect(r.nbEnrichies).toBe(1);
       expect(r.nbEchecs).toBe(0);
     }
+    // Phase 2 ne met à jour que Texte de l'offre, Salaire, DateOffre, Statut (poste/entreprise/ville déjà en phase 1).
     expect(updateOffre).toHaveBeenCalledWith('rec1', {
       "Texte de l'offre": 'Description du poste',
-      Poste: 'Développeur',
-      Entreprise: 'Acme',
-      Ville: 'Paris',
-      Statut: STATUT_A_ANALYSER,
     });
   });
 
@@ -116,10 +113,9 @@ describe('executerEnrichissementOffres', () => {
       expect(r.nbEnrichies).toBe(1);
       expect(r.nbEchecs).toBe(0);
     }
+    // Phase 2 n'envoie que Texte de l'offre (Poste/Statut issus du fetcher ne sont pas envoyés à updateOffre).
     expect(updateOffre).toHaveBeenCalledWith('recSuffisant', {
       "Texte de l'offre": 'Description complète',
-      Poste: 'Développeur TypeScript',
-      Statut: STATUT_A_ANALYSER,
     });
   });
 
@@ -298,9 +294,6 @@ describe('executerEnrichissementOffres', () => {
       }
       expect(updateOffre).toHaveBeenCalledWith('recWttj1', {
         "Texte de l'offre": "Texte de l'offre WTTJ",
-        Poste: 'Product Manager',
-        Entreprise: 'Acme',
-        Statut: STATUT_A_ANALYSER,
       });
     } finally {
       globalThis.fetch = globalFetch;
@@ -357,9 +350,6 @@ describe('executerEnrichissementOffres', () => {
       if (r.ok) expect(r.nbEnrichies).toBe(1);
       expect(updateOffre).toHaveBeenCalledWith('recJtms1', {
         "Texte de l'offre": 'Texte JTMS',
-        Poste: 'Product Manager',
-        Entreprise: 'Acme',
-        Statut: STATUT_A_ANALYSER,
       });
     } finally {
       globalThis.fetch = globalFetch;

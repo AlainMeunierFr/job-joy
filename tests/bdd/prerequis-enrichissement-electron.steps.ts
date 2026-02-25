@@ -44,6 +44,50 @@ Given(
 );
 
 // --- Given : offre Cadre emploi / HelloWork / WTTJ ---
+Given('une offre Cadre emploi en statut {string} existe dans la table Offres avec une URL exploitable', async (_page, statut: string) => {
+  expect(statut).toBe('Annonce à récupérer');
+  await fetch(`${getApiBase()}/api/test/set-airtable`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiKey: 'patTestKeyValide123',
+      base: 'appXyz123',
+      sources: 'tblSourcesId',
+      offres: 'tblOffresId',
+    }),
+  });
+  await fetch(`${getApiBase()}/api/test/set-mock-sources`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sources: [
+        {
+          emailExpéditeur: 'offres@alertes.cadremploi.fr',
+          plugin: 'Cadre Emploi',
+          activerCreation: true,
+          activerEnrichissement: true,
+          activerAnalyseIA: true,
+        },
+      ],
+    }),
+  });
+  await fetch(`${getApiBase()}/api/test/set-mock-offres`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      offres: [
+        {
+          idOffre: 'cadre-bdd-1',
+          url: 'https://www.cadremploi.fr/offre/123',
+          dateAjout: new Date().toISOString().slice(0, 10),
+          statut: 'Annonce à récupérer',
+          emailExpéditeur: 'offres@alertes.cadremploi.fr',
+        },
+      ],
+    }),
+  });
+});
+
 Given(
   /qu'une offre Cadre emploi en statut "Annonce à récupérer" existe dans la table Offres avec une URL exploitable/,
   async () => {
@@ -189,6 +233,50 @@ Given(
     // Le serveur BDD par défaut (webServer) tourne déjà en mode dev ; on marque le contexte.
   }
 );
+
+Given('une offre en statut {string} existe dans la table Offres pour une source nécessitant un navigateur \\(LinkedIn ou Cadre emploi) avec une URL exploitable', async (_page, statut: string) => {
+  expect(statut).toBe('Annonce à récupérer');
+  await fetch(`${getApiBase()}/api/test/set-airtable`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiKey: 'patTestKeyValide123',
+      base: 'appXyz123',
+      sources: 'tblSourcesId',
+      offres: 'tblOffresId',
+    }),
+  });
+  await fetch(`${getApiBase()}/api/test/set-mock-sources`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sources: [
+        {
+          emailExpéditeur: 'jobs@linkedin.com',
+          plugin: 'Linkedin',
+          activerCreation: true,
+          activerEnrichissement: true,
+          activerAnalyseIA: true,
+        },
+      ],
+    }),
+  });
+  await fetch(`${getApiBase()}/api/test/set-mock-offres`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      offres: [
+        {
+          idOffre: 'dev-bdd-1',
+          url: 'https://www.linkedin.com/jobs/view/456',
+          dateAjout: new Date().toISOString().slice(0, 10),
+          statut: 'Annonce à récupérer',
+          emailExpéditeur: 'jobs@linkedin.com',
+        },
+      ],
+    }),
+  });
+});
 
 Given(
   /qu'une offre en statut "Annonce à récupérer" existe dans la table Offres pour une source nécessitant un navigateur \(LinkedIn ou Cadre emploi\) avec une URL exploitable/,

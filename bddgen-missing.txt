@@ -1,0 +1,72 @@
+﻿node.exe : Missing step definitions: 94
+Au caractère Ligne:1 : 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Missing step definitions: 94:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Then('la table Sources comporte le champ {string} \\(s├®lection : email, liste html, liste csv)', async ({}, arg: 
+string) => {
+  // Step: Et la table Sources comporte le champ "type" (s├®lection : email, liste html, liste csv)
+  // From: tests\bdd\gouvernance-sources-emails.feature:17:5
+});
+
+Then('la table Sources comporte {string}, {string}, {string} \\(cases ├á cocher)', async ({}, arg: string, arg1: 
+string, arg2: string) => {
+  // Step: Et la table Sources comporte "Activer la cr├®ation", "Activer l'enrichissement", "Activer l'analyse par IA" 
+(cases ├á cocher)
+  // From: tests\bdd\gouvernance-sources-emails.feature:18:5
+});
+
+When('le champ {string} est conserv├® dans le sch├®ma', async ({}, arg: string) => {
+  // Step: Et que le champ "Statut" est conserv├® dans le sch├®ma
+  // From: tests\bdd\gouvernance-sources-emails.feature:22:5
+});
+
+Then('la r├®ponse contient les champs R├®hibitoire1 ├á R├®hibitoireN \\(string justification) pour chaque r├®hibitoire 
+configur├®', async ({}) => {
+  // Step: Alors la r├®ponse contient les champs R├®hibitoire1 ├á R├®hibitoireN (string justification) pour chaque 
+r├®hibitoire configur├®
+  // From: tests\bdd\justifications-rehibitoires.feature:17:5
+});
+
+Then('chaque justification est une cha├«ne de caract├¿res \\(texte court)', async ({}) => {
+  // Step: Et chaque justification est une cha├«ne de caract├¿res (texte court)
+  // From: tests\bdd\justifications-rehibitoires.feature:18:5
+});
+
+When('je r├®cup├¿re les donn├®es de cette offre via l\'API \\(d├®tail offre, liste ou synth├¿se)', async ({}) => {
+  // Step: Quand je r├®cup├¿re les donn├®es de cette offre via l'API (d├®tail offre, liste ou synth├¿se)
+  // From: tests\bdd\justifications-rehibitoires.feature:22:5
+});
+
+Then('la r├®ponse inclut les champs de justification \\(JustificationR├®hibitoire1 ├á JustificationR├®hibitoire4) pour 
+les r├®hibitoires configur├®s', async ({}) => {
+  // Step: Alors la r├®ponse inclut les champs de justification (JustificationR├®hibitoire1 ├á 
+JustificationR├®hibitoire4) pour les r├®hibitoires configur├®s
+  // From: tests\bdd\justifications-rehibitoires.feature:23:5
+});
+
+Then('pour chaque crit├¿re r├®dhibitoire affich├® \\(R├®hibitoire1 ├á N), la justification associ├®e est affich├®e ├á 
+c├┤t├® ou en dessous du bool├®en', async ({}) => {
+  // Step: Et pour chaque crit├¿re r├®dhibitoire affich├® (R├®hibitoire1 ├á N), la justification associ├®e est 
+affich├®e ├á c├┤t├® ou en dessous du bool├®en
+  // From: tests\bdd\justifications-rehibitoires.feature:33:5
+});
+
+Then('la zone de r├®sultat affiche les crit├¿res r├®dhibitoires dans l\'ordre \\({int} puis {int} puis {int} puis 
+{int})', async ({}, arg: number, arg1: number, arg2: number, arg3: number) => {
+  // Step: Alors la zone de r├®sultat affiche les crit├¿res r├®dhibitoires dans l'ordre (1 puis 2 puis 3 puis 4)
+  // From: tests\bdd\justifications-rehibitoires.feature:48:5
+});
+
+Then('chaque justification est affich├®e ├á c├┤t├® du bon crit├¿re \\(justification {int} avec r├®hibitoire {int}, 
+etc.)', async ({}, arg: number, arg1: number) => {
+  // Step: Et chaque justification est affich├®e ├á c├┤t├® du bon crit├¿re (justification 1 avec r├®hibitoire 1, etc.)
+  // From: tests\bdd\justifications-rehibitoires.feature:49:5
+});
+
+...and 84 more.
+
+Use snippets above to create missing steps.

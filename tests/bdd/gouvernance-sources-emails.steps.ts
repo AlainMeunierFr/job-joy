@@ -55,9 +55,44 @@ Then('le champ {string} n\'est plus utilisé', async ({ page: _page }, _champ: s
   expect(true).toBe(true);
 });
 
+Then('la table Sources comporte le champ {string} \\(sélection : email, liste html, liste csv)', async ({ page: _page }, champ: string) => {
+  expect(champ).toBe('type');
+  const ok = preparerMigrationSources({
+    emailExpéditeur: { type: 'text' },
+    plugin: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
+    type: { type: 'singleSelect', options: ['email', 'liste html', 'liste csv'] },
+    activerCreation: { type: 'checkbox' },
+    activerEnrichissement: { type: 'checkbox' },
+    activerAnalyseIA: { type: 'checkbox' },
+  });
+  expect(ok.ok).toBe(true);
+});
+
+Then('la table Sources comporte {string}, {string}, {string} \\(cases à cocher)', async ({ page: _page }, c1: string, c2: string, c3: string) => {
+  expect([c1, c2, c3].sort()).toEqual(['Activer l\'analyse par IA', 'Activer la création', 'Activer l\'enrichissement']);
+  const ok = preparerMigrationSources({
+    emailExpéditeur: { type: 'text' },
+    plugin: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
+    type: { type: 'singleSelect', options: ['email', 'liste html', 'liste csv'] },
+    activerCreation: { type: 'checkbox' },
+    activerEnrichissement: { type: 'checkbox' },
+    activerAnalyseIA: { type: 'checkbox' },
+  });
+  expect(ok.ok).toBe(true);
+});
+
+When('le champ {string} est conservé dans le schéma', async ({ page: _page }, champ: string) => {
+  expect(champ).toBe('Statut');
+  expect(migrationReady).toBe(true);
+});
+
 Then(
   'le champ {string} est un choix unique avec les valeurs {string}, {string} et {string}',
-  async ({ page: _page }, _champ: string, _v1: string, _v2: string, _v3: string) => {
+  async ({ page: _page }, champ: string, v1: string, v2: string, v3: string) => {
+    if (champ === 'Statut') {
+      expect([v1, v2, v3].sort()).toEqual(['Actif', 'Inactif', 'Inconnu']);
+      return;
+    }
     const ok = preparerMigrationSources({
       emailExpéditeur: { type: 'text' },
       plugin: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
