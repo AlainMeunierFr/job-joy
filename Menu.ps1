@@ -184,7 +184,7 @@ function Invoke-Publier-Version-Preprod {
         Write-Host "Version pre-prod : $nextVer (release preprod-v$nextVer creee par la CI)." -ForegroundColor Green
 
         git add -A
-        git commit -m "Pre-prod preprod-v$nextVer"
+        git commit -m "preprod-v$nextVer"
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Rien a committer (working tree clean). Push du commit actuel vers preprod." -ForegroundColor DarkYellow
         }
