@@ -70,7 +70,7 @@ describe('validerConformiteJsonIA', () => {
       Salaire: '',
       Résumé_IA: 'Résumé.',
       Réhibitoire3: 'Justification critère 3.',
-      ScoreLocalisation: 16,
+      ScoreLocalisation: 8,
       ScoreSalaire: 5,
       ScoreCulture: 3,
       ScoreQualitéOffre: 4,

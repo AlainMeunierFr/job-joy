@@ -1426,6 +1426,73 @@ body.parametrageCompteEmail,
   cursor: not-allowed;
 }
 
+/* --- Convention app : 3 types de boutons --- */
+/* Type 1 : Enregistrement (action principale de sauvegarde) */
+.btnEnregistrement,
+button.btnEnregistrement {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+.btnEnregistrement:hover,
+button.btnEnregistrement:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+/* Type 2 : Autre action dans le site */
+.btnAction,
+button.btnAction {
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+.btnAction:hover,
+button.btnAction:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+/* Type 3 : Ouverture d'un lien externe */
+.btnExterne,
+button.btnExterne,
+a.btnExterne {
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  display: inline-block;
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btnExterne:hover,
+button.btnExterne:hover,
+a.btnExterne:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+.btnExterne:focus,
+button.btnExterne:focus,
+a.btnExterne:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.3);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* --- Carte formulaire : regroupe mode de connexion + dossier + actions --- */
 .parametrageCompteEmail .formCard,
 .appMain .parametrageCompteEmail .formCard {
@@ -2008,6 +2075,51 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
 .appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .fieldGroup {
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Métadonnées offre test : 2 champs par ligne */
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .metadonneesOffreTestRow,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .metadonneesOffreTestRow,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .metadonneesOffreTestRow,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .metadonneesOffreTestRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md) var(--space-lg);
+  margin-top: var(--space-sm);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .metadonneesOffreTestField,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .metadonneesOffreTestField,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .metadonneesOffreTestField,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .metadonneesOffreTestField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .metadonneesOffreTestField label,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .metadonneesOffreTestField label,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .metadonneesOffreTestField label,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .metadonneesOffreTestField label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.pageParametres .blocParametrage-claudecode .zoneTestClaudecode .metadonneesOffreTestField input,
+.appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .metadonneesOffreTestField input,
+.pageParametres .blocParametrage-ia .zoneTestClaudecode .metadonneesOffreTestField input,
+.appMain .pageParametres .blocParametrage-ia .zoneTestClaudecode .metadonneesOffreTestField input {
+  width: 100%;
+  min-height: var(--input-min-height);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
 }
 
@@ -2619,6 +2731,357 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
   cursor: not-allowed;
 }
 
+/* --- Bloc Formule du score total (US-2.7) — même présentation que les autres blocs Paramètres --- */
+.pageParametres .blocParametrage-formuleScoreTotal.formuleScoreTotal,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal.formuleScoreTotal {
+  /* Hérite de .blocParametrage : carte, summary, content */
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .blocFormuleScoreTotalContent,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .blocFormuleScoreTotalContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* Zones (coefficients, formule, variables) */
+.pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotal,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotal {
+  margin: 0;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotal .fieldGroupLabel,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotal .fieldGroupLabel {
+  display: block;
+  margin: 0 0 var(--space-sm);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+/* Ligne des 8 coefficients : grille responsive */
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalCoefficientsRow[data-layout="coefficients-row"],
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalCoefficientsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--space-md);
+  align-items: end;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-coef,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-coef {
+  margin-bottom: 0;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-coef label,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-coef label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-coef input[type="number"],
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-coef input[type="number"] {
+  width: 100%;
+  min-height: var(--input-min-height);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-coef input[type="number"]:focus,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-coef input[type="number"]:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+/* Zone formule : label + textarea */
+.pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalFormule .blocCritereLabel,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalFormule .blocCritereLabel {
+  display: block;
+  margin: 0 0 var(--space-sm);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalFormule textarea.zoneFormuleScoreTotalFormule,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalFormule textarea.zoneFormuleScoreTotalFormule {
+  display: block;
+  width: 100%;
+  min-height: 8rem;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalFormule textarea.zoneFormuleScoreTotalFormule:focus,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalFormule textarea.zoneFormuleScoreTotalFormule:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+/* Liste des variables : grille pour sélection/copie facile */
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalVariablesList,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalVariablesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalVariable[data-variable-name],
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalVariable {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--color-text);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  user-select: all;
+  cursor: text;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalVariable:hover,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalVariable:hover {
+  border-color: var(--color-primary);
+  background: var(--color-bg);
+}
+
+/* Texte d'aide et lien doc */
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalAide,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalAide {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc {
+  margin: var(--space-xs) 0 0;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc a,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc a:hover,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc a:focus,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc a:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.3);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc .btnExterne,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalDoc .btnExterne {
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalScoreLabel,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalScoreLabel {
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+  font-size: 0.875rem;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalVariableName,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalVariableName {
+  margin: var(--space-xs) 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalTest,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalTest {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalTestHint,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalTestHint {
+  margin: 0 0 var(--space-md);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+/* Test : même grille que Coefficients (formuleScoreTotalCoefficientsRow) */
+.pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalTest .formuleScoreTotalCoefficientsRow,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalTest .formuleScoreTotalCoefficientsRow {
+  margin-bottom: var(--space-lg);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-test-score,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .fieldGroup.fieldGroup-test-score {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .fieldGroup-test-score .formuleScoreTotalScoreLabel,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .fieldGroup-test-score .formuleScoreTotalScoreLabel {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  margin: 0 0 var(--space-xs);
+}
+
+/* Score saisissable (blanc), même rendu que l’input coefficients */
+.pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalTestScoreInput,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalTestScoreInput {
+  width: 100%;
+  min-height: var(--input-min-height);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalTestScoreInput:focus,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneFormuleScoreTotalTestScoreInput:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+/* Coef en lecture seule (recopié du bloc Coefficients) */
+.pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalCoefValue,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .formuleScoreTotalCoefValue {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .fieldGroup-test-score .formuleScoreTotalVariableName,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .fieldGroup-test-score .formuleScoreTotalVariableName {
+  margin: 0;
+}
+
+/* Zone résultat test : formule avec valeurs = score total (gris) */
+.pageParametres .blocParametrage-formuleScoreTotal .zoneResultatFormuleTest,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneResultatFormuleTest,
+.pageParametres .blocParametrage-formuleScoreTotal .zoneResultatMeilleureOffre,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneResultatMeilleureOffre {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .zoneResultatFormuleTest .zoneResultatFormuleTestFormule,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneResultatFormuleTest .zoneResultatFormuleTestFormule {
+  font-family: var(--font-mono);
+  margin: 0 0 var(--space-xs);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .zoneResultatFormuleTest .zoneResultatFormuleTestDetail,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneResultatFormuleTest .zoneResultatFormuleTestDetail {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .zoneResultatMeilleureOffre .btnExterne,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .zoneResultatMeilleureOffre .btnExterne {
+  margin-top: var(--space-sm);
+}
+
+/* Boutons : Formule par défaut (.btnAction) + Enregistrer (.btnEnregistrement) */
+.pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal {
+  margin-top: 0;
+  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-md);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button {
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button.btnEnregistrement,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button.btnEnregistrement {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button.btnAction,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button.btnAction {
+  color: var(--color-text);
+  background: var(--color-bg);
+  border-color: var(--color-border);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button.btnEnregistrement:hover,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button.btnEnregistrement:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button.btnAction:hover,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button.btnAction:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+
+.pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button:focus,
+.appMain .pageParametres .blocParametrage-formuleScoreTotal .actions.actionsFormuleScoreTotal button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.4);
+}
+
 /* --- Responsive (mobile-first : base = mobile) --- */
 @media (min-width: 480px) {
   body.parametrageCompteEmail,
@@ -2649,4 +3112,86 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
   .pageTableauDeBord .dossierBoiteContainer > h2 {
     font-size: 1.25rem;
   }
+}
+
+/* --- Page Audit du code (traçabilité US ↔ code, mode dev) --- */
+.pageAudit h1 {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-md);
+}
+.pageAudit .auditNoData {
+  padding: var(--space-lg);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+.pageAudit .auditMeta {
+  margin-bottom: var(--space-md);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+.pageAudit .auditFilters {
+  margin-bottom: var(--space-md);
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.pageAudit .auditTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+.pageAudit .auditTab {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--color-bg);
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.pageAudit .auditTab[aria-selected="true"] {
+  background: var(--color-bg-card);
+  font-weight: 600;
+  margin-bottom: -1px;
+}
+.pageAudit .auditTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  table-layout: fixed;
+}
+.pageAudit .auditTable th,
+.pageAudit .auditTable td {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0;
+}
+.pageAudit .auditTable th:nth-child(1),
+.pageAudit .auditTable td:nth-child(1) { width: 12%; }
+.pageAudit .auditTable th:nth-child(2),
+.pageAudit .auditTable td:nth-child(2) { width: 12%; }
+.pageAudit .auditTable th:nth-child(3),
+.pageAudit .auditTable td:nth-child(3) { width: 18%; white-space: normal; max-width: none; }
+.pageAudit .auditTable th:nth-child(4),
+.pageAudit .auditTable td:nth-child(4) { width: 22%; }
+.pageAudit .auditTable th:nth-child(5),
+.pageAudit .auditTable td:nth-child(5) { width: 22%; }
+.pageAudit .auditTable th:nth-child(6),
+.pageAudit .auditTable td:nth-child(6) { width: 6%; }
+.pageAudit .auditTable th {
+  background: var(--color-bg);
+  font-weight: 600;
+}
+.pageAudit .auditTable td {
+  vertical-align: middle;
+}
+.pageAudit .auditPanel[hidden] {
+  display: none;
 }

@@ -1,0 +1,45 @@
+Dossier du sprint	Numéro US	Titre de l'US	Nombre de CA	Nombre de CA Done	Nombre de CA Doing	Nombre de CA ToDo	Nombre de CA Old
+Sprint 1 - Relève les emails et intégration des offres	1.01	Configuration du compte email	3	0	3	0	0
+Sprint 1 - Relève les emails et intégration des offres	1.02	Menu horizontal et navigation	3	0	0	3	0
+Sprint 1 - Relève les emails et intégration des offres	1.03	Configurer Airtable	7	0	3	4	0
+Sprint 1 - Relève les emails et intégration des offres	1.04	Stratégie des tests (unitaires vs intégration Airtable)	1	0	1	0	0
+Sprint 1 - Relève les emails et intégration des offres	1.05	Offres des emails LinkedIn	3	0	3	0	0
+Sprint 1 - Relève les emails et intégration des offres	1.06	Décompte des emails en attente de traitement	4	0	0	4	0
+Sprint 1 - Relève les emails et intégration des offres	1.07	Redirection vers les paramètres tant que la configuration n'est pas complète	3	0	3	0	0
+Sprint 1 - Relève les emails et intégration des offres	1.08	Tableau de synthèse des offres	3	0	3	0	0
+Sprint 1 - Relève les emails et intégration des offres	1.09	Analyse des emails HelloWork	1	0	0	1	0
+Sprint 1 - Relève les emails et intégration des offres	1.10	Analyse des emails Welcome to the Jungle	4	0	0	4	0
+Sprint 1 - Relève les emails et intégration des offres	1.11	Analyse des emails Job That Make Sense	3	0	0	3	0
+Sprint 1 - Relève les emails et intégration des offres	1.12	Analyse des emails cadreemploi	3	0	0	3	0
+Sprint 1 - Relève les emails et intégration des offres	1.13	Totaux sur le tableau des offres	3	0	3	0	0
+Sprint 2 - Analyse des offres	2.1	Récupérer l'argument qui justifie un arbitrage réhibitoire	2	0	0	2	0
+Sprint 2 - Analyse des offres	2.2	API Key pour ClaudeCode	3	0	3	0	0
+Sprint 2 - Analyse des offres	2.3	Construire le prompt de l'IA	5	0	2	3	0
+Sprint 2 - Analyse des offres	2.4	Configuration ClaudeCode - Test	4	0	4	0	0
+Sprint 2 - Analyse des offres	2.5	Comptage des appels API	4	0	4	0	0
+Sprint 3 - Version release sur poste de dev	3.1	Enrichissement de la table Sources (type de source et activation par phase)	9	0	6	3	0
+Sprint 3 - Version release sur poste de dev	3.11	Gestion du numéro de version et process de mise à jour	8	0	0	8	0
+Sprint 3 - Version release sur poste de dev	3.12	Single instance (une seule fenêtre, une seule instance de l'app)	4	0	3	1	0
+Sprint 3 - Version release sur poste de dev	3.14	Gestion des erreurs réseau et service indisponible	5	0	0	5	0
+Sprint 3 - Version release sur poste de dev	3.15	Identification des utilisateurs (consentement et notification par email)	6	0	5	1	0
+Sprint 3 - Version release sur poste de dev	3.16	Page « À propos »	1	0	0	1	0
+Sprint 3 - Version release sur poste de dev	3.17	Tests IMAP (vrais tests ou scénario de validation)	1	0	0	1	0
+Sprint 3 - Version release sur poste de dev	3.2	Récupérer l'argument qui justifie un arbitrage réhibitoire	6	0	2	4	0
+Sprint 3 - Version release sur poste de dev	3.3	Tableau de bord unifié	4	0	2	2	0
+Sprint 3 - Version release sur poste de dev	3.4	Améliorer les log appels API	5	0	3	2	0
+Sprint 3 - Version release sur poste de dev	3.5	Réorganisation des traitements	5	0	5	0	0
+Sprint 3 - Version release sur poste de dev	3.6	Publier l'application (installateur et mise à jour automatique via Electron)	5	0	5	0	0
+Sprint 3 - Version release sur poste de dev	3.7	Orchestration et source de vérité tableau	6	0	0	6	0
+Sprint 3 - Version release sur poste de dev	3.8	Package Electron	1	0	0	1	0
+Sprint 4 - Premiers beta-testeurs	4.1	Implémentation Gmail (ou masquer l’option tant que non implémenté)	1	0	0	1	0
+Sprint 4 - Premiers beta-testeurs	4.2	Récupération des emails exemple : canal pour les beta-testeurs	1	0	0	1	0
+Sprint 4 - Premiers beta-testeurs	4.3	Enrichissement LinkedIn fonctionnel dans le package Electron	3	0	0	3	0
+Sprint 4 - Premiers beta-testeurs	4.4	Process de mise à jour clair (comment on notifie / diffuse une nouvelle version)	1	0	0	1	0
+Sprint 4 - Premiers beta-testeurs	4.5	Introduction au process de paramétrage	6	0	0	6	0
+Sprint 4 - Premiers beta-testeurs	4.6	Embarquer dans Electron tous les prérequis techniques pour l'enrichissement	5	0	4	1	0
+Sprint 5 - Diffusion plus large	3.13	Logs en production dans le cloud (emplacement, niveau, rotation)	1	0	0	1	0
+Sprint 5 - Diffusion plus large	3.21	Signature du binaire Windows (certificat, réduction des alertes SmartScreen)	1	0	0	1	0
+Sprint 5 - Diffusion plus large	3.22	Comportement à la désinstallation (ce qui reste dans %APPDATA%, doc ou choix proposé)	1	0	0	1	0
+Sprint 5 - Diffusion plus large	3.23	Auto-update ou process de mise à jour « grand public » (electron-updater ou équivalent)	1	0	0	1	0
+Sprint 5 - Diffusion plus large	3.24	Sauvegarde / export des données avant mise à jour	1	0	0	1	0
+Sprint 5 - Diffusion plus large	3.25	Compatibilité ascendante des données (anciens parametres.json)	1	0	0	1	0

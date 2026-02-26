@@ -223,6 +223,135 @@
           .finally(function() { if (btnIa) btnIa.disabled = false; });
         return;
       }
+      if (t.closest && t.closest('.formuleScoreTotalVariable')) {
+        e.preventDefault();
+        var spanVar = t.closest('.formuleScoreTotalVariable');
+        if (window.getSelection && document.createRange && spanVar) {
+          var sel = window.getSelection();
+          var range = document.createRange();
+          range.selectNodeContents(spanVar);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+        return;
+      }
+      if (t.id === 'bouton-ouvrir-doc-mathjs' || (t.closest && t.closest('#bouton-ouvrir-doc-mathjs'))) {
+        e.preventDefault();
+        var btnDoc = document.getElementById('bouton-ouvrir-doc-mathjs');
+        var href = btnDoc && btnDoc.getAttribute('data-href');
+        if (href) window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (t.id === 'bouton-formule-par-defaut' || (t.closest && t.closest('#bouton-formule-par-defaut'))) {
+        e.preventDefault();
+        var section = document.getElementById('section-formule-score-total');
+        var formuleEl = document.getElementById('formule-score-total-formule');
+        var def = section && section.getAttribute('data-formule-default');
+        if (formuleEl && typeof def === 'string') formuleEl.value = def;
+        return;
+      }
+      if (t.id === 'bouton-recuperer-meilleure-offre' || (t.closest && t.closest('#bouton-recuperer-meilleure-offre'))) {
+        e.preventDefault();
+        var zoneResultat = document.getElementById('zone-resultat-formule-test');
+        var btnMeilleure = document.getElementById('bouton-recuperer-meilleure-offre');
+        if (zoneResultat) zoneResultat.textContent = 'Chargement…';
+        if (btnMeilleure) btnMeilleure.disabled = true;
+        fetch(origin + '/api/meilleure-offre')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && data.ok && data.offre) {
+              var o = data.offre;
+              var scores = o.scores || {};
+              var scoreNames = ['ScoreLocalisation', 'ScoreSalaire', 'ScoreCulture', 'ScoreQualitéOffre', 'ScoreCritère1', 'ScoreCritère2', 'ScoreCritère3', 'ScoreCritère4'];
+              scoreNames.forEach(function(nom) {
+                var el = document.getElementById('test-score-' + nom);
+                if (!el) return;
+                var val = scores[nom];
+                if (val == null && nom === 'ScoreQualitéOffre') val = scores.ScoreQualiteOffre;
+                if (val != null && val >= 0 && val <= 5) el.value = String(val);
+                else if (val != null) el.value = String(Math.min(5, Math.max(0, val)));
+                else el.value = '';
+              });
+              if (zoneResultat) {
+                var lib = [o.poste, o.entreprise, o.scoreTotal != null ? 'Score total ' + o.scoreTotal : ''].filter(Boolean).join(' — ');
+                var link = (o.url) ? '<a href="' + escapeHtml(o.url) + '" target="_blank" rel="noopener noreferrer" class="btnExterne">Ouvrir l\'offre</a>' : '';
+                zoneResultat.innerHTML = '<p>' + escapeHtml(lib || 'Offre chargée') + '</p>' + (link ? '<p>' + link + '</p>' : '');
+              }
+            } else {
+              if (zoneResultat) zoneResultat.textContent = (data && data.message) ? data.message : 'Aucune offre avec score trouvée.';
+            }
+          })
+          .catch(function(err) {
+            if (zoneResultat) zoneResultat.textContent = 'Erreur : ' + (err && err.message ? err.message : 'requête échouée');
+          })
+          .finally(function() { if (btnMeilleure) btnMeilleure.disabled = false; });
+        return;
+      }
+      if (t.id === 'bouton-calculer-formule-test' || (t.closest && t.closest('#bouton-calculer-formule-test'))) {
+        e.preventDefault();
+        var zoneResultat = document.getElementById('zone-resultat-formule-test');
+        var btnCalc = document.getElementById('bouton-calculer-formule-test');
+        var scoreNames = ['ScoreLocalisation', 'ScoreSalaire', 'ScoreCulture', 'ScoreQualitéOffre', 'ScoreCritère1', 'ScoreCritère2', 'ScoreCritère3', 'ScoreCritère4'];
+        var scores = {};
+        scoreNames.forEach(function(nom) {
+          var el = document.getElementById('test-score-' + nom);
+          var v = (el && el.value !== '') ? parseFloat(el.value) : 0;
+          scores[nom] = Number.isFinite(v) ? Math.max(0, Math.min(5, v)) : 0;
+        });
+        var coefKeys = ['coefScoreLocalisation', 'coefScoreSalaire', 'coefScoreCulture', 'coefScoreQualiteOffre', 'coefScoreOptionnel1', 'coefScoreOptionnel2', 'coefScoreOptionnel3', 'coefScoreOptionnel4'];
+        var coefs = {};
+        coefKeys.forEach(function(k) {
+          var el = document.getElementById('formule-score-total-' + k);
+          var v = (el && el.value !== '') ? parseInt(el.value, 10) : 1;
+          coefs[k] = Number.isFinite(v) ? Math.max(0, v) : 1;
+        });
+        var formuleEl = document.getElementById('formule-score-total-formule');
+        var formule = (formuleEl && formuleEl.value) ? formuleEl.value.trim() : '';
+        if (zoneResultat) zoneResultat.textContent = 'Calcul…';
+        if (btnCalc) btnCalc.disabled = true;
+        fetch(origin + '/api/formule-score-total/eval', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scores: scores, coefs: coefs, formule: formule })
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (zoneResultat) {
+              if (data && data.ok && data.result != null) {
+                var scoreAffiche = typeof data.result === 'number' && Number.isFinite(data.result) ? String(data.result) : String(data.result);
+                var formuleAvecValeurs = (data.formuleAvecValeurs != null && String(data.formuleAvecValeurs).trim()) ? String(data.formuleAvecValeurs).trim() : '';
+                var ligneFormule = formuleAvecValeurs ? '<p class="zoneResultatFormuleTestFormule">' + escapeHtml(formuleAvecValeurs) + ' = <strong>' + escapeHtml(scoreAffiche) + '</strong></p>' : '<p><strong>Score total : ' + escapeHtml(scoreAffiche) + '</strong></p>';
+                zoneResultat.innerHTML = ligneFormule;
+              } else {
+                zoneResultat.textContent = (data && data.message) ? data.message : 'Erreur de calcul.';
+              }
+            }
+          })
+          .catch(function(err) {
+            if (zoneResultat) zoneResultat.textContent = 'Erreur : ' + (err && err.message ? err.message : 'requête échouée');
+          })
+          .finally(function() { if (btnCalc) btnCalc.disabled = false; });
+        return;
+      }
+      if (t.id === 'bouton-enregistrer-formule-score-total' || (t.closest && t.closest('#bouton-enregistrer-formule-score-total'))) {
+        e.preventDefault();
+        var coefKeys = ['coefScoreLocalisation', 'coefScoreSalaire', 'coefScoreCulture', 'coefScoreQualiteOffre', 'coefScoreOptionnel1', 'coefScoreOptionnel2', 'coefScoreOptionnel3', 'coefScoreOptionnel4'];
+        var payload = {};
+        coefKeys.forEach(function(k) {
+          var el = document.getElementById('formule-score-total-' + k);
+          var v = (el && el.value !== '') ? parseInt(el.value, 10) : 1;
+          payload[k] = Number.isFinite(v) ? Math.max(0, v) : 1;
+        });
+        var formuleEl = document.getElementById('formule-score-total-formule');
+        payload.formule = (formuleEl && formuleEl.value) ? formuleEl.value.trim() : '';
+        var btnFst = document.getElementById('bouton-enregistrer-formule-score-total');
+        if (btnFst) btnFst.disabled = true;
+        fetch(origin + '/api/formule-score-total', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+          .then(function(r) { return r.json(); })
+          .then(function(data) { if (data && data.ok) window.location.reload(); })
+          .finally(function() { if (btnFst) btnFst.disabled = false; });
+        return;
+      }
       if (t.id === 'bouton-proposer-prompt' || (t.closest && t.closest('#bouton-proposer-prompt'))) {
         e.preventDefault();
         var ta = document.getElementById('prompt-ia-partie-modifiable');
@@ -284,6 +413,18 @@
           .then(function(r) { return r.json(); })
           .then(function(data) {
             if (data && typeof data.texte === 'string') ta.value = data.texte;
+            var elPoste = document.getElementById('metadata-poste');
+            var elEntreprise = document.getElementById('metadata-entreprise');
+            var elVille = document.getElementById('metadata-ville');
+            var elSalaire = document.getElementById('metadata-salaire');
+            var elDateOffre = document.getElementById('metadata-date-offre');
+            var elDepartement = document.getElementById('metadata-departement');
+            if (elPoste) elPoste.value = (data && typeof data.poste === 'string') ? data.poste : '';
+            if (elEntreprise) elEntreprise.value = (data && typeof data.entreprise === 'string') ? data.entreprise : '';
+            if (elVille) elVille.value = (data && typeof data.ville === 'string') ? data.ville : '';
+            if (elSalaire) elSalaire.value = (data && typeof data.salaire === 'string') ? data.salaire : '';
+            if (elDateOffre) elDateOffre.value = (data && typeof data.dateOffre === 'string') ? data.dateOffre : '';
+            if (elDepartement) elDepartement.value = (data && typeof data.departement === 'string') ? data.departement : '';
           })
           .finally(function() { if (btnRecup) btnRecup.disabled = false; });
       }
@@ -294,6 +435,19 @@
         var btnTester = document.getElementById('bouton-tester-api');
         if (!zoneResultat) return;
         var texteOffre = (taTest && taTest.value) ? taTest.value : '';
+        var poste = (document.getElementById('metadata-poste') && document.getElementById('metadata-poste').value) ? document.getElementById('metadata-poste').value : '';
+        var entreprise = (document.getElementById('metadata-entreprise') && document.getElementById('metadata-entreprise').value) ? document.getElementById('metadata-entreprise').value : '';
+        var ville = (document.getElementById('metadata-ville') && document.getElementById('metadata-ville').value) ? document.getElementById('metadata-ville').value : '';
+        var salaire = (document.getElementById('metadata-salaire') && document.getElementById('metadata-salaire').value) ? document.getElementById('metadata-salaire').value : '';
+        var dateOffre = (document.getElementById('metadata-date-offre') && document.getElementById('metadata-date-offre').value) ? document.getElementById('metadata-date-offre').value : '';
+        var departement = (document.getElementById('metadata-departement') && document.getElementById('metadata-departement').value) ? document.getElementById('metadata-departement').value : '';
+        var body = { texteOffre: texteOffre };
+        if (poste) body.poste = poste;
+        if (entreprise) body.entreprise = entreprise;
+        if (ville) body.ville = ville;
+        if (salaire) body.salaire = salaire;
+        if (dateOffre) body.dateOffre = dateOffre;
+        if (departement) body.departement = departement;
         if (btnTester) btnTester.disabled = true;
         zoneResultat.setAttribute('data-type', '');
         zoneResultat.classList.remove('zoneResultatTestClaudecode--erreur');
@@ -303,7 +457,7 @@
         fetch(origin + '/api/test-claudecode', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ texteOffre: texteOffre })
+          body: JSON.stringify(body)
         })
           .then(function(r) { return r.json(); })
           .then(function(data) {

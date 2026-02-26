@@ -6,7 +6,7 @@ import type { AirtableConfigDriver } from './configuration-airtable.js';
 import { normaliserBaseId } from './airtable-url.js';
 import { STATUTS_OFFRES_AIRTABLE_WITH_COLORS } from './statuts-offres-airtable.js';
 import { PLUGINS_SOURCES_AIRTABLE } from './plugins-sources-airtable.js';
-import { getBaseSchema, ensureSingleSelectChoices, ensureLookupsOffresFromSources } from './airtable-ensure-enums.js';
+import { getBaseSchema, ensureSingleSelectChoices, ensureLookupsOffresFromSources, ensureScoreTotalIsNumber } from './airtable-ensure-enums.js';
 
 const API_BASE = 'https://api.airtable.com/v0';
 
@@ -171,7 +171,7 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
             { name: 'ScoreLocalisation', type: 'number' as const, options: { precision: 0 } },
             { name: 'ScoreSalaire', type: 'number' as const, options: { precision: 0 } },
             { name: 'ScoreQualiteOffre', type: 'number' as const, options: { precision: 0 } },
-            { name: 'Score_Total', type: 'number' as const, options: { precision: 0 } },
+            { name: 'Score_Total', type: 'number' as const, options: { precision: 1 } },
             { name: 'Verdict', type: 'singleLineText' as const },
             // Lien mono : une offre n'a qu'un seul expéditeur (Sources). À configurer en "un seul enregistrement" dans l'UI Airtable si besoin.
             { name: 'email expéditeur', type: 'multipleRecordLinks' as const, options: { linkedTableId: sourcesId } },
@@ -196,6 +196,9 @@ export function createAirtableDriverReel(options: AirtableDriverReelOptions): Ai
       // Garantit que les options single select de "Statut" incluent la valeur attendue
       // même si la table Offres existait déjà avant cette initialisation.
       await ensureSingleSelectChoices(baseId, offresId, 'Statut', STATUTS_OFFRES_AIRTABLE_WITH_COLORS, apiKey);
+
+      // CA US-2.7 : Score_Total en type number (création si absent, ou tentative passage texte → number si base existante).
+      await ensureScoreTotalIsNumber(baseId, offresId, apiKey);
 
       // Lookups Offres <- Sources (Source - emailExpéditeur, Source - plugin, Source - actif) pour afficher les infos source dans Offres. Ne casse pas si l’API refuse.
       await ensureLookupsOffresFromSources(baseId, sourcesId, offresId, apiKey);

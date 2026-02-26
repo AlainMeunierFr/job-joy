@@ -13,7 +13,9 @@ import type {
   MicrosoftParams,
   GmailParams,
   ParametrageIA,
+  FormuleDuScoreTotal,
 } from '../types/parametres.js';
+import { mergeFormuleDuScoreTotal } from './formule-score-total.js';
 import type { CompteLu, ParametresCompte, ProviderCompte } from '../types/compte.js';
 
 const FILENAME = 'parametres.json';
@@ -195,8 +197,11 @@ export function lireParametres(dataDir: string): ParametresPersistes | null {
     );
     return null;
   }
+  // Si connexionBoiteEmail manque (fichier édité à la main, section supprimée), fusionner avec les défauts
+  // pour que parametrageIA, airtable, etc. restent chargés et affichés dans le formulaire.
   if (!data?.connexionBoiteEmail) {
-    return null;
+    const def = getDefaultParametres();
+    data = { ...def, ...data, connexionBoiteEmail: def.connexionBoiteEmail };
   }
   return data;
 }
@@ -350,6 +355,23 @@ export function lirePartieModifiablePrompt(dataDir: string): string {
 export function ecrirePartieModifiablePrompt(dataDir: string, texte: string): void {
   const p = lireParametres(dataDir) ?? getDefaultParametres();
   p.promptIA = texte;
+  ecrireParametres(dataDir, p);
+}
+
+/**
+ * Lit formuleDuScoreTotal depuis parametres.json et fusionne avec les défauts (US-2.7).
+ */
+export function lireFormuleDuScoreTotalOuDefaut(dataDir: string): FormuleDuScoreTotal {
+  const p = lireParametres(dataDir);
+  return mergeFormuleDuScoreTotal(p?.formuleDuScoreTotal);
+}
+
+/**
+ * Enregistre formuleDuScoreTotal dans parametres.json (US-2.7).
+ */
+export function ecrireFormuleDuScoreTotal(dataDir: string, data: FormuleDuScoreTotal): void {
+  const p = lireParametres(dataDir) ?? getDefaultParametres();
+  p.formuleDuScoreTotal = data;
   ecrireParametres(dataDir, p);
 }
 

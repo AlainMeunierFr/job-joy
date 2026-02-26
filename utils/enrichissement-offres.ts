@@ -56,14 +56,20 @@ export interface ChampsOffreAirtable {
   ScoreCulture?: number;
   /** Nom exact Airtable (sans accent). */
   ScoreQualiteOffre?: number;
+  /** US-2.7 : score total calculé par la formule (entier). Enregistré dans Airtable après analyse. */
+  Score_Total?: number;
 }
 
-/** Offre en statut « À analyser » pour le worker Analyse IA (poste/ville pour libellé, texte pour prompt). */
+/** Offre en statut « À analyser » pour le worker Analyse IA (poste/ville pour libellé, texte pour prompt). US-2.6 : métadonnées pour le prompt. */
 export interface OffreAAnalyser {
   id: string;
   poste?: string;
   ville?: string;
   texteOffre?: string;
+  entreprise?: string;
+  salaire?: string;
+  dateOffre?: string;
+  departement?: string;
 }
 
 /** Port : lister les offres à récupérer et mettre à jour une offre. */

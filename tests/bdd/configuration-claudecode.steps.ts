@@ -433,25 +433,25 @@ Then('ce champ est une zone de texte multiligne \\(textarea)', async ({ page }) 
 });
 
 Then(
-  'la section Configuration ClaudeCode n\'affiche pas le bouton "Récupérer le texte d\'une offre"',
+  'la section Configuration ClaudeCode n\'affiche pas le bouton récupérer offre pour test',
   async ({ page }) => {
     await ouvrirBlocClaudeCodeSiFerme(page);
     const section = page.locator(sectionClaudeCode());
-    await expect(section.getByRole('button', { name: "Récupérer le texte d'une offre" })).toHaveCount(0);
+    await expect(section.getByRole('button', { name: "Pour tester, récupérer les informations de l'offre qui a le meilleur score" })).toHaveCount(0);
   }
 );
 
 Then(
-  'la section Configuration ClaudeCode affiche un bouton "Récupérer le texte d\'une offre"',
+  'la section Configuration ClaudeCode affiche un bouton récupérer offre pour test',
   async ({ page }) => {
     await ouvrirBlocClaudeCodeSiFerme(page);
     const section = page.locator(sectionClaudeCode());
-    await expect(section.getByRole('button', { name: "Récupérer le texte d'une offre" })).toBeVisible();
+    await expect(section.getByRole('button', { name: "Pour tester, récupérer les informations de l'offre qui a le meilleur score" })).toBeVisible();
   }
 );
 
 When(
-  'je clique sur le bouton "Récupérer le texte d\'une offre" de la section Configuration ClaudeCode',
+  'je clique sur le bouton récupérer offre pour test de la section Configuration ClaudeCode',
   async ({ page }) => {
     await ouvrirBlocClaudeCodeSiFerme(page);
     const responsePromise = page.waitForResponse(

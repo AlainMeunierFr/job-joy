@@ -10,7 +10,8 @@ import { lireCompte, lireAirTable } from '../utils/index.js';
 import { getListePluginsPourAvantPropos } from '../utils/source-plugins.js';
 import { maskEmail } from '../utils/mask-email.js';
 import { getLayoutHtml } from './layout-html.js';
-import type { ParametrageIA, Rehibitoire, ScoreOptionnel, ScoresIncontournables } from '../types/parametres.js';
+import type { ParametrageIA, Rehibitoire, ScoreOptionnel, ScoresIncontournables, FormuleDuScoreTotal } from '../types/parametres.js';
+import { getDefaultFormuleDuScoreTotal, FORMULE_DEFAULT, NOMS_SCORES, NOMS_COEFS } from '../utils/formule-score-total.js';
 
 const N_REHIBITOIRES = 4;
 const N_SCORES_OPTIONNELS = 4;
@@ -50,17 +51,26 @@ function normalizeParametrageIA(ia?: ParametrageIA | null): {
   scoresOptionnels: ScoreOptionnel[];
   autresRessources: string;
 } {
-  const rehibitoires = (ia?.rehibitoires ?? []).slice(0, N_REHIBITOIRES);
+  const rawRehib = Array.isArray(ia?.rehibitoires) ? ia.rehibitoires : [];
+  const rehibitoires = rawRehib.slice(0, N_REHIBITOIRES).map((r) => ({
+    titre: typeof r?.titre === 'string' ? r.titre : '',
+    description: typeof r?.description === 'string' ? r.description : '',
+  }));
   while (rehibitoires.length < N_REHIBITOIRES) {
     rehibitoires.push({ titre: '', description: '' });
   }
-  const scoresIncontournables = ia?.scoresIncontournables ?? {
-    localisation: '',
-    salaire: '',
-    culture: '',
-    qualiteOffre: '',
+  const rawScores = ia?.scoresIncontournables && typeof ia.scoresIncontournables === 'object' ? ia.scoresIncontournables : null;
+  const scoresIncontournables = {
+    localisation: typeof rawScores?.localisation === 'string' ? rawScores.localisation : '',
+    salaire: typeof rawScores?.salaire === 'string' ? rawScores.salaire : '',
+    culture: typeof rawScores?.culture === 'string' ? rawScores.culture : '',
+    qualiteOffre: typeof rawScores?.qualiteOffre === 'string' ? rawScores.qualiteOffre : '',
   };
-  const scoresOptionnels = (ia?.scoresOptionnels ?? []).slice(0, N_SCORES_OPTIONNELS);
+  const rawOpt = Array.isArray(ia?.scoresOptionnels) ? ia.scoresOptionnels : [];
+  const scoresOptionnels = rawOpt.slice(0, N_SCORES_OPTIONNELS).map((s) => ({
+    titre: typeof s?.titre === 'string' ? s.titre : '',
+    attente: typeof s?.attente === 'string' ? s.attente : '',
+  }));
   while (scoresOptionnels.length < N_SCORES_OPTIONNELS) {
     scoresOptionnels.push({ titre: '', attente: '' });
   }
@@ -68,7 +78,7 @@ function normalizeParametrageIA(ia?: ParametrageIA | null): {
     rehibitoires,
     scoresIncontournables,
     scoresOptionnels,
-    autresRessources: ia?.autresRessources ?? '',
+    autresRessources: typeof ia?.autresRessources === 'string' ? ia.autresRessources : '',
   };
 }
 
@@ -98,6 +108,8 @@ export interface OptionsParametresContent {
   promptIAPartieFixe?: string;
   /** True si au moins une offre Airtable a du texte (afficher bouton "Récupérer le texte d'une offre"). US-2.4 */
   offreTestHasOffre?: boolean;
+  /** Formule du score total (US-2.7) pour préremplir le bloc. Si absent, utilise getDefaultFormuleDuScoreTotal. */
+  formuleDuScoreTotal?: FormuleDuScoreTotal;
   /** Répertoire des ressources projet (guides HTML, etc.). Si fourni, les tutoriels sont lus depuis resourcesDir/guides/ au lieu de dataDir/ressources/. */
   resourcesDir?: string;
   /** Répertoire docs (ex. pour Avant propos = docs/telecharger.html). Si fourni, le bloc Avant propos charge ce fichier. */
@@ -326,7 +338,7 @@ export async function getParametresContent(
         <label for="parametrage-ia-rehibitoires-${i}-titre" class="blocCritereLabel">Titre</label>
         <input type="text" id="parametrage-ia-rehibitoires-${i}-titre" name="rehibitoires_${i}_titre" value="${escapeHtml(ia.rehibitoires[i].titre)}" maxlength="200" placeholder="${escapeHtml(PLACEHOLDER_REHIBITOIRE_TITRE)}" e2eid="e2eid-parametrage-ia-rehibitoires-${i}-titre" form="form-parametrage-ia" />
         <label for="parametrage-ia-rehibitoires-${i}-description" class="blocCritereLabel">Description</label>
-        <textarea id="parametrage-ia-rehibitoires-${i}-description" name="rehibitoires_${i}_description" rows="3" placeholder="${escapeHtml(PLACEHOLDER_REHIBITOIRE_DESCRIPTION)}" e2eid="e2eid-parametrage-ia-rehibitoires-${i}-description" form="form-parametrage-ia">${escapeHtml(ia.rehibitoires[i].description)}</textarea>
+        <textarea id="parametrage-ia-rehibitoires-${i}-description" name="rehibitoires_${i}_description" rows="10" placeholder="${escapeHtml(PLACEHOLDER_REHIBITOIRE_DESCRIPTION)}" e2eid="e2eid-parametrage-ia-rehibitoires-${i}-description" form="form-parametrage-ia">${escapeHtml(ia.rehibitoires[i].description)}</textarea>
       </div>`).join('')}
     </div>`;
   const scoresIncontournablesKeys = ['localisation', 'salaire', 'culture', 'qualiteOffre'] as const;
@@ -339,7 +351,7 @@ export async function getParametresContent(
         return `
       <div class="blocCritere blocScoreIncontournable" data-layout="bloc-critere" data-bloc-key="${key}">
         <span class="blocCritereTitreFixe" id="parametrage-ia-scores-incontournables-${key}-label">${escapeHtml(titre)}</span>
-        <textarea id="parametrage-ia-scores-incontournables-${key}" name="scores_incontournables_${key}" rows="3" placeholder="${escapeHtml(PLACEHOLDERS_SCORES_INCONTOURNABLES[i])}" e2eid="e2eid-parametrage-ia-scores-${key}" form="form-parametrage-ia">${escapeHtml(value)}</textarea>
+        <textarea id="parametrage-ia-scores-incontournables-${key}" name="scores_incontournables_${key}" rows="10" placeholder="${escapeHtml(PLACEHOLDERS_SCORES_INCONTOURNABLES[i])}" e2eid="e2eid-parametrage-ia-scores-${key}" form="form-parametrage-ia">${escapeHtml(value)}</textarea>
       </div>`;
       }).join('')}
     </div>`;
@@ -351,7 +363,7 @@ export async function getParametresContent(
         <label for="parametrage-ia-scores-optionnels-${i}-titre" class="blocCritereLabel">Titre</label>
         <input type="text" id="parametrage-ia-scores-optionnels-${i}-titre" name="scores_optionnels_${i}_titre" value="${escapeHtml(ia.scoresOptionnels[i].titre)}" maxlength="200" placeholder="${escapeHtml(PLACEHOLDER_OPTIONNEL_TITRE)}" e2eid="e2eid-parametrage-ia-scores-optionnels-${i}-titre" form="form-parametrage-ia" />
         <label for="parametrage-ia-scores-optionnels-${i}-attente" class="blocCritereLabel">Attente</label>
-        <textarea id="parametrage-ia-scores-optionnels-${i}-attente" name="scores_optionnels_${i}_attente" rows="3" placeholder="${escapeHtml(PLACEHOLDER_OPTIONNEL_ATTENTE)}" e2eid="e2eid-parametrage-ia-scores-optionnels-${i}-attente" form="form-parametrage-ia">${escapeHtml(ia.scoresOptionnels[i].attente)}</textarea>
+        <textarea id="parametrage-ia-scores-optionnels-${i}-attente" name="scores_optionnels_${i}_attente" rows="10" placeholder="${escapeHtml(PLACEHOLDER_OPTIONNEL_ATTENTE)}" e2eid="e2eid-parametrage-ia-scores-optionnels-${i}-attente" form="form-parametrage-ia">${escapeHtml(ia.scoresOptionnels[i].attente)}</textarea>
       </div>`).join('')}
     </div>`;
   const placeholderAutresRessources =
@@ -386,6 +398,17 @@ export async function getParametresContent(
       </div>
       <hr class="formDivider parametrageIADivider" aria-hidden="true" />
       <div class="zoneTestClaudecode" data-layout="zone-test-claudecode" aria-labelledby="label-texte-offre-test">
+        <div class="fieldGroup fieldGroup-metadonnees-offre" data-layout="metadonnees-offre-test" aria-label="Métadonnées de l'offre (optionnel, envoyées au LLM avec le texte)">
+          <span class="fieldGroupLabel">Métadonnées (optionnel)</span>
+          <div class="metadonneesOffreTestRow">
+            <div class="metadonneesOffreTestField"><label for="metadata-poste">Poste</label><input type="text" id="metadata-poste" name="metadataPoste" placeholder="Titre du poste" e2eid="e2eid-metadata-poste" aria-label="Poste" /></div>
+            <div class="metadonneesOffreTestField"><label for="metadata-entreprise">Entreprise</label><input type="text" id="metadata-entreprise" name="metadataEntreprise" placeholder="Nom entreprise" e2eid="e2eid-metadata-entreprise" aria-label="Entreprise" /></div>
+            <div class="metadonneesOffreTestField"><label for="metadata-ville">Ville</label><input type="text" id="metadata-ville" name="metadataVille" placeholder="Ville" e2eid="e2eid-metadata-ville" aria-label="Ville" /></div>
+            <div class="metadonneesOffreTestField"><label for="metadata-salaire">Salaire</label><input type="text" id="metadata-salaire" name="metadataSalaire" placeholder="Ex. 45–55 k€" e2eid="e2eid-metadata-salaire" aria-label="Salaire" /></div>
+            <div class="metadonneesOffreTestField"><label for="metadata-date-offre">Date offre</label><input type="text" id="metadata-date-offre" name="metadataDateOffre" placeholder="Ex. 2025-01-15" e2eid="e2eid-metadata-date-offre" aria-label="Date offre" /></div>
+            <div class="metadonneesOffreTestField"><label for="metadata-departement">Département</label><input type="text" id="metadata-departement" name="metadataDepartement" placeholder="Ex. 69" e2eid="e2eid-metadata-departement" aria-label="Département" /></div>
+          </div>
+        </div>
         <div class="fieldGroup">
           <label for="texte-offre-test" id="label-texte-offre-test">Texte d'offre à tester</label>
           <textarea id="texte-offre-test" name="texteOffreTest" rows="6" class="zoneTexteOffreTest" e2eid="e2eid-texte-offre-test" aria-label="Texte d'offre à tester"></textarea>
@@ -416,6 +439,69 @@ export async function getParametresContent(
           <button type="button" id="bouton-enregistrer-parametrage-ia" e2eid="e2eid-bouton-enregistrer-parametrage-ia">Enregistrer</button>
         </div>
       </form>
+      </div>
+    </details>`;
+
+  const formuleDef = options?.formuleDuScoreTotal ?? getDefaultFormuleDuScoreTotal();
+  const coefKeys = ['coefScoreLocalisation', 'coefScoreSalaire', 'coefScoreCulture', 'coefScoreQualiteOffre', 'coefScoreOptionnel1', 'coefScoreOptionnel2', 'coefScoreOptionnel3', 'coefScoreOptionnel4'] as const;
+  const scoreLibelles: string[] = [
+    ...SCORES_INCONTOURNABLES_TITRES,
+    ...ia.scoresOptionnels.map((o, i) => (o?.titre && o.titre.trim()) ? o.titre.trim() : `Critère optionnel ${i + 1}`),
+  ];
+  const formuleFormValue = (formuleDef.formule ?? '').trim() || FORMULE_DEFAULT;
+  const coefsHtml = coefKeys.map((key, index) => {
+    const val = formuleDef[key] ?? 1;
+    const id = 'formule-score-total-' + key;
+    const libelle = scoreLibelles[index] ?? key;
+    return `<div class="fieldGroup fieldGroup-coef"><p class="formuleScoreTotalScoreLabel">${escapeHtml(libelle)}</p><label for="${id}" class="visuallyHidden">${escapeHtml(key)}</label><input type="number" id="${id}" name="${key}" value="${Number(val)}" min="0" step="1" e2eid="e2eid-${id}" aria-label="${escapeHtml(libelle)} (${escapeHtml(key)})" /><p class="formuleScoreTotalVariableName">${escapeHtml(key)}</p></div>`;
+  }).join('\n        ');
+  const nomsVariables = [...NOMS_SCORES, ...NOMS_COEFS];
+  const variablesListHtml = nomsVariables.map((nom) => `<span class="formuleScoreTotalVariable" data-variable-name="${escapeHtml(nom)}" e2eid="e2eid-var-${escapeHtml(nom)}">${escapeHtml(nom)}</span>`).join(', ');
+  const docMathJsUrl = 'https://mathjs.org/docs/index.html';
+  const formuleScoreTotalSectionHtml = `
+    <details id="section-formule-score-total" class="blocParametrage blocParametrage-formuleScoreTotal formuleScoreTotal" data-layout="formule-score-total" data-formule-default="${escapeHtml(FORMULE_DEFAULT)}" aria-labelledby="titre-formule-score-total">
+      <summary id="titre-formule-score-total" class="blocParametrageSummary formuleScoreTotalTitle">Formule du score total</summary>
+      <div class="blocParametrageContent blocFormuleScoreTotalContent">
+        <div class="zoneFormuleScoreTotal zoneFormuleScoreTotalCoefficients" data-zone="coefficients" aria-labelledby="label-formule-coefs">
+          <p class="fieldGroupLabel" id="label-formule-coefs">Coefficients</p>
+          <div class="formuleScoreTotalCoefficientsRow" data-layout="coefficients-row">
+            ${coefsHtml}
+          </div>
+        </div>
+        <div class="zoneFormuleScoreTotal zoneFormuleScoreTotalFormule" data-zone="formule">
+          <label for="formule-score-total-formule" class="blocCritereLabel">Formule (expression math.js)</label>
+          <textarea id="formule-score-total-formule" name="formule" rows="10" class="zoneFormuleScoreTotalFormule" e2eid="e2eid-formule-score-total-formule" aria-label="Formule du score total">${escapeHtml(formuleFormValue)}</textarea>
+        </div>
+        <div class="zoneFormuleScoreTotal zoneFormuleScoreTotalVariables" data-zone="variables" aria-labelledby="label-formule-variables">
+          <p class="fieldGroupLabel" id="label-formule-variables">Variables utilisables (cliquez pour sélectionner et copier)</p>
+          <div class="formuleScoreTotalVariablesList">${variablesListHtml}</div>
+        </div>
+        <p class="formuleScoreTotalAide">Syntaxe math.js : opérateurs +, -, *, /, ternaire (condition ? valeurSiVrai : valeurSiFaux). Utilisez les noms exacts ci-dessus.</p>
+        <div class="formuleScoreTotalDoc actionsFormuleScoreTotalDoc">
+          <button type="button" id="bouton-ouvrir-doc-mathjs" class="btnExterne" data-href="${escapeHtml(docMathJsUrl)}" e2eid="e2eid-lien-ouvrir-doc">Ouvrir la doc</button>
+        </div>
+        <div class="actions actionsFormuleScoreTotal">
+          <button type="button" id="bouton-formule-par-defaut" class="btnAction" e2eid="e2eid-bouton-formule-par-defaut">Formule par défaut</button>
+          <button type="button" id="bouton-enregistrer-formule-score-total" class="btnEnregistrement" e2eid="e2eid-bouton-enregistrer-formule-score-total">Enregistrer</button>
+        </div>
+        <div class="zoneFormuleScoreTotal zoneFormuleScoreTotalTest" data-zone="test" aria-labelledby="label-formule-test">
+          <p class="fieldGroupLabel" id="label-formule-test">Test</p>
+          <p class="formuleScoreTotalTestHint">Saisissez des scores (0–5) ou chargez ceux de l'offre avec le meilleur score total. Les coefficients affichés sont ceux du bloc ci-dessus (informatifs).</p>
+          <div class="formuleScoreTotalCoefficientsRow" data-layout="test-scores-row">
+            ${NOMS_SCORES.map((nom, index) => {
+              const libelle = scoreLibelles[index] ?? nom;
+              const id = 'test-score-' + nom;
+              const coefKey = coefKeys[index];
+              const coefVal = formuleDef[coefKey] ?? 1;
+              return `<div class="fieldGroup fieldGroup-coef fieldGroup-test-score"><p class="formuleScoreTotalScoreLabel">${escapeHtml(libelle)}</p><label for="${id}" class="visuallyHidden">${escapeHtml(nom)}</label><input type="number" id="${id}" min="0" max="5" value="" placeholder="0" class="zoneFormuleScoreTotalTestScoreInput" e2eid="e2eid-${id}" aria-label="${escapeHtml(libelle)}" data-score-name="${escapeHtml(nom)}" /><p class="formuleScoreTotalCoefValue">Coef. ${Number(coefVal)}</p><p class="formuleScoreTotalVariableName">${escapeHtml(nom)}</p></div>`;
+            }).join('\n            ')}
+          </div>
+          <div class="actions actionsFormuleScoreTotalTest">
+            <button type="button" id="bouton-recuperer-meilleure-offre" class="btnAction" e2eid="e2eid-bouton-recuperer-meilleure-offre">Récupérer l'offre avec le meilleur score</button>
+            <button type="button" id="bouton-calculer-formule-test" class="btnAction" e2eid="e2eid-bouton-calculer-formule-test">Calculer</button>
+          </div>
+          <div id="zone-resultat-formule-test" class="zoneResultatFormuleTest" role="status" aria-live="polite"></div>
+        </div>
       </div>
     </details>`;
 
@@ -478,7 +564,7 @@ export async function getParametresContent(
             En cochant cette case j'accepte qu'un email soit envoyé à Alain Meunier, auteur de job-joy, pour l'informer que j'utilise le logiciel. Il sera utilisé pour le support et les retours du beta-test.
           </label>
         `}
-        </div>
+          </div>
           <div class="actions actions-dossier">
             <button type="button" id="bouton-test-connexion" e2eid="e2eid-bouton-test-connexion">Tester connexion</button>
             <span id="resultat-test-message" class="resultatTestMessage" role="status" data-type="">Cliquez sur « Tester connexion » pour lancer le test.</span>
@@ -522,6 +608,7 @@ export async function getParametresContent(
       </div>
     </details>
     ${parametrageIASectionHtml}
+    ${formuleScoreTotalSectionHtml}
   </div>
   <script src="/scripts/parametres.js"></script>`;
 }
@@ -547,10 +634,14 @@ export interface OptionsPageParametres {
   promptIAPartieFixe?: string;
   /** True si au moins une offre Airtable a du texte (bouton Récupérer). US-2.4 */
   offreTestHasOffre?: boolean;
+  /** Formule du score total (US-2.7) pour préremplir le bloc. */
+  formuleDuScoreTotal?: FormuleDuScoreTotal;
   /** Répertoire des ressources projet (guides HTML). Si fourni, les tutoriels sont lus depuis resourcesDir/guides/. */
   resourcesDir?: string;
   /** Répertoire des docs (ex. guides). Utilisé côté page pour liens ou chemins. */
   docsDir?: string;
+  /** Si true, affiche le lien "Audit du code" dans le header (mode dev). */
+  showAuditLink?: boolean;
 }
 
 export async function getPageParametres(
@@ -560,6 +651,7 @@ export async function getPageParametres(
   const content = await getParametresContent(dataDir, options);
   return getLayoutHtml('parametres', 'Paramètres', content, {
     configComplète: options?.configComplète,
+    showAuditLink: options?.showAuditLink,
   });
 }
 
@@ -573,6 +665,8 @@ export interface PageAProposOptions {
   configComplète?: boolean;
   /** Répertoire des ressources projet (ex. ressources/). Si fourni, le contenu est lu depuis resourcesDir/guides/APropos.html. */
   resourcesDir?: string;
+  /** Si true, affiche le lien "Audit du code" dans le header (mode dev). */
+  showAuditLink?: boolean;
 }
 
 /** Formate une date ISO en français (ex. "21 février 2025 à 14:30"). */
@@ -620,19 +714,19 @@ const PAGE_A_PROPOS_FALLBACK = `
   <div class="blocAPropos pageAProposSectionLegal" aria-labelledby="a-propos-gnu">
     <h2 id="a-propos-gnu" class="blocAProposTitle">Licence et conformité (GNU)</h2>
     <div class="blocAProposContent">
-      <p>Ce logiciel est distribué sous licence <strong>GNU AGPL v3</strong> (ou ultérieure). Il est fourni «&nbsp;tel quel&nbsp;», sans garantie d'aucune sorte, explicite ou implicite, y compris les garanties de qualité marchande ou d'adéquation à un usage particulier.</p>
-      <p>Le code source est disponible sur demande auprès de l'éditeur (voir mentions légales). Conformément à la licence GNU AGPL, toute utilisation en réseau de cette application confère aux utilisateurs le droit de recevoir le code source correspondant.</p>
-      <p>Copyright &copy; Alain MEUNIER. Tous droits réservés selon les termes de la licence GNU AGPL v3.</p>
+    <p>Ce logiciel est distribué sous licence <strong>GNU AGPL v3</strong> (ou ultérieure). Il est fourni «&nbsp;tel quel&nbsp;», sans garantie d'aucune sorte, explicite ou implicite, y compris les garanties de qualité marchande ou d'adéquation à un usage particulier.</p>
+    <p>Le code source est disponible sur demande auprès de l'éditeur (voir mentions légales). Conformément à la licence GNU AGPL, toute utilisation en réseau de cette application confère aux utilisateurs le droit de recevoir le code source correspondant.</p>
+    <p>Copyright &copy; Alain MEUNIER. Tous droits réservés selon les termes de la licence GNU AGPL v3.</p>
     </div>
   </div>
 
   <div class="blocAPropos pageAProposSectionLegal" aria-labelledby="a-propos-mentions">
     <h2 id="a-propos-mentions" class="blocAProposTitle">Mentions légales</h2>
     <div class="blocAProposContent">
-      <p><strong>Éditeur et responsable de publication</strong></p>
-      <p>Alain MEUNIER<br>
-      Email&nbsp;: <a href="mailto:alain@maep.fr">alain@maep.fr</a><br>
-      Site web&nbsp;: <a href="https://m-alain-et-possible.fr/" target="_blank" rel="noopener noreferrer">https://m-alain-et-possible.fr/</a></p>
+    <p><strong>Éditeur et responsable de publication</strong></p>
+    <p>Alain MEUNIER<br>
+    Email&nbsp;: <a href="mailto:alain@maep.fr">alain@maep.fr</a><br>
+    Site web&nbsp;: <a href="https://m-alain-et-possible.fr/" target="_blank" rel="noopener noreferrer">https://m-alain-et-possible.fr/</a></p>
     </div>
   </div>
 </div>`;
@@ -661,7 +755,7 @@ export function getPageAPropos(options?: PageAProposOptions): string {
     .replace(/<!-- INJECT_VERSION_LINE -->/g, versionLine)
     .replace(/<!-- INJECT_BUILD_TIME_LINE -->/g, buildTimeLine);
 
-  return getLayoutHtml('a-propos', 'À propos', content, { configComplète });
+  return getLayoutHtml('a-propos', 'À propos', content, { configComplète, showAuditLink: options?.showAuditLink });
 }
 
 /** @deprecated Utiliser getPageParametres pour le layout avec menu. Conservé pour compatibilité (ex. BDD). */

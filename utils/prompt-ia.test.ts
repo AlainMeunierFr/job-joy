@@ -11,6 +11,7 @@ import {
   construireListeClesJson,
   getClesAttenduesJson,
   PARTIE_FIXE_PROMPT_IA,
+  construireMessageUserAnalyse,
 } from './prompt-ia.js';
 import { ecrirePartieModifiablePrompt, getDefaultParametres, ecrireParametres } from './parametres-io.js';
 
@@ -95,6 +96,30 @@ describe('partie fixe du prompt (US-2.3 CA2)', () => {
     expect(promptComplet).toContain('ScoreSalaire');
     expect(promptComplet).toContain('ScoreCulture');
     expect(promptComplet).toContain('ScoreQualitéOffre');
+  });
+});
+
+describe('construireMessageUserAnalyse (US-2.6)', () => {
+  const prefix = 'Analyse cette offre et retourne le JSON demandé.';
+
+  it('avec métadonnées vides → message identique à l’actuel (Contenu de l’offre : …)', () => {
+    const texteOffre = 'Contenu de l\'offre ici.';
+    const message = construireMessageUserAnalyse({}, texteOffre);
+    expect(message).toBe(
+      `${prefix}\n\nContenu de l'offre :\n${texteOffre}`
+    );
+  });
+
+  it('avec poste + ville renseignés → bloc Métadonnées contient Poste et Ville', () => {
+    const message = construireMessageUserAnalyse(
+      { poste: 'Développeur', ville: 'Lyon' },
+      'Texte offre.'
+    );
+    expect(message).toContain('Métadonnées connues :');
+    expect(message).toMatch(/Poste\s*=\s*Développeur/);
+    expect(message).toMatch(/Ville\s*=\s*Lyon/);
+    expect(message).toContain("Contenu de l'offre :");
+    expect(message).toContain('Texte offre.');
   });
 });
 

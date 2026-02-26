@@ -63,7 +63,7 @@ import {
 } from '../utils/offre-test.js';
 import { appelerClaudeCode, type ResultatAppelClaude } from '../utils/appeler-claudecode.js';
 import { parseJsonReponseIA, validerConformiteJsonIA } from '../utils/parse-json-reponse-ia.js';
-import { construirePromptComplet } from '../utils/prompt-ia.js';
+import { construirePromptComplet, construireMessageUserAnalyse } from '../utils/prompt-ia.js';
 import { lireClaudeCode } from '../utils/parametres-claudecode.js';
 import {
   agregerConsommationParJourEtApi,
@@ -358,6 +358,120 @@ async function listerOffresPourTableau(options: {
     offset = json.offset ?? '';
   } while (offset);
   return offres;
+}
+
+const MEILLEURE_OFFRE_FIELDS =
+  'fields%5B%5D=Score_Total&fields%5B%5D=Poste&fields%5B%5D=Entreprise' +
+  '&fields%5B%5D=ScoreLocalisation&fields%5B%5D=ScoreSalaire&fields%5B%5D=ScoreCulture&fields%5B%5D=ScoreQualiteOffre' +
+  '&fields%5B%5D=ScoreCritère1&fields%5B%5D=ScoreCritère2&fields%5B%5D=ScoreCritère3&fields%5B%5D=ScoreCritère4';
+
+function scoresFromFields(fields: Record<string, unknown>): Record<string, number> {
+  const score = (v: unknown) =>
+    typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(10, Math.round(v))) : 0;
+  return {
+    ScoreLocalisation: score(fields.ScoreLocalisation),
+    ScoreSalaire: score(fields.ScoreSalaire),
+    ScoreCulture: score(fields.ScoreCulture),
+    ScoreQualitéOffre: score(fields.ScoreQualiteOffre ?? fields.ScoreQualitéOffre),
+    ScoreCritère1: score(fields.ScoreCritère1),
+    ScoreCritère2: score(fields.ScoreCritère2),
+    ScoreCritère3: score(fields.ScoreCritère3),
+    ScoreCritère4: score(fields.ScoreCritère4),
+  };
+}
+
+/** Récupère l'offre avec le plus haut Score_Total (pour zone test Formule du score total). */
+async function getMeilleureOffreAirtable(options: {
+  apiKey: string;
+  baseId: string;
+  offresId: string;
+}): Promise<{
+  id: string;
+  poste?: string;
+  entreprise?: string;
+  scoreTotal: number;
+  url: string;
+  scores: Record<string, number>;
+} | null> {
+  const { apiKey, baseId, offresId } = options;
+  let best: {
+    id: string;
+    poste?: string;
+    entreprise?: string;
+    scoreTotal: number;
+    url: string;
+    scores: Record<string, number>;
+  } | null = null;
+  let offset = '';
+  do {
+    const url = `${AIRTABLE_API_BASE}/${encodeURIComponent(baseId)}/${encodeURIComponent(
+      offresId
+    )}?${MEILLEURE_OFFRE_FIELDS}&pageSize=100${offset ? `&offset=${encodeURIComponent(offset)}` : ''}`;
+    const res = await fetch(url, { method: 'GET', headers: airtableHeaders(apiKey) });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      records?: Array<{ id: string; fields?: Record<string, unknown> }>;
+      offset?: string;
+    };
+    const records = json.records ?? [];
+    for (const rec of records) {
+      const fields = rec.fields ?? {};
+      const scoreTotal =
+        typeof fields.Score_Total === 'number' && Number.isFinite(fields.Score_Total)
+          ? Math.round(fields.Score_Total)
+          : typeof fields.Score_Total === 'string'
+            ? parseInt(fields.Score_Total, 10)
+            : NaN;
+      if (Number.isNaN(scoreTotal) || (best !== null && scoreTotal <= best.scoreTotal)) continue;
+      const poste = typeof fields.Poste === 'string' ? fields.Poste.trim() : undefined;
+      const entreprise = typeof fields.Entreprise === 'string' ? fields.Entreprise.trim() : undefined;
+      const recordUrl = `https://airtable.com/${baseId}/${offresId}/${rec.id}`;
+      best = {
+        id: rec.id,
+        poste,
+        entreprise,
+        scoreTotal,
+        url: recordUrl,
+        scores: scoresFromFields(fields),
+      };
+    }
+    offset = json.offset ?? '';
+  } while (offset);
+  return best;
+}
+
+/** GET /api/meilleure-offre : offre avec le meilleur Score_Total (zone test Formule du score total). */
+export async function handleGetMeilleureOffre(dataDir: string, res: ServerResponse): Promise<void> {
+  const airtable = lireAirTable(dataDir);
+  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.offres?.trim()) {
+    sendJson(res, 200, { ok: false, message: 'Configuration Airtable manquante.' });
+    return;
+  }
+  const baseId = normaliserBaseId(airtable.base.trim());
+  try {
+    const offre = await getMeilleureOffreAirtable({
+      apiKey: airtable.apiKey.trim(),
+      baseId,
+      offresId: airtable.offres.trim(),
+    });
+    if (!offre) {
+      sendJson(res, 200, { ok: false, message: 'Aucune offre avec score trouvée.' });
+      return;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      offre: {
+        poste: offre.poste,
+        entreprise: offre.entreprise,
+        scoreTotal: offre.scoreTotal,
+        url: offre.url,
+        scores: offre.scores,
+      },
+    });
+  } catch (err) {
+    console.error('GET /api/meilleure-offre error', err);
+    sendJson(res, 500, { ok: false, message: String(err) });
+  }
 }
 
 type TraitementTask = {
@@ -830,7 +944,7 @@ function enrichirPhasesImplementation(
       ...ligne,
       phase1Implemented: !!emailPlugin,
       phase2Implemented: phase2Impl,
-      phase3Implemented: phase2Impl,
+      phase3Implemented: true,
     };
   });
 }
@@ -892,12 +1006,22 @@ export async function handleGetOffreTest(dataDir: string, res: ServerResponse): 
       baseId,
       offresId: airtable.offres.trim(),
     });
-    const texte = await recupererTexteOffreTest(driver);
+    const offre = await driver.getOffreTest?.();
     enregistrerAppel(dataDir, { api: 'Airtable', succes: true, intention: INTENTION_OFFRE_TEST });
-    sendJson(res, 200, {
-      hasOffre: !!texte,
-      ...(texte !== null && { texte }),
-    });
+    if (offre) {
+      sendJson(res, 200, {
+        hasOffre: true,
+        texte: offre.texte,
+        ...(offre.poste !== undefined && offre.poste !== '' && { poste: offre.poste }),
+        ...(offre.entreprise !== undefined && offre.entreprise !== '' && { entreprise: offre.entreprise }),
+        ...(offre.ville !== undefined && offre.ville !== '' && { ville: offre.ville }),
+        ...(offre.salaire !== undefined && offre.salaire !== '' && { salaire: offre.salaire }),
+        ...(offre.dateOffre !== undefined && offre.dateOffre !== '' && { dateOffre: offre.dateOffre }),
+        ...(offre.departement !== undefined && offre.departement !== '' && { departement: offre.departement }),
+      });
+    } else {
+      sendJson(res, 200, { hasOffre: false });
+    }
   } catch (err) {
     enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: err instanceof Error ? err.message : String(err), intention: INTENTION_OFFRE_TEST });
     throw err;
@@ -930,9 +1054,19 @@ export async function handlePostTestClaudecode(
     return;
   }
   const texteOffre = typeof body.texteOffre === 'string' ? body.texteOffre : '';
+  const meta = body.metadata && typeof body.metadata === 'object' ? (body.metadata as Record<string, unknown>) : body;
+  const str = (v: unknown) => (typeof v === 'string' ? v.trim() : undefined);
+  const metadonnees = {
+    poste: str(meta.poste) ?? str(body.poste),
+    entreprise: str(meta.entreprise) ?? str(body.entreprise),
+    ville: str(meta.ville) ?? str(body.ville),
+    salaire: str(meta.salaire) ?? str(body.salaire),
+    dateOffre: str(meta.dateOffre) ?? str(body.dateOffre),
+    departement: str(meta.departement) ?? str(body.departement),
+  };
   const parametrageIA = lireParametres(dataDir)?.parametrageIA ?? null;
   const promptSystem = construirePromptComplet(dataDir, parametrageIA);
-  const messageUser = `Analyse cette offre et retourne le JSON demandé.\n\nContenu de l'offre :\n${texteOffre}`;
+  const messageUser = construireMessageUserAnalyse(metadonnees, texteOffre);
   const result = await appelerClaudeCode(dataDir, promptSystem, messageUser);
   enregistrerAppel(dataDir, {
     api: 'Claude',

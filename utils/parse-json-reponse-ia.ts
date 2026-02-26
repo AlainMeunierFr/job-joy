@@ -102,8 +102,8 @@ export function validerConformiteJsonIA(
     }
     if (key.startsWith('Score')) {
       const n = Number(v);
-      if (!Number.isInteger(n) || n < 0 || n > 20) {
-        errors.push(`"${key}" doit être un entier entre 0 et 20 (reçu: ${JSON.stringify(v)}).`);
+      if (!Number.isInteger(n) || n < 0 || n > 10) {
+        errors.push(`"${key}" doit être un entier entre 1 et 10 inclus (0 = non évalué) (reçu: ${JSON.stringify(v)}).`);
       }
       continue;
     }

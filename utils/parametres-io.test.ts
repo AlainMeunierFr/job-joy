@@ -17,7 +17,10 @@ import {
   lireEmailIdentificationDejaEnvoye,
   lireConsentementEnvoyeLe,
   marquerEmailIdentificationEnvoye,
+  lireFormuleDuScoreTotalOuDefaut,
+  ecrireFormuleDuScoreTotal,
 } from './parametres-io.js';
+import { FORMULE_DEFAULT } from './formule-score-total.js';
 
 const TEST_ENCRYPTION_KEY = '0'.repeat(64);
 
@@ -214,5 +217,44 @@ describe('emailIdentificationDejaEnvoye (US-3.15)', () => {
     const iso = lireConsentementEnvoyeLe(dataDir);
     expect(iso).not.toBeNull();
     expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+  });
+});
+
+describe('formuleDuScoreTotal (US-2.7)', () => {
+  let dataDir: string;
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(join(tmpdir(), 'parametres-formule-'));
+    process.env.PARAMETRES_ENCRYPTION_KEY = TEST_ENCRYPTION_KEY;
+  });
+
+  afterEach(() => {
+    rmSync(dataDir, { recursive: true, force: true });
+    delete process.env.PARAMETRES_ENCRYPTION_KEY;
+  });
+
+  it('lireFormuleDuScoreTotalOuDefaut sans formule enregistrée retourne les défauts (coef 1, formule par défaut)', () => {
+    ecrireParametres(dataDir, getDefaultParametres());
+    const lu = lireFormuleDuScoreTotalOuDefaut(dataDir);
+    expect(lu.coefScoreLocalisation).toBe(1);
+    expect(lu.coefScoreOptionnel4).toBe(1);
+    expect(lu.formule).toBe(FORMULE_DEFAULT);
+  });
+
+  it('écriture puis lecture de formuleDuScoreTotal préserve les valeurs', () => {
+    ecrireFormuleDuScoreTotal(dataDir, {
+      coefScoreLocalisation: 1,
+      coefScoreSalaire: 2,
+      coefScoreCulture: 1,
+      coefScoreQualiteOffre: 1,
+      coefScoreOptionnel1: 1,
+      coefScoreOptionnel2: 1,
+      coefScoreOptionnel3: 1,
+      coefScoreOptionnel4: 1,
+      formule: 'ScoreSalaire + ScoreCulture',
+    });
+    const lu = lireFormuleDuScoreTotalOuDefaut(dataDir);
+    expect(lu.coefScoreSalaire).toBe(2);
+    expect(lu.formule).toBe('ScoreSalaire + ScoreCulture');
   });
 });

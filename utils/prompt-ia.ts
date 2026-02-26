@@ -1,9 +1,48 @@
 /**
  * Construction du prompt IA pour l'analyse des offres (US-2.3).
  * Partie fixe + partie modifiable (stockée dans parametres.json).
+ * US-2.6 : métadonnées dans le message utilisateur.
  */
 import type { ParametrageIA } from '../types/parametres.js';
 import { lirePartieModifiablePrompt } from './parametres-io.js';
+
+/** Métadonnées connues d'une offre pour le prompt d'analyse (US-2.6). Champs vides omis ou « non renseigné ». */
+export interface MetadonneesOffre {
+  poste?: string;
+  entreprise?: string;
+  ville?: string;
+  salaire?: string;
+  dateOffre?: string;
+  departement?: string;
+}
+
+const PREFIX_MESSAGE_USER_ANALYSE = 'Analyse cette offre et retourne le JSON demandé.';
+
+/**
+ * Construit le message utilisateur pour l'analyse IA : métadonnées explicites (si présentes) puis contenu de l'offre (US-2.6).
+ */
+export function construireMessageUserAnalyse(
+  metadonnees: MetadonneesOffre,
+  texteOffre: string
+): string {
+  const texte = (texteOffre ?? '').trim();
+  const lignes: string[] = [PREFIX_MESSAGE_USER_ANALYSE];
+  const champs: Array<{ label: string; value: string | undefined }> = [
+    { label: 'Poste', value: metadonnees.poste?.trim() || undefined },
+    { label: 'Entreprise', value: metadonnees.entreprise?.trim() || undefined },
+    { label: 'Ville', value: metadonnees.ville?.trim() || undefined },
+    { label: 'Salaire', value: metadonnees.salaire?.trim() || undefined },
+    { label: 'Date offre', value: metadonnees.dateOffre?.trim() || undefined },
+    { label: 'Département', value: metadonnees.departement?.trim() || undefined },
+  ];
+  const renseignes = champs.filter((c) => c.value);
+  if (renseignes.length > 0) {
+    const bloc = renseignes.map((c) => `${c.label} = ${c.value}`).join(' ; ');
+    lignes.push('', `Métadonnées connues : ${bloc}.`);
+  }
+  lignes.push('', "Contenu de l'offre :", texte || '(texte absent)');
+  return lignes.join('\n');
+}
 
 /** Valeur par défaut de la partie modifiable : rôle, ton, éléments à mentionner, placeholders pour critères. */
 const PARTIE_MODIFIABLE_DEFAUT = `**Rôle** : Tu es un agent de veille emploi pour le candidat.
@@ -12,7 +51,7 @@ const PARTIE_MODIFIABLE_DEFAUT = `**Rôle** : Tu es un agent de veille emploi po
 
 **Critères rédhibitoires** (à évaluer en booléen) : {{REHIBITOIRE1_TITRE}} — {{REHIBITOIRE1_DESCRIPTION}} ; {{REHIBITOIRE2_TITRE}} — {{REHIBITOIRE2_DESCRIPTION}} ; {{REHIBITOIRE3_TITRE}} — {{REHIBITOIRE3_DESCRIPTION}} ; {{REHIBITOIRE4_TITRE}} — {{REHIBITOIRE4_DESCRIPTION}}.
 
-**Scores incontournables** (note 0-20) : Localisation {{SCORE_LOCALISATION}} ; Salaire {{SCORE_SALAIRE}} ; Culture {{SCORE_CULTURE}} ; Qualité de l'offre {{SCORE_QUALITE_OFFRE}}.
+**Scores incontournables** (note 1-10, 0 = non évalué) : Localisation {{SCORE_LOCALISATION}} ; Salaire {{SCORE_SALAIRE}} ; Culture {{SCORE_CULTURE}} ; Qualité de l'offre {{SCORE_QUALITE_OFFRE}}.
 
 **Scores optionnels** : {{SCORE_OPTIONNEL1_TITRE}} — {{SCORE_OPTIONNEL1_ATTENTE}} ; etc.
 
@@ -116,7 +155,7 @@ function getSectionFormatReponse(parametrageIA: ParametrageIA | null): string {
     nbRehib > 0
       ? `- ${nomsRehib} : optionnel. Si le critère est rédhibitoire, inclure la clé avec une chaîne (justification courte, max 500 caractères). Si le critère n'est pas rédhibitoire, ne pas inclure la clé.\n`
       : '';
-  const lignesOptionnels = nbOptionnels > 0 ? `- ${nomsOptionnels} : entier entre 0 et 20 inclus.\n` : '';
+  const lignesOptionnels = nbOptionnels > 0 ? `- ${nomsOptionnels} : entier entre 1 et 10 inclus, où 0 signifie non évalué.\n` : '';
 
   const listeCles = construireListeClesJson(parametrageIA);
 
@@ -125,7 +164,7 @@ function getSectionFormatReponse(parametrageIA: ParametrageIA | null): string {
 Règles strictes pour un JSON exploitable :
 - Champs texte (Poste, Entreprise, Ville, Département, Date_offre, Salaire, Résumé_IA) : toujours des chaînes. Si l'information est absente, utiliser "" (chaîne vide). Ne jamais utiliser null.
 - Résumé_IA : un seul paragraphe, factuel, sans formatage markdown (pas de **, pas de listes à puces). Deux à quatre phrases maximum.
-${lignesRehib}- ScoreLocalisation, ScoreSalaire, ScoreCulture, ScoreQualitéOffre : entier entre 0 et 20 inclus.
+${lignesRehib}- ScoreLocalisation, ScoreSalaire, ScoreCulture, ScoreQualitéOffre : entier entre 1 et 10 inclus, où 0 signifie non évalué.
 ${lignesOptionnels}
 Clés à inclure (dans cet ordre, uniquement celles listées) :
 ${listeCles}
@@ -168,9 +207,10 @@ export function construirePromptComplet(
 }
 
 /**
- * Remplace les placeholders dans le texte par les valeurs de parametrageIA (si définis).
+ * Remplace les placeholders {{...}} dans le texte par les valeurs de parametrageIA (si définis).
+ * Utilisée pour la construction du prompt envoyé à l'IA et pour l'affichage de la zone « Prompt IA ».
  */
-function injecterParametrageIA(texte: string, parametrageIA: ParametrageIA | null): string {
+export function injecterParametrageIA(texte: string, parametrageIA: ParametrageIA | null): string {
   if (!parametrageIA) return texte;
   let out = texte;
   parametrageIA.rehibitoires?.forEach((r, i) => {

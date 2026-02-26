@@ -1,6 +1,6 @@
 {
   "name": "job-joy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -31,12 +31,13 @@
   },
   "dependencies": {
     "@azure/msal-node": "^5.0.4",
-    "electron-updater": "^6.3.9",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "dotenv": "^16.4.5",
+    "electron-updater": "^6.3.9",
     "imapflow": "^1.2.0",
     "isomorphic-fetch": "^3.0.0",
     "linkedom": "^0.18.12",
+    "mathjs": "^15.1.1",
     "playwright": "^1.49.0",
     "puppeteer": "^24.37.5",
     "puppeteer-extra": "^3.3.6",

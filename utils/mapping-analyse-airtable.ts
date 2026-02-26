@@ -37,7 +37,7 @@ export function jsonToChampsOffreAirtable(
     (champs as Record<string, unknown>)[`CritèreRéhibitoire${i}`] = truncated;
   }
   const score = (v: unknown) =>
-    typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 20 ? v : undefined;
+    typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 10 ? v : undefined;
   const sLoc = score(json.ScoreLocalisation);
   if (sLoc !== undefined) champs.ScoreLocalisation = sLoc;
   const sSal = score(json.ScoreSalaire);

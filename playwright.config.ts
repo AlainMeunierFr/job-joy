@@ -23,6 +23,7 @@ export default defineConfig({
       externalAttachments: true,
     }),
     ['html', { open: 'never' }],
+    ['json', { outputFile: 'test-results.json' }],
   ],
   use: {
     baseURL: 'http://127.0.0.1:3011',

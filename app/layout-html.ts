@@ -4,20 +4,26 @@
  * US-1.7 : tableau de synthèse des offres (colonnes fixes + statuts Airtable).
  */
 import { STATUTS_OFFRES_AVEC_AUTRE } from '../utils/statuts-offres-airtable.js';
-export type PageActive = 'tableau-de-bord' | 'parametres' | 'a-propos';
+export type PageActive = 'tableau-de-bord' | 'parametres' | 'a-propos' | 'audit';
 
 export type HeaderOptions = {
   /** Si false, masque le lien "Tableau de bord" (paramétrage incomplet). */
   configComplète?: boolean;
+  /** Si true, affiche le lien "Audit du code" (mode dev uniquement). */
+  showAuditLink?: boolean;
 };
 
 export function getHeaderHtml(active: PageActive, options?: HeaderOptions): string {
   const tableauActive = active === 'tableau-de-bord';
   const parametresActive = active === 'parametres';
   const aProposActive = active === 'a-propos';
+  const auditActive = active === 'audit';
   const showTableauDeBord = options?.configComplète !== false;
   const lienTableauDeBord = showTableauDeBord
     ? `<li><a href="/tableau-de-bord" class="appNavLink${tableauActive ? ' appNavLinkActive' : ''}">Tableau de bord</a></li>`
+    : '';
+  const lienAudit = options?.showAuditLink
+    ? `<li><a href="/audit" class="appNavLink${auditActive ? ' appNavLinkActive' : ''}">Audit du code</a></li>`
     : '';
   return `
 <header class="appHeader" role="banner">
@@ -26,6 +32,7 @@ export function getHeaderHtml(active: PageActive, options?: HeaderOptions): stri
       ${lienTableauDeBord}
       <li><a href="/parametres" class="appNavLink${parametresActive ? ' appNavLinkActive' : ''}">Paramètres</a></li>
       <li><a href="/a-propos" class="appNavLink${aProposActive ? ' appNavLinkActive' : ''}">À propos</a></li>
+      ${lienAudit}
     </ul>
   </nav>
 </header>`;
@@ -84,6 +91,8 @@ type TableauDeBordOptions = {
   airtableBaseUrl?: string;
   /** Si false, masque le lien Tableau de bord dans le header (par défaut true sur cette page). */
   configComplète?: boolean;
+  /** Si true, affiche le lien "Audit du code" dans le header (mode dev). */
+  showAuditLink?: boolean;
 };
 
 function getTableauDeBordContent(options?: TableauDeBordOptions): string {
@@ -948,5 +957,6 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
 export function getPageTableauDeBord(options?: TableauDeBordOptions): string {
   return getLayoutHtml('tableau-de-bord', 'Tableau de bord', getTableauDeBordContent(options), {
     configComplète: options?.configComplète ?? true,
+    showAuditLink: options?.showAuditLink,
   });
 }

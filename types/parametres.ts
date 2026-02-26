@@ -100,6 +100,19 @@ export interface ScoresIncontournables {
   qualiteOffre: string;
 }
 
+/** US-2.7 : Objet formule du score total (8 coefficients + formule math.js). */
+export interface FormuleDuScoreTotal {
+  coefScoreLocalisation: number;
+  coefScoreSalaire: number;
+  coefScoreCulture: number;
+  coefScoreQualiteOffre: number;
+  coefScoreOptionnel1: number;
+  coefScoreOptionnel2: number;
+  coefScoreOptionnel3: number;
+  coefScoreOptionnel4: number;
+  formule: string;
+}
+
 /** Section Paramétrage IA dans parametres.json (rédhibitoires, scores, autres ressources). */
 export interface ParametrageIA {
   /** Jusqu'à 4 paires (titre, description) pour critères rédhibitoires. */
@@ -123,6 +136,8 @@ export interface ParametresPersistes {
   claudecode?: ClaudeCode;
   /** Partie modifiable du prompt IA (éditable par l'utilisateur, ex. promptIA dans JSON). */
   promptIA?: string;
+  /** US-2.7 : Formule du score total (coefficients + expression math.js). */
+  formuleDuScoreTotal?: FormuleDuScoreTotal;
   /** Mot de passe Cadremploi (POC : en clair). Login = adresse email de la BAL. */
   motDePasseCadreEmploi?: string;
 }

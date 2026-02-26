@@ -282,6 +282,10 @@ export function createAirtableEnrichissementDriver(
             ville: typeof fields.Ville === 'string' ? fields.Ville.trim() : undefined,
             texteOffre:
               typeof fields[CHAMP_TEXTE_OFFRE] === 'string' ? (fields[CHAMP_TEXTE_OFFRE] as string).trim() : undefined,
+            entreprise: typeof fields.Entreprise === 'string' ? fields.Entreprise.trim() : undefined,
+            salaire: typeof fields.Salaire === 'string' ? fields.Salaire.trim() : undefined,
+            dateOffre: typeof fields.DateOffre === 'string' ? fields.DateOffre.trim() : undefined,
+            departement: typeof fields.Département === 'string' ? fields.Département.trim() : undefined,
           });
         }
         offset = json.offset;

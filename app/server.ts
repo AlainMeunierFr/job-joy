@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { getVersionEtBuildTime } from '../utils/read-build-info.js';
 import { getPageParametres, getPageAPropos } from './page-html.js';
 import { getPageTableauDeBord } from './layout-html.js';
+import { getPageAudit } from './audit-html.js';
 import type { PluginSource } from '../utils/gouvernance-sources-emails.js';
 import {
   handleGetCompte,
@@ -41,6 +42,7 @@ import {
   setBddMockTestClaudecode,
   getOffreTestHasOffre,
   handleGetOffreTest,
+  handleGetMeilleureOffre,
   handlePostTestClaudecode,
   getEnvoyeurIdentificationPort,
   clearBddEmailsIdentificationEnvoyes,
@@ -66,6 +68,8 @@ import {
   ecrireParametres,
   getDefaultParametres,
   lirePartieModifiablePrompt,
+  lireFormuleDuScoreTotalOuDefaut,
+  ecrireFormuleDuScoreTotal,
 } from '../utils/parametres-io.js';
 import {
   getPartieModifiablePromptDefaut,
@@ -82,6 +86,11 @@ import {
   getConfigAuthMicrosoft,
   clearMicrosoftTokenCache,
 } from '../utils/auth-microsoft.js';
+import {
+  mergeFormuleDuScoreTotal,
+  construireScope,
+  evaluerFormule,
+} from '../utils/formule-score-total.js';
 import { getUrlOuvertureBase } from '../utils/airtable-url.js';
 import { enregistrerAppel } from '../utils/log-appels-api.js';
 import { getDataDir } from '../utils/data-dir.js';
@@ -113,6 +122,8 @@ const DATA_DIR = (() => {
   mkdirSync(dir, { recursive: true });
   return dir;
 })();
+/** true quand le serveur tourne en mode dev (data/ dans le projet). Affiche le lien "Audit du code". */
+const isDev = DATA_DIR === join(PROJECT_ROOT, 'data');
 const PORT = Number(process.env.PORT) || 3001;
 
 const MS_OAUTH_STATE = 'ms_oauth_state';
@@ -257,12 +268,19 @@ const server = createServer(async (req, res) => {
     const { complet } = evaluerParametragesComplets(DATA_DIR);
     res.writeHead(200, headers);
     const parametres = lireParametres(DATA_DIR);
+    if (isDev) {
+      const parametresPath = join(DATA_DIR, 'parametres.json');
+      console.log(
+        `[parametres page] ${parametresPath} → parametrageIA: ${parametres?.parametrageIA ? 'oui' : 'non'}`
+      );
+    }
     const tokenObtainedAt = parametres?.connexionBoiteEmail?.microsoft?.tokenObtainedAt;
     const claudecode = lireClaudeCode(DATA_DIR);
     const promptIAModifiable = lirePartieModifiablePrompt(DATA_DIR);
     const promptIAPartieModifiable =
       promptIAModifiable !== '' ? promptIAModifiable : getPartieModifiablePromptDefaut();
     const offreTestHasOffre = await getOffreTestHasOffre(DATA_DIR);
+    const formuleDuScoreTotal = lireFormuleDuScoreTotalOuDefaut(DATA_DIR);
     res.end(
       await getPageParametres(DATA_DIR, {
         microsoftAvailable: microsoftTokenDisponible(),
@@ -276,8 +294,10 @@ const server = createServer(async (req, res) => {
         promptIAPartieModifiable,
         promptIAPartieFixe: getPartieFixePromptIA(parametres?.parametrageIA ?? null),
         offreTestHasOffre,
+        formuleDuScoreTotal,
         resourcesDir: RESOURCES_DIR,
         docsDir: DOCS_DIR,
+        showAuditLink: isDev,
       })
     );
     return;
@@ -302,7 +322,7 @@ const server = createServer(async (req, res) => {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
     });
-    res.end(getPageTableauDeBord({ airtableBaseUrl }));
+    res.end(getPageTableauDeBord({ airtableBaseUrl, showAuditLink: isDev }));
     return;
   }
 
@@ -320,8 +340,48 @@ const server = createServer(async (req, res) => {
         preprod,
         configComplète: complet,
         resourcesDir: RESOURCES_DIR,
+        showAuditLink: isDev,
       })
     );
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/audit') {
+    let auditData: import('../types/audit-traceability.js').AuditTraceabilityData | null = null;
+    const auditPath = join(DATA_DIR, 'audit-traceability.json');
+    if (existsSync(auditPath)) {
+      try {
+        auditData = JSON.parse(readFileSync(auditPath, 'utf8'));
+      } catch {
+        // garder null
+      }
+    }
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    res.end(getPageAudit(auditData));
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/audit-traceability') {
+    const auditPath = join(DATA_DIR, 'audit-traceability.json');
+    if (!existsSync(auditPath)) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Aucun audit disponible' }));
+      return;
+    }
+    try {
+      const data = readFileSync(auditPath, 'utf8');
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(data);
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: String(err) }));
+    }
     return;
   }
 
@@ -631,6 +691,17 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && pathname === '/api/meilleure-offre') {
+    try {
+      await handleGetMeilleureOffre(DATA_DIR, res);
+    } catch (err) {
+      console.error('GET /api/meilleure-offre error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
   if (req.method === 'POST' && pathname === '/api/test-connexion') {
     try {
       const body = await parseBody(req);
@@ -722,6 +793,95 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify({ ok: true }));
     } catch (err) {
       console.error('POST /api/parametrage-ia error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/formule-score-total') {
+    try {
+      const data = lireFormuleDuScoreTotalOuDefaut(DATA_DIR);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(data));
+    } catch (err) {
+      console.error('GET /api/formule-score-total error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/formule-score-total') {
+    try {
+      const body = (await parseBody(req)) as Record<string, unknown>;
+      const coef = (key: string) => {
+        const v = body[key];
+        if (typeof v === 'number' && Number.isFinite(v)) return Math.max(0, Math.round(v));
+        if (typeof v === 'string' && v.trim() !== '') {
+          const n = Number(v.trim());
+          return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 1;
+        }
+        return 1;
+      };
+      const formule = typeof body.formule === 'string' ? body.formule.trim() : '';
+      const merged = mergeFormuleDuScoreTotal({
+        coefScoreLocalisation: coef('coefScoreLocalisation'),
+        coefScoreSalaire: coef('coefScoreSalaire'),
+        coefScoreCulture: coef('coefScoreCulture'),
+        coefScoreQualiteOffre: coef('coefScoreQualiteOffre'),
+        coefScoreOptionnel1: coef('coefScoreOptionnel1'),
+        coefScoreOptionnel2: coef('coefScoreOptionnel2'),
+        coefScoreOptionnel3: coef('coefScoreOptionnel3'),
+        coefScoreOptionnel4: coef('coefScoreOptionnel4'),
+        formule: formule !== '' ? formule : undefined,
+      });
+      ecrireFormuleDuScoreTotal(DATA_DIR, merged);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+      console.error('POST /api/formule-score-total error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/formule-score-total/eval') {
+    try {
+      const body = (await parseBody(req)) as Record<string, unknown>;
+      const scores = (body.scores as Record<string, number>) ?? {};
+      const coefs = (body.coefs as Record<string, number>) ?? {};
+      const formule = typeof body.formule === 'string' ? body.formule.trim() : '';
+      const def = lireFormuleDuScoreTotalOuDefaut(DATA_DIR);
+      const formuleToUse = formule !== '' ? formule : (def.formule ?? '');
+      if (formuleToUse === '') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: 'Formule vide' }));
+        return;
+      }
+      const scope = construireScope(scores, {
+        coefScoreLocalisation: typeof coefs.coefScoreLocalisation === 'number' ? coefs.coefScoreLocalisation : 1,
+        coefScoreSalaire: typeof coefs.coefScoreSalaire === 'number' ? coefs.coefScoreSalaire : 1,
+        coefScoreCulture: typeof coefs.coefScoreCulture === 'number' ? coefs.coefScoreCulture : 1,
+        coefScoreQualiteOffre: typeof coefs.coefScoreQualiteOffre === 'number' ? coefs.coefScoreQualiteOffre : 1,
+        coefScoreOptionnel1: typeof coefs.coefScoreOptionnel1 === 'number' ? coefs.coefScoreOptionnel1 : 1,
+        coefScoreOptionnel2: typeof coefs.coefScoreOptionnel2 === 'number' ? coefs.coefScoreOptionnel2 : 1,
+        coefScoreOptionnel3: typeof coefs.coefScoreOptionnel3 === 'number' ? coefs.coefScoreOptionnel3 : 1,
+        coefScoreOptionnel4: typeof coefs.coefScoreOptionnel4 === 'number' ? coefs.coefScoreOptionnel4 : 1,
+      });
+      const result = evaluerFormule(formuleToUse, scope);
+      const keysByLength = Object.keys(scope).sort((a, b) => b.length - a.length);
+      let formuleAvecValeurs = formuleToUse;
+      for (const k of keysByLength) {
+        const val = scope[k];
+        const re = new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        formuleAvecValeurs = formuleAvecValeurs.replace(re, String(val));
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, result, formuleAvecValeurs }));
+    } catch (err) {
+      console.error('POST /api/formule-score-total/eval error', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, message: String(err) }));
     }

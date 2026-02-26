@@ -1,0 +1,5385 @@
+{
+  "generatedAt": "2026-02-26T14:57:34.786Z",
+  "artefacts": {
+    "us:1.01": {
+      "id": "us:1.01",
+      "type": "us",
+      "name": "US-1.01",
+      "description": "Configuration du compte email",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.01.1",
+        "ca:1.01.2",
+        "ca:1.01.3",
+        "feature:configuration-compte-email",
+        "code:app:page-html.ts",
+        "code:app:api-handlers.ts"
+      ],
+      "orphan": false
+    },
+    "ca:1.01.1": {
+      "id": "ca:1.01.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Page de paramétrage",
+      "linkedIdsAmont": [
+        "us:1.01"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.01.2": {
+      "id": "ca:1.01.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Bouton Tester connexion",
+      "linkedIdsAmont": [
+        "us:1.01"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.01.3": {
+      "id": "ca:1.01.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Mémorisation",
+      "linkedIdsAmont": [
+        "us:1.01"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:1.02": {
+      "id": "us:1.02",
+      "type": "us",
+      "name": "US-1.02",
+      "description": "Menu horizontal et navigation",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.02.1",
+        "ca:1.02.2",
+        "ca:1.02.3",
+        "code:app:server.ts",
+        "code:app:layout-html.ts"
+      ],
+      "orphan": false
+    },
+    "ca:1.02.1": {
+      "id": "ca:1.02.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Header et menu",
+      "linkedIdsAmont": [
+        "us:1.02"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.02.2": {
+      "id": "ca:1.02.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Routes",
+      "linkedIdsAmont": [
+        "us:1.02"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.02.3": {
+      "id": "ca:1.02.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Comportement de la racine (Home)",
+      "linkedIdsAmont": [
+        "us:1.02"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:1.03": {
+      "id": "us:1.03",
+      "type": "us",
+      "name": "US-1.03",
+      "description": "Configurer Airtable",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.03.1",
+        "ca:1.03.2",
+        "ca:1.03.3",
+        "ca:1.03.4",
+        "ca:1.03.5",
+        "ca:1.03.6",
+        "ca:1.03.7",
+        "feature:configuration-airtable",
+        "code:app:api-handlers.ts",
+        "ti:configuration-airtable.integration.test"
+      ],
+      "orphan": false
+    },
+    "ca:1.03.1": {
+      "id": "ca:1.03.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Inviter l'utilisateur à créer son compte Airtable",
+      "linkedIdsAmont": [
+        "us:1.03"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.03.2": {
+      "id": "ca:1.03.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Créer la base \"Analyse offres\" via l'API",
+      "linkedIdsAmont": [
+        "us:1.03"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.03.3": {
+      "id": "ca:1.03.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Créer la table \"Sources\" via l'API",
+      "linkedIdsAmont": [
+        "us:1.03"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.03.4": {
+      "id": "ca:1.03.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Créer la table \"Offres\" via l'API",
+      "linkedIdsAmont": [
+        "us:1.03"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.03.5": {
+      "id": "ca:1.03.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Alimenter la table \"Sources\"",
+      "linkedIdsAmont": [
+        "us:1.03"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.03.6": {
+      "id": "ca:1.03.6",
+      "type": "ca",
+      "name": "CA6",
+      "description": "Récupérer et stocker les paramètres nécessaires",
+      "linkedIdsAmont": [
+        "us:1.03"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.03.7": {
+      "id": "ca:1.03.7",
+      "type": "ca",
+      "name": "CA7",
+      "description": "Afficher le résultat du traitement",
+      "linkedIdsAmont": [
+        "us:1.03"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:1.04": {
+      "id": "us:1.04",
+      "type": "us",
+      "name": "US-1.04",
+      "description": "Stratégie des tests (unitaires vs intégration Airtable)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:offres-emails-linkedin"
+      ],
+      "orphan": false
+    },
+    "us:1.05": {
+      "id": "us:1.05",
+      "type": "us",
+      "name": "US-1.05",
+      "description": "Offres des emails LinkedIn",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.05.1",
+        "ca:1.05.2",
+        "ca:1.05.3",
+        "tu:utils:extraction-offres-email.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:1.05.1": {
+      "id": "ca:1.05.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Vérifier que la source LinkedIn est active",
+      "linkedIdsAmont": [
+        "us:1.05"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.05.2": {
+      "id": "ca:1.05.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Extraire les offres depuis les emails et alimenter la table Offres",
+      "linkedIdsAmont": [
+        "us:1.05"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.05.3": {
+      "id": "ca:1.05.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Enrichir l'annonce si le texte est accessible en local",
+      "linkedIdsAmont": [
+        "us:1.05"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:1.06": {
+      "id": "us:1.06",
+      "type": "us",
+      "name": "US-1.06",
+      "description": "Décompte des emails en attente de traitement",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:redirection-parametres-config-incomplete",
+        "code:app:layout-html.ts",
+        "code:app:page-html.ts",
+        "tu:app:layout-html.test.ts"
+      ],
+      "orphan": false
+    },
+    "us:1.07": {
+      "id": "us:1.07",
+      "type": "us",
+      "name": "US-1.07",
+      "description": "Redirection vers les paramètres tant que la configuration n'est pas complète",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.07.1",
+        "ca:1.07.2",
+        "ca:1.07.3",
+        "feature:tableau-synthese-offres",
+        "code:app:layout-html.ts",
+        "code:app:api-handlers.ts",
+        "tu:app:layout-html.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:1.07.1": {
+      "id": "ca:1.07.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Menu Tableau de bord masqué et redirection vers Paramètres",
+      "linkedIdsAmont": [
+        "us:1.07"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.07.2": {
+      "id": "ca:1.07.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Enregistrement partiel et message d'erreur",
+      "linkedIdsAmont": [
+        "us:1.07"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.07.3": {
+      "id": "ca:1.07.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Configuration complète : déblocage du Tableau de bord",
+      "linkedIdsAmont": [
+        "us:1.07"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:1.08": {
+      "id": "us:1.08",
+      "type": "us",
+      "name": "US-1.08",
+      "description": "Tableau de synthèse des offres",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.08.1",
+        "ca:1.08.2",
+        "ca:1.08.3",
+        "feature:offres-emails-hellowork"
+      ],
+      "orphan": false
+    },
+    "ca:1.08.1": {
+      "id": "ca:1.08.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Conteneur distinct du tableau des emails",
+      "linkedIdsAmont": [
+        "us:1.08"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.08.2": {
+      "id": "ca:1.08.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Structure du tableau de synthèse des offres",
+      "linkedIdsAmont": [
+        "us:1.08"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.08.3": {
+      "id": "ca:1.08.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Comportement observable",
+      "linkedIdsAmont": [
+        "us:1.08"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:1.09": {
+      "id": "us:1.09",
+      "type": "us",
+      "name": "US-1.09",
+      "description": "Analyse des emails HelloWork",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:extraction-offres-email.test.ts"
+      ],
+      "orphan": false
+    },
+    "us:1.10": {
+      "id": "us:1.10",
+      "type": "us",
+      "name": "US-1.10",
+      "description": "Analyse des emails Welcome to the Jungle",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.10.1",
+        "ca:1.10.2",
+        "ca:1.10.3",
+        "ca:1.10.4",
+        "feature:offres-emails-welcome-to-the-jungle",
+        "tu:utils:extraction-offres-email.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:1.10.1": {
+      "id": "ca:1.10.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Init sources Airtable",
+      "linkedIdsAmont": [
+        "us:1.10"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.10.2": {
+      "id": "ca:1.10.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Audit des emails Welcome to the Jungle",
+      "linkedIdsAmont": [
+        "us:1.10"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.10.3": {
+      "id": "ca:1.10.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Étape 1 (plug-in) : extraction depuis le body de l'email",
+      "linkedIdsAmont": [
+        "us:1.10"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.10.4": {
+      "id": "ca:1.10.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Étape 2 (worker) : enrichissement des offres",
+      "linkedIdsAmont": [
+        "us:1.10"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:1.11": {
+      "id": "us:1.11",
+      "type": "us",
+      "name": "US-1.11",
+      "description": "Analyse des emails Job That Make Sense",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.11.1",
+        "ca:1.11.2",
+        "ca:1.11.3",
+        "feature:offres-emails-job-that-make-sense",
+        "tu:utils:extraction-offres-email.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:1.11.1": {
+      "id": "ca:1.11.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Audit de la source Job That Make Sense",
+      "linkedIdsAmont": [
+        "us:1.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.11.2": {
+      "id": "ca:1.11.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Etape 1 plugin email (parsing et creation des offres)",
+      "linkedIdsAmont": [
+        "us:1.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.11.3": {
+      "id": "ca:1.11.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Etape 2 plugin fetch (recuperation et enrichissement)",
+      "linkedIdsAmont": [
+        "us:1.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:1.12": {
+      "id": "us:1.12",
+      "type": "us",
+      "name": "US-1.12",
+      "description": "Analyse des emails cadreemploi",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.12.1",
+        "ca:1.12.2",
+        "ca:1.12.3",
+        "feature:offres-emails-cadreemploi",
+        "tu:utils:extraction-offres-email.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:1.12.1": {
+      "id": "ca:1.12.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Audit de la source Cadre Emploi",
+      "linkedIdsAmont": [
+        "us:1.12"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.12.2": {
+      "id": "ca:1.12.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Etape 1 plugin email (parsing et creation des offres)",
+      "linkedIdsAmont": [
+        "us:1.12"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.12.3": {
+      "id": "ca:1.12.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Etape 2 plugin fetch (recuperation et enrichissement)",
+      "linkedIdsAmont": [
+        "us:1.12"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:1.13": {
+      "id": "us:1.13",
+      "type": "us",
+      "name": "US-1.13",
+      "description": "Totaux sur le tableau des offres",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:1.13.1",
+        "ca:1.13.2",
+        "ca:1.13.3",
+        "code:app:api-handlers.ts",
+        "tu:app:layout-html.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:1.13.1": {
+      "id": "ca:1.13.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Colonne Totaux",
+      "linkedIdsAmont": [
+        "us:1.13"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.13.2": {
+      "id": "ca:1.13.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Ligne Totaux",
+      "linkedIdsAmont": [
+        "us:1.13"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:1.13.3": {
+      "id": "ca:1.13.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Cohérence",
+      "linkedIdsAmont": [
+        "us:1.13"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.1": {
+      "id": "us:2.1",
+      "type": "us",
+      "name": "US-2.1",
+      "description": "Récupérer l'argument qui justifie un arbitrage réhibitoire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:2.1.1",
+        "ca:2.1.2",
+        "code:app:page-html.ts"
+      ],
+      "orphan": false
+    },
+    "ca:2.1.1": {
+      "id": "ca:2.1.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "changement du type de 'case à cocher' vers 'texte une seule ligne'",
+      "linkedIdsAmont": [
+        "us:2.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.1.2": {
+      "id": "ca:2.1.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "changement du type de 'booleen' vers 'texte'",
+      "linkedIdsAmont": [
+        "us:2.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.2": {
+      "id": "us:2.2",
+      "type": "us",
+      "name": "US-2.2",
+      "description": "API Key pour ClaudeCode",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:2.2.1",
+        "ca:2.2.2",
+        "ca:2.2.3",
+        "code:app:page-html.ts",
+        "tu:app:page-html.claudecode.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:2.2.1": {
+      "id": "ca:2.2.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Procédure ou tutoriel pour obtenir l'API Key",
+      "linkedIdsAmont": [
+        "us:2.2"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.2.2": {
+      "id": "ca:2.2.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Stockage et affichage de l'API Key",
+      "linkedIdsAmont": [
+        "us:2.2"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.2.3": {
+      "id": "ca:2.2.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Emplacement dans l'interface",
+      "linkedIdsAmont": [
+        "us:2.2"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.3": {
+      "id": "us:2.3",
+      "type": "us",
+      "name": "US-2.3",
+      "description": "Construire le prompt de l'IA",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:2.3.1",
+        "ca:2.3.2",
+        "ca:2.3.3",
+        "ca:2.3.4",
+        "ca:2.3.5",
+        "code:app:page-html.ts"
+      ],
+      "orphan": false
+    },
+    "ca:2.3.1": {
+      "id": "ca:2.3.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Deux parties distinctes du prompt",
+      "linkedIdsAmont": [
+        "us:2.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.3.2": {
+      "id": "ca:2.3.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Partie fixe : contenu et format de réponse (référence à titre informatif)",
+      "linkedIdsAmont": [
+        "us:2.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.3.3": {
+      "id": "ca:2.3.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Partie modifiable : contenu par défaut et personnalisation",
+      "linkedIdsAmont": [
+        "us:2.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.3.4": {
+      "id": "ca:2.3.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Zone « Prompt » dans la page Paramètres",
+      "linkedIdsAmont": [
+        "us:2.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.3.5": {
+      "id": "ca:2.3.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Intégration technique",
+      "linkedIdsAmont": [
+        "us:2.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.4": {
+      "id": "us:2.4",
+      "type": "us",
+      "name": "US-2.4",
+      "description": "Configuration ClaudeCode - Test",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:2.4.1",
+        "ca:2.4.2",
+        "ca:2.4.3",
+        "ca:2.4.4",
+        "code:app:page-html.ts",
+        "code:app:api-handlers.ts",
+        "tu:app:page-html.claudecode.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:2.4.1": {
+      "id": "ca:2.4.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Champ \"Texte d'offre à tester\"",
+      "linkedIdsAmont": [
+        "us:2.4"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.4.2": {
+      "id": "ca:2.4.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Bouton \"Récupérer le texte d'une offre\"",
+      "linkedIdsAmont": [
+        "us:2.4"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.4.3": {
+      "id": "ca:2.4.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Bouton \"Tester API\"",
+      "linkedIdsAmont": [
+        "us:2.4"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.4.4": {
+      "id": "ca:2.4.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Emplacement",
+      "linkedIdsAmont": [
+        "us:2.4"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.5": {
+      "id": "us:2.5",
+      "type": "us",
+      "name": "US-2.5",
+      "description": "Comptage des appels API",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:2.5.1",
+        "ca:2.5.2",
+        "ca:2.5.3",
+        "ca:2.5.4",
+        "code:app:api-handlers.ts",
+        "tu:app:layout-html.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:2.5.1": {
+      "id": "ca:2.5.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Wrapper autour des appels API",
+      "linkedIdsAmont": [
+        "us:2.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.5.2": {
+      "id": "ca:2.5.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Contenu du log (format JSON)",
+      "linkedIdsAmont": [
+        "us:2.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.5.3": {
+      "id": "ca:2.5.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Stockage du log",
+      "linkedIdsAmont": [
+        "us:2.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:2.5.4": {
+      "id": "ca:2.5.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Tableau de bord « Consommation API »",
+      "linkedIdsAmont": [
+        "us:2.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.1": {
+      "id": "us:3.1",
+      "type": "us",
+      "name": "US-3.1",
+      "description": "Enrichissement de la table Sources (type de source et activation par phase)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.1.1",
+        "ca:3.1.2",
+        "ca:3.1.3",
+        "ca:3.1.4",
+        "ca:3.1.5",
+        "ca:3.1.6",
+        "ca:3.1.7",
+        "ca:3.1.8",
+        "ca:3.1.9",
+        "code:app:api-handlers.ts"
+      ],
+      "orphan": false
+    },
+    "ca:3.1.1": {
+      "id": "ca:3.1.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Schéma / création de base Airtable (base vierge)",
+      "linkedIdsAmont": [
+        "us:3.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.1.2": {
+      "id": "ca:3.1.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Données Sources dans tout le code",
+      "linkedIdsAmont": [
+        "us:3.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.1.3": {
+      "id": "ca:3.1.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "API Airtable (drivers, lecture/écriture Sources)",
+      "linkedIdsAmont": [
+        "us:3.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.1.4": {
+      "id": "ca:3.1.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Plugins / relève et gouvernance",
+      "linkedIdsAmont": [
+        "us:3.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.1.5": {
+      "id": "ca:3.1.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Tableau de bord – Synthèse des offres",
+      "linkedIdsAmont": [
+        "us:3.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.1.6": {
+      "id": "ca:3.1.6",
+      "type": "ca",
+      "name": "CA6",
+      "description": "Workers (enrichissement, analyse IA)",
+      "linkedIdsAmont": [
+        "us:3.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.1.7": {
+      "id": "ca:3.1.7",
+      "type": "ca",
+      "name": "CA7",
+      "description": "Tests (unitaires, intégration, BDD)",
+      "linkedIdsAmont": [
+        "us:3.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.1.8": {
+      "id": "ca:3.1.8",
+      "type": "ca",
+      "name": "CA8",
+      "description": "Autres scripts / CLI",
+      "linkedIdsAmont": [
+        "us:3.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.1.9": {
+      "id": "ca:3.1.9",
+      "type": "ca",
+      "name": "CA9",
+      "description": "Cohérence globale (récap)",
+      "linkedIdsAmont": [
+        "us:3.1"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.11": {
+      "id": "us:3.11",
+      "type": "us",
+      "name": "US-3.11",
+      "description": "Gestion du numéro de version et process de mise à jour",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.11.1",
+        "ca:3.11.2",
+        "ca:3.11.3",
+        "ca:3.11.4",
+        "ca:3.11.5",
+        "ca:3.11.6",
+        "ca:3.11.7",
+        "ca:3.11.8"
+      ],
+      "orphan": false
+    },
+    "ca:3.11.1": {
+      "id": "ca:3.11.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Source de vérité du numéro de version",
+      "linkedIdsAmont": [
+        "us:3.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.11.2": {
+      "id": "ca:3.11.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Utilisation cohérente du numéro",
+      "linkedIdsAmont": [
+        "us:3.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.11.3": {
+      "id": "ca:3.11.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Process de publication d'une nouvelle version",
+      "linkedIdsAmont": [
+        "us:3.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.11.4": {
+      "id": "ca:3.11.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Vérification",
+      "linkedIdsAmont": [
+        "us:3.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.11.5": {
+      "id": "ca:3.11.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Sémantique des 4 niveaux (W.X.Y.Z)",
+      "linkedIdsAmont": [
+        "us:3.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.11.6": {
+      "id": "ca:3.11.6",
+      "type": "ca",
+      "name": "CA6",
+      "description": "Script d'incrément et création du tag",
+      "linkedIdsAmont": [
+        "us:3.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.11.7": {
+      "id": "ca:3.11.7",
+      "type": "ca",
+      "name": "CA7",
+      "description": "Option « Publier une version » dans le menu du projet (ex. Menu.ps1)",
+      "linkedIdsAmont": [
+        "us:3.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.11.8": {
+      "id": "ca:3.11.8",
+      "type": "ca",
+      "name": "CA8",
+      "description": "Lien avec la GitHub Release (optionnel)",
+      "linkedIdsAmont": [
+        "us:3.11"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.12": {
+      "id": "us:3.12",
+      "type": "us",
+      "name": "US-3.12",
+      "description": "Single instance (une seule fenêtre, une seule instance de l'app)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.12.1",
+        "ca:3.12.2",
+        "ca:3.12.3",
+        "ca:3.12.4",
+        "feature:single-instance"
+      ],
+      "orphan": false
+    },
+    "ca:3.12.1": {
+      "id": "ca:3.12.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Une seule instance",
+      "linkedIdsAmont": [
+        "us:3.12"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.12.2": {
+      "id": "ca:3.12.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Comportement au second lancement",
+      "linkedIdsAmont": [
+        "us:3.12"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.12.3": {
+      "id": "ca:3.12.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Message ou feedback explicite (optionnel ou complément)",
+      "linkedIdsAmont": [
+        "us:3.12"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.12.4": {
+      "id": "ca:3.12.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Vérification testable",
+      "linkedIdsAmont": [
+        "us:3.12"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.14": {
+      "id": "us:3.14",
+      "type": "us",
+      "name": "US-3.14",
+      "description": "Gestion des erreurs réseau et service indisponible",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.14.1",
+        "ca:3.14.2",
+        "ca:3.14.3",
+        "ca:3.14.4",
+        "ca:3.14.5"
+      ],
+      "orphan": false
+    },
+    "ca:3.14.1": {
+      "id": "ca:3.14.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Message utilisateur clair (non technique)",
+      "linkedIdsAmont": [
+        "us:3.14"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.14.2": {
+      "id": "ca:3.14.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Pas de crash ni exception non gérée",
+      "linkedIdsAmont": [
+        "us:3.14"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.14.3": {
+      "id": "ca:3.14.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Mapping commun des erreurs réseau",
+      "linkedIdsAmont": [
+        "us:3.14"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.14.4": {
+      "id": "ca:3.14.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Périmètre des services",
+      "linkedIdsAmont": [
+        "us:3.14"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.14.5": {
+      "id": "ca:3.14.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Retry optionnel",
+      "linkedIdsAmont": [
+        "us:3.14"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.15": {
+      "id": "us:3.15",
+      "type": "us",
+      "name": "US-3.15",
+      "description": "Identification des utilisateurs (consentement et notification par email)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.15.1",
+        "ca:3.15.2",
+        "ca:3.15.3",
+        "ca:3.15.4",
+        "ca:3.15.5",
+        "ca:3.15.6",
+        "feature:identification-utilisateurs",
+        "code:app:page-html.ts",
+        "code:app:api-handlers.ts",
+        "code:utils:envoi-identification-airtable.ts",
+        "code:utils:compte-io.ts"
+      ],
+      "orphan": false
+    },
+    "ca:3.15.1": {
+      "id": "ca:3.15.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Consentement lors de la configuration du compte",
+      "linkedIdsAmont": [
+        "us:3.15"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.15.2": {
+      "id": "ca:3.15.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Envoi d'un email de notification lorsque le consentement est donné",
+      "linkedIdsAmont": [
+        "us:3.15"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.15.3": {
+      "id": "ca:3.15.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Contenu de l'email envoyé",
+      "linkedIdsAmont": [
+        "us:3.15"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.15.4": {
+      "id": "ca:3.15.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Un seul envoi par consentement (traçabilité dans parametres.json)",
+      "linkedIdsAmont": [
+        "us:3.15"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.15.5": {
+      "id": "ca:3.15.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Échec d'envoi non bloquant",
+      "linkedIdsAmont": [
+        "us:3.15"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.15.6": {
+      "id": "ca:3.15.6",
+      "type": "ca",
+      "name": "CA6",
+      "description": "Affichage et boutons selon l'état du consentement (parametres.json)",
+      "linkedIdsAmont": [
+        "us:3.15"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.16": {
+      "id": "us:3.16",
+      "type": "us",
+      "name": "US-3.16",
+      "description": "Page « À propos »",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:app:layout-html.ts",
+        "tu:app:layout-html.test.ts",
+        "tu:app:page-html.a-propos.test.ts"
+      ],
+      "orphan": false
+    },
+    "us:3.17": {
+      "id": "us:3.17",
+      "type": "us",
+      "name": "US-3.17",
+      "description": "Tests IMAP (vrais tests ou scénario de validation)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ti:connecteur-email-imap.integration.test"
+      ],
+      "orphan": false
+    },
+    "us:3.2": {
+      "id": "us:3.2",
+      "type": "us",
+      "name": "US-3.2",
+      "description": "Récupérer l'argument qui justifie un arbitrage réhibitoire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.2.1",
+        "ca:3.2.2",
+        "ca:3.2.3",
+        "ca:3.2.4",
+        "ca:3.2.5",
+        "ca:3.2.6",
+        "tu:app:page-html.claudecode.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:3.2.1": {
+      "id": "ca:3.2.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Réponse IA (format JSON)",
+      "linkedIdsAmont": [
+        "us:3.2"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.2.2": {
+      "id": "ca:3.2.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Schéma Airtable (table Offres)",
+      "linkedIdsAmont": [
+        "us:3.2"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.2.3": {
+      "id": "ca:3.2.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Parsing, validation et persistance",
+      "linkedIdsAmont": [
+        "us:3.2"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.2.4": {
+      "id": "ca:3.2.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Exposition API",
+      "linkedIdsAmont": [
+        "us:3.2"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.2.5": {
+      "id": "ca:3.2.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Interface utilisateur",
+      "linkedIdsAmont": [
+        "us:3.2"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.2.6": {
+      "id": "ca:3.2.6",
+      "type": "ca",
+      "name": "CA6",
+      "description": "Tests",
+      "linkedIdsAmont": [
+        "us:3.2"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.3": {
+      "id": "us:3.3",
+      "type": "us",
+      "name": "US-3.3",
+      "description": "Tableau de bord unifié",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.3.1",
+        "ca:3.3.2",
+        "ca:3.3.3",
+        "ca:3.3.4",
+        "code:app:layout-html.ts",
+        "code:app:api-handlers.ts",
+        "tu:app:layout-html.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:3.3.1": {
+      "id": "ca:3.3.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Colonne \"A importer\" dans la Synthèse des offres",
+      "linkedIdsAmont": [
+        "us:3.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.3.2": {
+      "id": "ca:3.3.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Bouton \"Mise à jour\" : audit puis rafraîchissement",
+      "linkedIdsAmont": [
+        "us:3.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.3.3": {
+      "id": "ca:3.3.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Worker phase 1 et thermomètre",
+      "linkedIdsAmont": [
+        "us:3.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.3.4": {
+      "id": "ca:3.3.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Suppression du container \"Dossier de la boite aux lettres\"",
+      "linkedIdsAmont": [
+        "us:3.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.4": {
+      "id": "us:3.4",
+      "type": "us",
+      "name": "US-3.4",
+      "description": "Améliorer les log appels API",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.4.1",
+        "ca:3.4.2",
+        "ca:3.4.3",
+        "ca:3.4.4",
+        "ca:3.4.5",
+        "code:app:api-handlers.ts"
+      ],
+      "orphan": false
+    },
+    "ca:3.4.1": {
+      "id": "ca:3.4.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Dictionnaire des intentions",
+      "linkedIdsAmont": [
+        "us:3.4"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.4.2": {
+      "id": "ca:3.4.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Log JSON avec intention",
+      "linkedIdsAmont": [
+        "us:3.4"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.4.3": {
+      "id": "ca:3.4.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Passer l’intention aux points de log existants",
+      "linkedIdsAmont": [
+        "us:3.4"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.4.4": {
+      "id": "ca:3.4.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Agrégation par intention (optionnel)",
+      "linkedIdsAmont": [
+        "us:3.4"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.4.5": {
+      "id": "ca:3.4.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Rétrocompatibilité",
+      "linkedIdsAmont": [
+        "us:3.4"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.5": {
+      "id": "us:3.5",
+      "type": "us",
+      "name": "US-3.5",
+      "description": "Réorganisation des traitements",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.5.1",
+        "ca:3.5.2",
+        "ca:3.5.3",
+        "ca:3.5.4",
+        "ca:3.5.5",
+        "code:app:layout-html.ts",
+        "tu:app:layout-html.test.ts"
+      ],
+      "orphan": false
+    },
+    "ca:3.5.1": {
+      "id": "ca:3.5.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Comportement au chargement de la page",
+      "linkedIdsAmont": [
+        "us:3.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.5.2": {
+      "id": "ca:3.5.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Bloc 1 – Comptage des emails (gratuit, continu)",
+      "linkedIdsAmont": [
+        "us:3.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.5.3": {
+      "id": "ca:3.5.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Bloc 2 – Lancer les traitements (action utilisateur, 3 phases)",
+      "linkedIdsAmont": [
+        "us:3.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.5.4": {
+      "id": "ca:3.5.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Bloc 3 – Mise à jour à la demande",
+      "linkedIdsAmont": [
+        "us:3.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.5.5": {
+      "id": "ca:3.5.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Maquette / disposition en 3 blocs",
+      "linkedIdsAmont": [
+        "us:3.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.6": {
+      "id": "us:3.6",
+      "type": "us",
+      "name": "US-3.6",
+      "description": "Publier l'application (installateur et mise à jour automatique via Electron)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.6.1",
+        "ca:3.6.2",
+        "ca:3.6.3",
+        "ca:3.6.4",
+        "ca:3.6.5"
+      ],
+      "orphan": false
+    },
+    "ca:3.6.1": {
+      "id": "ca:3.6.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Installateur",
+      "linkedIdsAmont": [
+        "us:3.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.6.2": {
+      "id": "ca:3.6.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Lancement tout-en-un",
+      "linkedIdsAmont": [
+        "us:3.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.6.3": {
+      "id": "ca:3.6.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Données utilisateur",
+      "linkedIdsAmont": [
+        "us:3.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.6.4": {
+      "id": "ca:3.6.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Mises à jour",
+      "linkedIdsAmont": [
+        "us:3.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.6.5": {
+      "id": "ca:3.6.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Coexistence dev / Electron",
+      "linkedIdsAmont": [
+        "us:3.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.7": {
+      "id": "us:3.7",
+      "type": "us",
+      "name": "US-3.7",
+      "description": "Orchestration et source de vérité tableau",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:3.7.1",
+        "ca:3.7.2",
+        "ca:3.7.3",
+        "ca:3.7.4",
+        "ca:3.7.5",
+        "ca:3.7.6"
+      ],
+      "orphan": false
+    },
+    "ca:3.7.1": {
+      "id": "ca:3.7.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Objet source de vérité",
+      "linkedIdsAmont": [
+        "us:3.7"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.7.2": {
+      "id": "ca:3.7.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Déclenchement phase 1",
+      "linkedIdsAmont": [
+        "us:3.7"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.7.3": {
+      "id": "ca:3.7.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Déclenchement phase 2",
+      "linkedIdsAmont": [
+        "us:3.7"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.7.4": {
+      "id": "ca:3.7.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Déclenchement phase 3",
+      "linkedIdsAmont": [
+        "us:3.7"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.7.5": {
+      "id": "ca:3.7.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Mises à jour chirurgicales",
+      "linkedIdsAmont": [
+        "us:3.7"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:3.7.6": {
+      "id": "ca:3.7.6",
+      "type": "ca",
+      "name": "CA6",
+      "description": "Arrêt des traitements",
+      "linkedIdsAmont": [
+        "us:3.7"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.8": {
+      "id": "us:3.8",
+      "type": "us",
+      "name": "US-3.8",
+      "description": "Package Electron",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:4.1": {
+      "id": "us:4.1",
+      "type": "us",
+      "name": "US-4.1",
+      "description": "Implémentation Gmail (ou masquer l’option tant que non implémenté)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:4.2": {
+      "id": "us:4.2",
+      "type": "us",
+      "name": "US-4.2",
+      "description": "Récupération des emails exemple : canal pour les beta-testeurs",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:4.3": {
+      "id": "us:4.3",
+      "type": "us",
+      "name": "US-4.3",
+      "description": "Enrichissement LinkedIn fonctionnel dans le package Electron",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:4.3.1",
+        "ca:4.3.2",
+        "ca:4.3.3"
+      ],
+      "orphan": false
+    },
+    "ca:4.3.1": {
+      "id": "ca:4.3.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Critère d'acceptation 1 de US-4.3",
+      "linkedIdsAmont": [
+        "us:4.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.3.2": {
+      "id": "ca:4.3.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Critère d'acceptation 2 de US-4.3",
+      "linkedIdsAmont": [
+        "us:4.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.3.3": {
+      "id": "ca:4.3.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Critère d'acceptation 3 de US-4.3",
+      "linkedIdsAmont": [
+        "us:4.3"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:4.4": {
+      "id": "us:4.4",
+      "type": "us",
+      "name": "US-4.4",
+      "description": "Process de mise à jour clair (comment on notifie / diffuse une nouvelle version)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:4.5": {
+      "id": "us:4.5",
+      "type": "us",
+      "name": "US-4.5",
+      "description": "Introduction au process de paramétrage",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:4.5.1",
+        "ca:4.5.2",
+        "ca:4.5.3",
+        "ca:4.5.4",
+        "ca:4.5.5",
+        "ca:4.5.6"
+      ],
+      "orphan": false
+    },
+    "ca:4.5.1": {
+      "id": "ca:4.5.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Bloc introductif en tête de page Paramètres",
+      "linkedIdsAmont": [
+        "us:4.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.5.2": {
+      "id": "ca:4.5.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Section WHY (pourquoi)",
+      "linkedIdsAmont": [
+        "us:4.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.5.3": {
+      "id": "ca:4.5.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Section WHAT (quoi)",
+      "linkedIdsAmont": [
+        "us:4.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.5.4": {
+      "id": "ca:4.5.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Section HOW (comment)",
+      "linkedIdsAmont": [
+        "us:4.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.5.5": {
+      "id": "ca:4.5.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Vocabulaire aligné sur l’app (DDD)",
+      "linkedIdsAmont": [
+        "us:4.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.5.6": {
+      "id": "ca:4.5.6",
+      "type": "ca",
+      "name": "CA6",
+      "description": "Cohérence et accessibilité",
+      "linkedIdsAmont": [
+        "us:4.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:4.6": {
+      "id": "us:4.6",
+      "type": "us",
+      "name": "US-4.6",
+      "description": "Embarquer dans Electron tous les prérequis techniques pour l'enrichissement",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ca:4.6.1",
+        "ca:4.6.2",
+        "ca:4.6.3",
+        "ca:4.6.4",
+        "ca:4.6.5",
+        "code:app:api-handlers.ts"
+      ],
+      "orphan": false
+    },
+    "ca:4.6.1": {
+      "id": "ca:4.6.1",
+      "type": "ca",
+      "name": "CA1",
+      "description": "Enrichissement LinkedIn en package Electron",
+      "linkedIdsAmont": [
+        "us:4.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.6.2": {
+      "id": "ca:4.6.2",
+      "type": "ca",
+      "name": "CA2",
+      "description": "Enrichissement Cadre emploi en package Electron",
+      "linkedIdsAmont": [
+        "us:4.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.6.3": {
+      "id": "ca:4.6.3",
+      "type": "ca",
+      "name": "CA3",
+      "description": "Autres sources d'enrichissement",
+      "linkedIdsAmont": [
+        "us:4.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.6.4": {
+      "id": "ca:4.6.4",
+      "type": "ca",
+      "name": "CA4",
+      "description": "Comportement en dev inchangé",
+      "linkedIdsAmont": [
+        "us:4.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "ca:4.6.5": {
+      "id": "ca:4.6.5",
+      "type": "ca",
+      "name": "CA5",
+      "description": "Aucune action technique requise pour le beta testeur",
+      "linkedIdsAmont": [
+        "us:4.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.13": {
+      "id": "us:3.13",
+      "type": "us",
+      "name": "US-3.13",
+      "description": "Logs en production dans le cloud (emplacement, niveau, rotation)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.21": {
+      "id": "us:3.21",
+      "type": "us",
+      "name": "US-3.21",
+      "description": "Signature du binaire Windows (certificat, réduction des alertes SmartScreen)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.22": {
+      "id": "us:3.22",
+      "type": "us",
+      "name": "US-3.22",
+      "description": "Comportement à la désinstallation (ce qui reste dans %APPDATA%, doc ou choix proposé)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.23": {
+      "id": "us:3.23",
+      "type": "us",
+      "name": "US-3.23",
+      "description": "Auto-update ou process de mise à jour « grand public » (electron-updater ou équivalent)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.24": {
+      "id": "us:3.24",
+      "type": "us",
+      "name": "US-3.24",
+      "description": "Sauvegarde / export des données avant mise à jour",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.25": {
+      "id": "us:3.25",
+      "type": "us",
+      "name": "US-3.25",
+      "description": "Compatibilité ascendante des données (anciens parametres.json)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.03": {
+      "id": "us:3.03",
+      "type": "us",
+      "name": "US-3.03",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:audit-dossier-email"
+      ],
+      "orphan": false
+    },
+    "feature:audit-dossier-email": {
+      "id": "feature:audit-dossier-email",
+      "type": "feature",
+      "name": "audit-dossier-email",
+      "description": "Absence du container Dossier de la boite aux lettres",
+      "linkedIdsAmont": [
+        "us:3.03"
+      ],
+      "linkedIdsAval": [
+        "step:audit-dossier-email"
+      ],
+      "orphan": false
+    },
+    "step:audit-dossier-email": {
+      "id": "step:audit-dossier-email",
+      "type": "step",
+      "name": "audit-dossier-email.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:audit-dossier-email"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.05": {
+      "id": "us:2.05",
+      "type": "us",
+      "name": "US-2.05",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:comptage-appels-api"
+      ],
+      "orphan": false
+    },
+    "feature:comptage-appels-api": {
+      "id": "feature:comptage-appels-api",
+      "type": "feature",
+      "name": "comptage-appels-api",
+      "description": "Comptage des appels API",
+      "linkedIdsAmont": [
+        "us:2.05"
+      ],
+      "linkedIdsAval": [
+        "step:comptage-appels-api"
+      ],
+      "orphan": false
+    },
+    "step:comptage-appels-api": {
+      "id": "step:comptage-appels-api",
+      "type": "step",
+      "name": "comptage-appels-api.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:comptage-appels-api"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:configuration-airtable": {
+      "id": "feature:configuration-airtable",
+      "type": "feature",
+      "name": "configuration-airtable",
+      "description": "Configuration Airtable",
+      "linkedIdsAmont": [
+        "us:1.03"
+      ],
+      "linkedIdsAval": [
+        "step:configuration-airtable"
+      ],
+      "orphan": false
+    },
+    "step:configuration-airtable": {
+      "id": "step:configuration-airtable",
+      "type": "step",
+      "name": "configuration-airtable.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:configuration-airtable"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.04": {
+      "id": "us:2.04",
+      "type": "us",
+      "name": "US-2.04",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:configuration-claudecode-test"
+      ],
+      "orphan": false
+    },
+    "feature:configuration-claudecode-test": {
+      "id": "feature:configuration-claudecode-test",
+      "type": "feature",
+      "name": "configuration-claudecode-test",
+      "description": "Configuration ClaudeCode - Test",
+      "linkedIdsAmont": [
+        "us:2.04"
+      ],
+      "linkedIdsAval": [
+        "step:configuration-claudecode-test"
+      ],
+      "orphan": false
+    },
+    "step:configuration-claudecode-test": {
+      "id": "step:configuration-claudecode-test",
+      "type": "step",
+      "name": "configuration-claudecode-test.steps.ts",
+      "description": "Steps manquants",
+      "linkedIdsAmont": [
+        "feature:configuration-claudecode-test"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.02": {
+      "id": "us:2.02",
+      "type": "us",
+      "name": "US-2.02",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:configuration-claudecode"
+      ],
+      "orphan": false
+    },
+    "feature:configuration-claudecode": {
+      "id": "feature:configuration-claudecode",
+      "type": "feature",
+      "name": "configuration-claudecode",
+      "description": "Configuration ClaudeCode (API Key)",
+      "linkedIdsAmont": [
+        "us:2.02"
+      ],
+      "linkedIdsAval": [
+        "step:configuration-claudecode"
+      ],
+      "orphan": false
+    },
+    "step:configuration-claudecode": {
+      "id": "step:configuration-claudecode",
+      "type": "step",
+      "name": "configuration-claudecode.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:configuration-claudecode"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:configuration-compte-email": {
+      "id": "feature:configuration-compte-email",
+      "type": "feature",
+      "name": "configuration-compte-email",
+      "description": "Configuration du compte email",
+      "linkedIdsAmont": [
+        "us:1.01"
+      ],
+      "linkedIdsAval": [
+        "step:configuration-compte-email"
+      ],
+      "orphan": false
+    },
+    "step:configuration-compte-email": {
+      "id": "step:configuration-compte-email",
+      "type": "step",
+      "name": "configuration-compte-email.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:configuration-compte-email"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:exemple": {
+      "id": "feature:exemple",
+      "type": "feature",
+      "name": "exemple",
+      "description": "Vérification de la config BDD",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "step:exemple"
+      ],
+      "orphan": false
+    },
+    "step:exemple": {
+      "id": "step:exemple",
+      "type": "step",
+      "name": "exemple.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:exemple"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.01": {
+      "id": "us:3.01",
+      "type": "us",
+      "name": "US-3.01",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:gouvernance-sources-emails",
+        "feature:sources-phases-activation"
+      ],
+      "orphan": false
+    },
+    "feature:gouvernance-sources-emails": {
+      "id": "feature:gouvernance-sources-emails",
+      "type": "feature",
+      "name": "gouvernance-sources-emails",
+      "description": "Gouvernance des sources email pour le traitement des offres",
+      "linkedIdsAmont": [
+        "us:3.01"
+      ],
+      "linkedIdsAval": [
+        "step:gouvernance-sources-emails"
+      ],
+      "orphan": false
+    },
+    "step:gouvernance-sources-emails": {
+      "id": "step:gouvernance-sources-emails",
+      "type": "step",
+      "name": "gouvernance-sources-emails.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:gouvernance-sources-emails"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:identification-utilisateurs": {
+      "id": "feature:identification-utilisateurs",
+      "type": "feature",
+      "name": "identification-utilisateurs",
+      "description": "Identification des utilisateurs (consentement et notification par email)",
+      "linkedIdsAmont": [
+        "us:3.15"
+      ],
+      "linkedIdsAval": [
+        "step:identification-utilisateurs"
+      ],
+      "orphan": false
+    },
+    "step:identification-utilisateurs": {
+      "id": "step:identification-utilisateurs",
+      "type": "step",
+      "name": "identification-utilisateurs.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:identification-utilisateurs"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:4.05": {
+      "id": "us:4.05",
+      "type": "us",
+      "name": "US-4.05",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:introduction-parametrage"
+      ],
+      "orphan": false
+    },
+    "feature:introduction-parametrage": {
+      "id": "feature:introduction-parametrage",
+      "type": "feature",
+      "name": "introduction-parametrage",
+      "description": "Introduction au process de paramétrage",
+      "linkedIdsAmont": [
+        "us:4.05"
+      ],
+      "linkedIdsAval": [
+        "step:introduction-parametrage"
+      ],
+      "orphan": false
+    },
+    "step:introduction-parametrage": {
+      "id": "step:introduction-parametrage",
+      "type": "step",
+      "name": "introduction-parametrage.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:introduction-parametrage"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.02": {
+      "id": "us:3.02",
+      "type": "us",
+      "name": "US-3.02",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:justifications-rehibitoires"
+      ],
+      "orphan": false
+    },
+    "feature:justifications-rehibitoires": {
+      "id": "feature:justifications-rehibitoires",
+      "type": "feature",
+      "name": "justifications-rehibitoires",
+      "description": "Justifications des arbitrages réhibitoires",
+      "linkedIdsAmont": [
+        "us:3.02"
+      ],
+      "linkedIdsAval": [
+        "step:justifications-rehibitoires"
+      ],
+      "orphan": false
+    },
+    "step:justifications-rehibitoires": {
+      "id": "step:justifications-rehibitoires",
+      "type": "step",
+      "name": "justifications-rehibitoires.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:justifications-rehibitoires"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.04": {
+      "id": "us:3.04",
+      "type": "us",
+      "name": "US-3.04",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:log-appels-api-intention"
+      ],
+      "orphan": false
+    },
+    "feature:log-appels-api-intention": {
+      "id": "feature:log-appels-api-intention",
+      "type": "feature",
+      "name": "log-appels-api-intention",
+      "description": "Log appels API avec intention métier",
+      "linkedIdsAmont": [
+        "us:3.04"
+      ],
+      "linkedIdsAval": [
+        "step:log-appels-api-intention"
+      ],
+      "orphan": false
+    },
+    "step:log-appels-api-intention": {
+      "id": "step:log-appels-api-intention",
+      "type": "step",
+      "name": "log-appels-api-intention.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:log-appels-api-intention"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:offres-emails-cadreemploi": {
+      "id": "feature:offres-emails-cadreemploi",
+      "type": "feature",
+      "name": "offres-emails-cadreemploi",
+      "description": "Offres des emails Cadre Emploi",
+      "linkedIdsAmont": [
+        "us:1.12"
+      ],
+      "linkedIdsAval": [
+        "step:offres-emails-cadreemploi"
+      ],
+      "orphan": false
+    },
+    "step:offres-emails-cadreemploi": {
+      "id": "step:offres-emails-cadreemploi",
+      "type": "step",
+      "name": "offres-emails-cadreemploi.steps.ts",
+      "description": "Steps manquants",
+      "linkedIdsAmont": [
+        "feature:offres-emails-cadreemploi"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:offres-emails-hellowork": {
+      "id": "feature:offres-emails-hellowork",
+      "type": "feature",
+      "name": "offres-emails-hellowork",
+      "description": "Offres des emails HelloWork",
+      "linkedIdsAmont": [
+        "us:1.08"
+      ],
+      "linkedIdsAval": [
+        "step:offres-emails-hellowork"
+      ],
+      "orphan": false
+    },
+    "step:offres-emails-hellowork": {
+      "id": "step:offres-emails-hellowork",
+      "type": "step",
+      "name": "offres-emails-hellowork.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:offres-emails-hellowork"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:offres-emails-job-that-make-sense": {
+      "id": "feature:offres-emails-job-that-make-sense",
+      "type": "feature",
+      "name": "offres-emails-job-that-make-sense",
+      "description": "Offres des emails Job That Make Sense",
+      "linkedIdsAmont": [
+        "us:1.11"
+      ],
+      "linkedIdsAval": [
+        "step:offres-emails-job-that-make-sense"
+      ],
+      "orphan": false
+    },
+    "step:offres-emails-job-that-make-sense": {
+      "id": "step:offres-emails-job-that-make-sense",
+      "type": "step",
+      "name": "offres-emails-job-that-make-sense.steps.ts",
+      "description": "Steps manquants",
+      "linkedIdsAmont": [
+        "feature:offres-emails-job-that-make-sense"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:offres-emails-linkedin": {
+      "id": "feature:offres-emails-linkedin",
+      "type": "feature",
+      "name": "offres-emails-linkedin",
+      "description": "Offres des emails LinkedIn",
+      "linkedIdsAmont": [
+        "us:1.04"
+      ],
+      "linkedIdsAval": [
+        "step:offres-emails-linkedin"
+      ],
+      "orphan": false
+    },
+    "step:offres-emails-linkedin": {
+      "id": "step:offres-emails-linkedin",
+      "type": "step",
+      "name": "offres-emails-linkedin.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:offres-emails-linkedin"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:offres-emails-welcome-to-the-jungle": {
+      "id": "feature:offres-emails-welcome-to-the-jungle",
+      "type": "feature",
+      "name": "offres-emails-welcome-to-the-jungle",
+      "description": "Offres des emails Welcome to the Jungle",
+      "linkedIdsAmont": [
+        "us:1.10"
+      ],
+      "linkedIdsAval": [
+        "step:offres-emails-welcome-to-the-jungle"
+      ],
+      "orphan": false
+    },
+    "step:offres-emails-welcome-to-the-jungle": {
+      "id": "step:offres-emails-welcome-to-the-jungle",
+      "type": "step",
+      "name": "offres-emails-welcome-to-the-jungle.steps.ts",
+      "description": "Steps manquants",
+      "linkedIdsAmont": [
+        "feature:offres-emails-welcome-to-the-jungle"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.01": {
+      "id": "us:2.01",
+      "type": "us",
+      "name": "US-2.01",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:parametrage-ia"
+      ],
+      "orphan": false
+    },
+    "feature:parametrage-ia": {
+      "id": "feature:parametrage-ia",
+      "type": "feature",
+      "name": "parametrage-ia",
+      "description": "Paramétrage prompt de l'IA (CRUD)",
+      "linkedIdsAmont": [
+        "us:2.01"
+      ],
+      "linkedIdsAval": [
+        "step:parametrage-ia"
+      ],
+      "orphan": false
+    },
+    "step:parametrage-ia": {
+      "id": "step:parametrage-ia",
+      "type": "step",
+      "name": "parametrage-ia.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:parametrage-ia"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:4.06": {
+      "id": "us:4.06",
+      "type": "us",
+      "name": "US-4.06",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:prerequis-enrichissement-electron"
+      ],
+      "orphan": false
+    },
+    "feature:prerequis-enrichissement-electron": {
+      "id": "feature:prerequis-enrichissement-electron",
+      "type": "feature",
+      "name": "prerequis-enrichissement-electron",
+      "description": "Prérequis techniques d'enrichissement dans le package Electron",
+      "linkedIdsAmont": [
+        "us:4.06"
+      ],
+      "linkedIdsAval": [
+        "step:prerequis-enrichissement-electron"
+      ],
+      "orphan": false
+    },
+    "step:prerequis-enrichissement-electron": {
+      "id": "step:prerequis-enrichissement-electron",
+      "type": "step",
+      "name": "prerequis-enrichissement-electron.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:prerequis-enrichissement-electron"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:2.03": {
+      "id": "us:2.03",
+      "type": "us",
+      "name": "US-2.03",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:prompt-ia"
+      ],
+      "orphan": false
+    },
+    "feature:prompt-ia": {
+      "id": "feature:prompt-ia",
+      "type": "feature",
+      "name": "prompt-ia",
+      "description": "Prompt IA (partie fixe et partie modifiable)",
+      "linkedIdsAmont": [
+        "us:2.03"
+      ],
+      "linkedIdsAval": [
+        "step:prompt-ia"
+      ],
+      "orphan": false
+    },
+    "step:prompt-ia": {
+      "id": "step:prompt-ia",
+      "type": "step",
+      "name": "prompt-ia.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:prompt-ia"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.06": {
+      "id": "us:3.06",
+      "type": "us",
+      "name": "US-3.06",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:publication-application-electron"
+      ],
+      "orphan": false
+    },
+    "feature:publication-application-electron": {
+      "id": "feature:publication-application-electron",
+      "type": "feature",
+      "name": "publication-application-electron",
+      "description": "Publication de l'application (installateur et mise à jour Electron)",
+      "linkedIdsAmont": [
+        "us:3.06"
+      ],
+      "linkedIdsAval": [
+        "step:publication-application-electron"
+      ],
+      "orphan": false
+    },
+    "step:publication-application-electron": {
+      "id": "step:publication-application-electron",
+      "type": "step",
+      "name": "publication-application-electron.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:publication-application-electron"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:redirection-parametres-config-incomplete": {
+      "id": "feature:redirection-parametres-config-incomplete",
+      "type": "feature",
+      "name": "redirection-parametres-config-incomplete",
+      "description": "Redirection vers les paramètres tant que la configuration n'est pas complète",
+      "linkedIdsAmont": [
+        "us:1.06"
+      ],
+      "linkedIdsAval": [
+        "step:redirection-parametres-config-incomplete"
+      ],
+      "orphan": false
+    },
+    "step:redirection-parametres-config-incomplete": {
+      "id": "step:redirection-parametres-config-incomplete",
+      "type": "step",
+      "name": "redirection-parametres-config-incomplete.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:redirection-parametres-config-incomplete"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "us:3.05": {
+      "id": "us:3.05",
+      "type": "us",
+      "name": "US-3.05",
+      "description": "(référencé par feature BDD)",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "feature:reorganisation-traitements"
+      ],
+      "orphan": false
+    },
+    "feature:reorganisation-traitements": {
+      "id": "feature:reorganisation-traitements",
+      "type": "feature",
+      "name": "reorganisation-traitements",
+      "description": "Réorganisation des traitements",
+      "linkedIdsAmont": [
+        "us:3.05"
+      ],
+      "linkedIdsAval": [
+        "step:reorganisation-traitements"
+      ],
+      "orphan": false
+    },
+    "step:reorganisation-traitements": {
+      "id": "step:reorganisation-traitements",
+      "type": "step",
+      "name": "reorganisation-traitements.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:reorganisation-traitements"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:single-instance": {
+      "id": "feature:single-instance",
+      "type": "feature",
+      "name": "single-instance",
+      "description": "Single instance (une seule fenêtre, une seule instance de l'app)",
+      "linkedIdsAmont": [
+        "us:3.12"
+      ],
+      "linkedIdsAval": [
+        "step:single-instance"
+      ],
+      "orphan": false
+    },
+    "step:single-instance": {
+      "id": "step:single-instance",
+      "type": "step",
+      "name": "single-instance.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:single-instance"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:sources-phases-activation": {
+      "id": "feature:sources-phases-activation",
+      "type": "feature",
+      "name": "sources-phases-activation",
+      "description": "Activation des sources par phase (création, enrichissement, analyse)",
+      "linkedIdsAmont": [
+        "us:3.01"
+      ],
+      "linkedIdsAval": [
+        "step:sources-phases-activation"
+      ],
+      "orphan": false
+    },
+    "step:sources-phases-activation": {
+      "id": "step:sources-phases-activation",
+      "type": "step",
+      "name": "sources-phases-activation.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:sources-phases-activation"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "feature:tableau-synthese-offres": {
+      "id": "feature:tableau-synthese-offres",
+      "type": "feature",
+      "name": "tableau-synthese-offres",
+      "description": "Tableau de synthèse des offres",
+      "linkedIdsAmont": [
+        "us:1.07"
+      ],
+      "linkedIdsAval": [
+        "step:tableau-synthese-offres"
+      ],
+      "orphan": false
+    },
+    "step:tableau-synthese-offres": {
+      "id": "step:tableau-synthese-offres",
+      "type": "step",
+      "name": "tableau-synthese-offres.steps.ts",
+      "description": "Steps Playwright BDD",
+      "linkedIdsAmont": [
+        "feature:tableau-synthese-offres"
+      ],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "tu:app:api-handlers.audit.test.ts": {
+      "id": "tu:app:api-handlers.audit.test.ts",
+      "type": "tu",
+      "name": "api-handlers.audit.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:http",
+        "code:.:api-handlers.ts"
+      ],
+      "orphan": true
+    },
+    "code:node:http": {
+      "id": "code:node:http",
+      "type": "code",
+      "name": "node:http",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:api-handlers.audit.test.ts",
+        "tu:app:api-handlers.consommation.test.ts",
+        "tu:app:api-handlers.test-connexion.test.ts",
+        "tu:app:api-handlers.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:api-handlers.ts": {
+      "id": "code:.:api-handlers.ts",
+      "type": "code",
+      "name": ".:api-handlers.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:api-handlers.audit.test.ts",
+        "tu:app:api-handlers.consommation.test.ts",
+        "tu:app:api-handlers.test-connexion.test.ts",
+        "tu:app:api-handlers.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:app:api-handlers.consommation.test.ts": {
+      "id": "tu:app:api-handlers.consommation.test.ts",
+      "type": "tu",
+      "name": "api-handlers.consommation.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:http",
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:api-handlers.ts",
+        "code:utils:log-appels-api.ts"
+      ],
+      "orphan": true
+    },
+    "code:node:fs": {
+      "id": "code:node:fs",
+      "type": "code",
+      "name": "node:fs",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:api-handlers.consommation.test.ts",
+        "tu:app:page-html.claudecode.test.ts",
+        "tu:app:page-html.identification-utilisateurs.test.ts",
+        "tu:app:page-html.parametrage-ia.test.ts",
+        "tu:app:page-html.parametres-intro.test.ts",
+        "ti:server-data-dir.integration.test",
+        "tu:utils:airtable-driver-reel.test.ts",
+        "tu:utils:compte-io.test.ts",
+        "ti:configuration-airtable.integration.test",
+        "tu:utils:configuration-airtable.test.ts",
+        "tu:utils:extraction-offres-email.test.ts",
+        "tu:utils:log-appels-api.test.ts",
+        "tu:utils:parametrages-complets.test.ts",
+        "tu:utils:parametres-airtable.test.ts",
+        "tu:utils:parametres-claudecode.test.ts",
+        "tu:utils:parametres-io.test.ts",
+        "tu:utils:prompt-ia.test.ts",
+        "tu:utils:validation-compte.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:node:os": {
+      "id": "code:node:os",
+      "type": "code",
+      "name": "node:os",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:api-handlers.consommation.test.ts",
+        "tu:app:page-html.claudecode.test.ts",
+        "tu:app:page-html.identification-utilisateurs.test.ts",
+        "tu:app:page-html.parametrage-ia.test.ts",
+        "tu:app:page-html.parametres-intro.test.ts",
+        "ti:server-data-dir.integration.test",
+        "tu:utils:airtable-driver-reel.test.ts",
+        "tu:utils:compte-io.test.ts",
+        "ti:configuration-airtable.integration.test",
+        "tu:utils:configuration-airtable.test.ts",
+        "tu:utils:log-appels-api.test.ts",
+        "tu:utils:parametrages-complets.test.ts",
+        "tu:utils:parametres-airtable.test.ts",
+        "tu:utils:parametres-claudecode.test.ts",
+        "tu:utils:parametres-io.test.ts",
+        "tu:utils:prompt-ia.test.ts",
+        "tu:utils:validation-compte.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:node:path": {
+      "id": "code:node:path",
+      "type": "code",
+      "name": "node:path",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:api-handlers.consommation.test.ts",
+        "tu:app:page-html.claudecode.test.ts",
+        "tu:app:page-html.identification-utilisateurs.test.ts",
+        "tu:app:page-html.parametrage-ia.test.ts",
+        "tu:app:page-html.parametres-intro.test.ts",
+        "ti:server-data-dir.integration.test",
+        "tu:utils:airtable-driver-reel.test.ts",
+        "tu:utils:cadreemploi-login-playwright.test.ts",
+        "tu:utils:compte-io.test.ts",
+        "ti:configuration-airtable.integration.test",
+        "tu:utils:configuration-airtable.test.ts",
+        "tu:utils:data-dir.test.ts",
+        "tu:utils:extraction-offres-email.test.ts",
+        "tu:utils:log-appels-api.test.ts",
+        "tu:utils:parametrages-complets.test.ts",
+        "tu:utils:parametres-airtable.test.ts",
+        "tu:utils:parametres-claudecode.test.ts",
+        "tu:utils:parametres-io.test.ts",
+        "tu:utils:prompt-ia.test.ts",
+        "tu:utils:validation-compte.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:utils:log-appels-api.ts": {
+      "id": "code:utils:log-appels-api.ts",
+      "type": "code",
+      "name": "utils:log-appels-api.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:api-handlers.consommation.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:app:api-handlers.test-connexion.test.ts": {
+      "id": "tu:app:api-handlers.test-connexion.test.ts",
+      "type": "tu",
+      "name": "api-handlers.test-connexion.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:http",
+        "code:types:compte.ts",
+        "code:.:api-handlers.ts"
+      ],
+      "orphan": true
+    },
+    "code:types:compte.ts": {
+      "id": "code:types:compte.ts",
+      "type": "code",
+      "name": "types:compte.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:api-handlers.test-connexion.test.ts",
+        "tu:utils:compte-io.test.ts",
+        "tu:utils:envoi-email-identification.test.ts",
+        "tu:utils:test-connexion-compte.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:app:api-handlers.test.ts": {
+      "id": "tu:app:api-handlers.test.ts",
+      "type": "tu",
+      "name": "api-handlers.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:http",
+        "code:.:api-handlers.ts"
+      ],
+      "orphan": true
+    },
+    "tu:app:layout-html.test.ts": {
+      "id": "tu:app:layout-html.test.ts",
+      "type": "tu",
+      "name": "layout-html.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [
+        "us:1.06",
+        "us:3.16",
+        "us:3.5",
+        "us:1.07",
+        "us:1.13",
+        "us:2.5",
+        "us:3.3"
+      ],
+      "linkedIdsAval": [
+        "code:.:layout-html.ts"
+      ],
+      "orphan": false
+    },
+    "code:.:layout-html.ts": {
+      "id": "code:.:layout-html.ts",
+      "type": "code",
+      "name": ".:layout-html.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:layout-html.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:app:page-html.a-propos.test.ts": {
+      "id": "tu:app:page-html.a-propos.test.ts",
+      "type": "tu",
+      "name": "page-html.a-propos.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [
+        "us:3.16"
+      ],
+      "linkedIdsAval": [
+        "code:.:page-html.ts"
+      ],
+      "orphan": false
+    },
+    "code:.:page-html.ts": {
+      "id": "code:.:page-html.ts",
+      "type": "code",
+      "name": ".:page-html.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:page-html.a-propos.test.ts",
+        "tu:app:page-html.claudecode.test.ts",
+        "tu:app:page-html.identification-utilisateurs.test.ts",
+        "tu:app:page-html.parametrage-ia.test.ts",
+        "tu:app:page-html.parametres-intro.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:app:page-html.claudecode.test.ts": {
+      "id": "tu:app:page-html.claudecode.test.ts",
+      "type": "tu",
+      "name": "page-html.claudecode.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [
+        "us:2.2",
+        "us:2.4",
+        "us:3.2"
+      ],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:page-html.ts",
+        "code:utils:parametres-io.ts"
+      ],
+      "orphan": false
+    },
+    "code:utils:parametres-io.ts": {
+      "id": "code:utils:parametres-io.ts",
+      "type": "code",
+      "name": "utils:parametres-io.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:app:page-html.claudecode.test.ts",
+        "tu:app:page-html.identification-utilisateurs.test.ts",
+        "tu:app:page-html.parametrage-ia.test.ts",
+        "tu:app:page-html.parametres-intro.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:app:page-html.identification-utilisateurs.test.ts": {
+      "id": "tu:app:page-html.identification-utilisateurs.test.ts",
+      "type": "tu",
+      "name": "page-html.identification-utilisateurs.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:page-html.ts",
+        "code:utils:parametres-io.ts"
+      ],
+      "orphan": true
+    },
+    "tu:app:page-html.parametrage-ia.test.ts": {
+      "id": "tu:app:page-html.parametrage-ia.test.ts",
+      "type": "tu",
+      "name": "page-html.parametrage-ia.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:page-html.ts",
+        "code:utils:parametres-io.ts"
+      ],
+      "orphan": true
+    },
+    "tu:app:page-html.parametres-intro.test.ts": {
+      "id": "tu:app:page-html.parametres-intro.test.ts",
+      "type": "tu",
+      "name": "page-html.parametres-intro.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:page-html.ts",
+        "code:utils:parametres-io.ts"
+      ],
+      "orphan": true
+    },
+    "ti:server-data-dir.integration.test": {
+      "id": "ti:server-data-dir.integration.test",
+      "type": "ti",
+      "name": "server-data-dir.integration.test.ts",
+      "description": "Test d'intégration",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:child_process",
+        "code:node:fs",
+        "code:node:path",
+        "code:node:os"
+      ],
+      "orphan": true
+    },
+    "code:node:child_process": {
+      "id": "code:node:child_process",
+      "type": "code",
+      "name": "node:child_process",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ti:server-data-dir.integration.test"
+      ],
+      "orphan": true
+    },
+    "tu:utils:airtable-driver-reel.test.ts": {
+      "id": "tu:utils:airtable-driver-reel.test.ts",
+      "type": "tu",
+      "name": "airtable-driver-reel.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:airtable-driver-reel.ts",
+        "code:.:plugins-sources-airtable.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:airtable-driver-reel.ts": {
+      "id": "code:.:airtable-driver-reel.ts",
+      "type": "code",
+      "name": ".:airtable-driver-reel.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:airtable-driver-reel.test.ts",
+        "ti:configuration-airtable.integration.test"
+      ],
+      "orphan": true
+    },
+    "code:.:plugins-sources-airtable.ts": {
+      "id": "code:.:plugins-sources-airtable.ts",
+      "type": "code",
+      "name": ".:plugins-sources-airtable.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:airtable-driver-reel.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:airtable-enrichissement-driver.test.ts": {
+      "id": "tu:utils:airtable-enrichissement-driver.test.ts",
+      "type": "tu",
+      "name": "airtable-enrichissement-driver.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:airtable-enrichissement-driver.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:airtable-enrichissement-driver.ts": {
+      "id": "code:.:airtable-enrichissement-driver.ts",
+      "type": "code",
+      "name": ".:airtable-enrichissement-driver.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:airtable-enrichissement-driver.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:airtable-releve-driver.test.ts": {
+      "id": "tu:utils:airtable-releve-driver.test.ts",
+      "type": "tu",
+      "name": "airtable-releve-driver.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:airtable-releve-driver.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:airtable-releve-driver.ts": {
+      "id": "code:.:airtable-releve-driver.ts",
+      "type": "code",
+      "name": ".:airtable-releve-driver.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:airtable-releve-driver.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:appeler-claudecode.test.ts": {
+      "id": "tu:utils:appeler-claudecode.test.ts",
+      "type": "tu",
+      "name": "appeler-claudecode.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:erreur-reseau.ts",
+        "code:.:appeler-claudecode.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:erreur-reseau.ts": {
+      "id": "code:.:erreur-reseau.ts",
+      "type": "code",
+      "name": ".:erreur-reseau.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:appeler-claudecode.test.ts",
+        "tu:utils:configuration-airtable.test.ts",
+        "tu:utils:erreur-reseau.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:appeler-claudecode.ts": {
+      "id": "code:.:appeler-claudecode.ts",
+      "type": "code",
+      "name": ".:appeler-claudecode.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:appeler-claudecode.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:audit-sources-cli.test.ts": {
+      "id": "tu:utils:audit-sources-cli.test.ts",
+      "type": "tu",
+      "name": "audit-sources-cli.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:scripts:audit-sources-cli.ts"
+      ],
+      "orphan": true
+    },
+    "code:scripts:audit-sources-cli.ts": {
+      "id": "code:scripts:audit-sources-cli.ts",
+      "type": "code",
+      "name": "scripts:audit-sources-cli.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:audit-sources-cli.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:bump-version.test.ts": {
+      "id": "tu:utils:bump-version.test.ts",
+      "type": "tu",
+      "name": "bump-version.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:bump-version.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:bump-version.ts": {
+      "id": "code:.:bump-version.ts",
+      "type": "code",
+      "name": ".:bump-version.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:bump-version.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:cache-audit-ram.test.ts": {
+      "id": "tu:utils:cache-audit-ram.test.ts",
+      "type": "tu",
+      "name": "cache-audit-ram.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:cache-audit-ram.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:cache-audit-ram.ts": {
+      "id": "code:.:cache-audit-ram.ts",
+      "type": "code",
+      "name": ".:cache-audit-ram.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:cache-audit-ram.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:cadreemploi-login-playwright.test.ts": {
+      "id": "tu:utils:cadreemploi-login-playwright.test.ts",
+      "type": "tu",
+      "name": "cadreemploi-login-playwright.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:path",
+        "code:.:parametres-io.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:parametres-io.ts": {
+      "id": "code:.:parametres-io.ts",
+      "type": "code",
+      "name": ".:parametres-io.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:cadreemploi-login-playwright.test.ts",
+        "tu:utils:compte-io.test.ts",
+        "ti:configuration-airtable.integration.test",
+        "tu:utils:configuration-airtable.test.ts",
+        "tu:utils:prompt-ia.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:cadreemploi-offer-fetch-plugin.test.ts": {
+      "id": "tu:utils:cadreemploi-offer-fetch-plugin.test.ts",
+      "type": "tu",
+      "name": "cadreemploi-offer-fetch-plugin.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:cadreemploi-offer-fetch-plugin.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:cadreemploi-offer-fetch-plugin.ts": {
+      "id": "code:.:cadreemploi-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": ".:cadreemploi-offer-fetch-plugin.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:cadreemploi-offer-fetch-plugin.test.ts",
+        "tu:utils:enrichissement-offres.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:cadreemploi-page-fetcher.test.ts": {
+      "id": "tu:utils:cadreemploi-page-fetcher.test.ts",
+      "type": "tu",
+      "name": "cadreemploi-page-fetcher.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:electron-html-fetcher.ts",
+        "code:.:cadreemploi-page-fetcher.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:electron-html-fetcher.ts": {
+      "id": "code:.:electron-html-fetcher.ts",
+      "type": "code",
+      "name": ".:electron-html-fetcher.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:cadreemploi-page-fetcher.test.ts",
+        "tu:utils:electron-html-fetcher.test.ts",
+        "tu:utils:linkedin-page-fetcher.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:cadreemploi-page-fetcher.ts": {
+      "id": "code:.:cadreemploi-page-fetcher.ts",
+      "type": "code",
+      "name": ".:cadreemploi-page-fetcher.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:cadreemploi-page-fetcher.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:comptage-emails-a-importer.test.ts": {
+      "id": "tu:utils:comptage-emails-a-importer.test.ts",
+      "type": "tu",
+      "name": "comptage-emails-a-importer.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:comptage-emails-a-importer.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:comptage-emails-a-importer.ts": {
+      "id": "code:.:comptage-emails-a-importer.ts",
+      "type": "code",
+      "name": ".:comptage-emails-a-importer.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:comptage-emails-a-importer.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:compte-io.test.ts": {
+      "id": "tu:utils:compte-io.test.ts",
+      "type": "tu",
+      "name": "compte-io.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:types:compte.ts",
+        "code:.:parametres-io.ts"
+      ],
+      "orphan": true
+    },
+    "ti:configuration-airtable.integration.test": {
+      "id": "ti:configuration-airtable.integration.test",
+      "type": "ti",
+      "name": "configuration-airtable.integration.test.ts",
+      "description": "Test d'intégration",
+      "linkedIdsAmont": [
+        "us:1.03"
+      ],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:configuration-airtable.ts",
+        "code:.:airtable-driver-reel.ts",
+        "code:.:parametres-airtable.ts",
+        "code:.:parametres-io.ts"
+      ],
+      "orphan": false
+    },
+    "code:.:configuration-airtable.ts": {
+      "id": "code:.:configuration-airtable.ts",
+      "type": "code",
+      "name": ".:configuration-airtable.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ti:configuration-airtable.integration.test",
+        "tu:utils:configuration-airtable.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:parametres-airtable.ts": {
+      "id": "code:.:parametres-airtable.ts",
+      "type": "code",
+      "name": ".:parametres-airtable.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ti:configuration-airtable.integration.test",
+        "tu:utils:configuration-airtable.test.ts",
+        "tu:utils:parametrages-complets.test.ts",
+        "tu:utils:parametres-airtable.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:configuration-airtable.test.ts": {
+      "id": "tu:utils:configuration-airtable.test.ts",
+      "type": "tu",
+      "name": "configuration-airtable.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:configuration-airtable.ts",
+        "code:.:erreur-reseau.ts",
+        "code:.:parametres-airtable.ts",
+        "code:.:parametres-io.ts",
+        "code:.:airtable-driver-par-defaut.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:airtable-driver-par-defaut.ts": {
+      "id": "code:.:airtable-driver-par-defaut.ts",
+      "type": "code",
+      "name": ".:airtable-driver-par-defaut.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:configuration-airtable.test.ts"
+      ],
+      "orphan": true
+    },
+    "ti:connecteur-email-imap.integration.test": {
+      "id": "ti:connecteur-email-imap.integration.test",
+      "type": "ti",
+      "name": "connecteur-email-imap.integration.test.ts",
+      "description": "Test d'intégration",
+      "linkedIdsAmont": [
+        "us:3.17"
+      ],
+      "linkedIdsAval": [
+        "code:.:connecteur-email-imap.ts",
+        "code:.:test-connexion-compte.ts"
+      ],
+      "orphan": false
+    },
+    "code:.:connecteur-email-imap.ts": {
+      "id": "code:.:connecteur-email-imap.ts",
+      "type": "code",
+      "name": ".:connecteur-email-imap.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ti:connecteur-email-imap.integration.test"
+      ],
+      "orphan": true
+    },
+    "code:.:test-connexion-compte.ts": {
+      "id": "code:.:test-connexion-compte.ts",
+      "type": "code",
+      "name": ".:test-connexion-compte.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ti:connecteur-email-imap.integration.test",
+        "tu:utils:test-connexion-compte.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:data-dir.test.ts": {
+      "id": "tu:utils:data-dir.test.ts",
+      "type": "tu",
+      "name": "data-dir.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:path",
+        "code:.:data-dir.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:data-dir.ts": {
+      "id": "code:.:data-dir.ts",
+      "type": "code",
+      "name": ".:data-dir.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:data-dir.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:default-activation-source.test.ts": {
+      "id": "tu:utils:default-activation-source.test.ts",
+      "type": "tu",
+      "name": "default-activation-source.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:source-plugins.ts",
+        "code:.:default-activation-source.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:source-plugins.ts": {
+      "id": "code:.:source-plugins.ts",
+      "type": "code",
+      "name": ".:source-plugins.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:default-activation-source.test.ts",
+        "tu:utils:source-plugins.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:default-activation-source.ts": {
+      "id": "code:.:default-activation-source.ts",
+      "type": "code",
+      "name": ".:default-activation-source.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:default-activation-source.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:electron-html-fetcher.test.ts": {
+      "id": "tu:utils:electron-html-fetcher.test.ts",
+      "type": "tu",
+      "name": "electron-html-fetcher.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:electron-html-fetcher.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:electron-packaged.test.ts": {
+      "id": "tu:utils:electron-packaged.test.ts",
+      "type": "tu",
+      "name": "electron-packaged.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:electron-packaged.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:electron-packaged.ts": {
+      "id": "code:.:electron-packaged.ts",
+      "type": "code",
+      "name": ".:electron-packaged.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:electron-packaged.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:enrichissement-offres.test.ts": {
+      "id": "tu:utils:enrichissement-offres.test.ts",
+      "type": "tu",
+      "name": "enrichissement-offres.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:cadreemploi-offer-fetch-plugin.ts",
+        "code:.:job-that-make-sense-offer-fetch-plugin.ts",
+        "code:.:welcome-to-the-jungle-offer-fetch-plugin.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:job-that-make-sense-offer-fetch-plugin.ts": {
+      "id": "code:.:job-that-make-sense-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": ".:job-that-make-sense-offer-fetch-plugin.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:enrichissement-offres.test.ts",
+        "tu:utils:job-that-make-sense-offer-fetch-plugin.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:welcome-to-the-jungle-offer-fetch-plugin.ts": {
+      "id": "code:.:welcome-to-the-jungle-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": ".:welcome-to-the-jungle-offer-fetch-plugin.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:enrichissement-offres.test.ts",
+        "tu:utils:welcome-to-the-jungle-offer-fetch-plugin.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:env-html-fetcher.test.ts": {
+      "id": "tu:utils:env-html-fetcher.test.ts",
+      "type": "tu",
+      "name": "env-html-fetcher.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "tu:utils:envoi-email-identification.test.ts": {
+      "id": "tu:utils:envoi-email-identification.test.ts",
+      "type": "tu",
+      "name": "envoi-email-identification.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:types:compte.ts",
+        "code:.:texte-consentement-identification.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:texte-consentement-identification.ts": {
+      "id": "code:.:texte-consentement-identification.ts",
+      "type": "code",
+      "name": ".:texte-consentement-identification.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:envoi-email-identification.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:erreur-reseau.test.ts": {
+      "id": "tu:utils:erreur-reseau.test.ts",
+      "type": "tu",
+      "name": "erreur-reseau.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:erreur-reseau.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:extraction-offres-email.test.ts": {
+      "id": "tu:utils:extraction-offres-email.test.ts",
+      "type": "tu",
+      "name": "extraction-offres-email.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [
+        "us:1.05",
+        "us:1.09",
+        "us:1.10",
+        "us:1.11",
+        "us:1.12"
+      ],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:path"
+      ],
+      "orphan": false
+    },
+    "tu:utils:fetcher-contenu-offre.test.ts": {
+      "id": "tu:utils:fetcher-contenu-offre.test.ts",
+      "type": "tu",
+      "name": "fetcher-contenu-offre.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:fetcher-contenu-offre.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:fetcher-contenu-offre.ts": {
+      "id": "code:.:fetcher-contenu-offre.ts",
+      "type": "code",
+      "name": ".:fetcher-contenu-offre.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:fetcher-contenu-offre.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:gouvernance-sources-emails.test.ts": {
+      "id": "tu:utils:gouvernance-sources-emails.test.ts",
+      "type": "tu",
+      "name": "gouvernance-sources-emails.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "tu:utils:hellowork-offer-fetch-plugin.test.ts": {
+      "id": "tu:utils:hellowork-offer-fetch-plugin.test.ts",
+      "type": "tu",
+      "name": "hellowork-offer-fetch-plugin.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:hellowork-offer-fetch-plugin.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:hellowork-offer-fetch-plugin.ts": {
+      "id": "code:.:hellowork-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": ".:hellowork-offer-fetch-plugin.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:hellowork-offer-fetch-plugin.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:intentions-appels-api.test.ts": {
+      "id": "tu:utils:intentions-appels-api.test.ts",
+      "type": "tu",
+      "name": "intentions-appels-api.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "tu:utils:job-that-make-sense-offer-fetch-plugin.test.ts": {
+      "id": "tu:utils:job-that-make-sense-offer-fetch-plugin.test.ts",
+      "type": "tu",
+      "name": "job-that-make-sense-offer-fetch-plugin.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:job-that-make-sense-offer-fetch-plugin.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:lecteur-emails-mock.test.ts": {
+      "id": "tu:utils:lecteur-emails-mock.test.ts",
+      "type": "tu",
+      "name": "lecteur-emails-mock.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:lecteur-emails-mock.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:lecteur-emails-mock.ts": {
+      "id": "code:.:lecteur-emails-mock.ts",
+      "type": "code",
+      "name": ".:lecteur-emails-mock.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:lecteur-emails-mock.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:linkedin-offer-fetch-plugin.test.ts": {
+      "id": "tu:utils:linkedin-offer-fetch-plugin.test.ts",
+      "type": "tu",
+      "name": "linkedin-offer-fetch-plugin.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:linkedin-offer-fetch-plugin.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:linkedin-offer-fetch-plugin.ts": {
+      "id": "code:.:linkedin-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": ".:linkedin-offer-fetch-plugin.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:linkedin-offer-fetch-plugin.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:linkedin-page-fetcher.test.ts": {
+      "id": "tu:utils:linkedin-page-fetcher.test.ts",
+      "type": "tu",
+      "name": "linkedin-page-fetcher.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:electron-html-fetcher.ts",
+        "code:.:linkedin-page-fetcher.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:linkedin-page-fetcher.ts": {
+      "id": "code:.:linkedin-page-fetcher.ts",
+      "type": "code",
+      "name": ".:linkedin-page-fetcher.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:linkedin-page-fetcher.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:log-appels-api.test.ts": {
+      "id": "tu:utils:log-appels-api.test.ts",
+      "type": "tu",
+      "name": "log-appels-api.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path"
+      ],
+      "orphan": true
+    },
+    "tu:utils:mapping-analyse-airtable.test.ts": {
+      "id": "tu:utils:mapping-analyse-airtable.test.ts",
+      "type": "tu",
+      "name": "mapping-analyse-airtable.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:mapping-analyse-airtable.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:mapping-analyse-airtable.ts": {
+      "id": "code:.:mapping-analyse-airtable.ts",
+      "type": "code",
+      "name": ".:mapping-analyse-airtable.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:mapping-analyse-airtable.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:offre-test.test.ts": {
+      "id": "tu:utils:offre-test.test.ts",
+      "type": "tu",
+      "name": "offre-test.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:offre-test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:offre-test.ts": {
+      "id": "code:.:offre-test.ts",
+      "type": "code",
+      "name": ".:offre-test.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:offre-test.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:orchestration-traitements.test.ts": {
+      "id": "tu:utils:orchestration-traitements.test.ts",
+      "type": "tu",
+      "name": "orchestration-traitements.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:orchestration-traitements.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:orchestration-traitements.ts": {
+      "id": "code:.:orchestration-traitements.ts",
+      "type": "code",
+      "name": ".:orchestration-traitements.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:orchestration-traitements.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:parametrages-complets.test.ts": {
+      "id": "tu:utils:parametrages-complets.test.ts",
+      "type": "tu",
+      "name": "parametrages-complets.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:compte-io.ts",
+        "code:.:parametrages-complets.ts",
+        "code:.:parametres-airtable.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:compte-io.ts": {
+      "id": "code:.:compte-io.ts",
+      "type": "code",
+      "name": ".:compte-io.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:parametrages-complets.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:parametrages-complets.ts": {
+      "id": "code:.:parametrages-complets.ts",
+      "type": "code",
+      "name": ".:parametrages-complets.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:parametrages-complets.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:parametres-airtable.test.ts": {
+      "id": "tu:utils:parametres-airtable.test.ts",
+      "type": "tu",
+      "name": "parametres-airtable.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:parametres-airtable.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:parametres-claudecode.test.ts": {
+      "id": "tu:utils:parametres-claudecode.test.ts",
+      "type": "tu",
+      "name": "parametres-claudecode.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:types:parametres.ts",
+        "code:.:parametres-claudecode.ts"
+      ],
+      "orphan": true
+    },
+    "code:types:parametres.ts": {
+      "id": "code:types:parametres.ts",
+      "type": "code",
+      "name": "types:parametres.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:parametres-claudecode.test.ts",
+        "tu:utils:parametres-io.test.ts",
+        "tu:utils:parse-json-reponse-ia.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:parametres-claudecode.ts": {
+      "id": "code:.:parametres-claudecode.ts",
+      "type": "code",
+      "name": ".:parametres-claudecode.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:parametres-claudecode.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:parametres-io.test.ts": {
+      "id": "tu:utils:parametres-io.test.ts",
+      "type": "tu",
+      "name": "parametres-io.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:types:parametres.ts",
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path"
+      ],
+      "orphan": true
+    },
+    "tu:utils:parse-json-reponse-ia.test.ts": {
+      "id": "tu:utils:parse-json-reponse-ia.test.ts",
+      "type": "tu",
+      "name": "parse-json-reponse-ia.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:parse-json-reponse-ia.ts",
+        "code:types:parametres.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:parse-json-reponse-ia.ts": {
+      "id": "code:.:parse-json-reponse-ia.ts",
+      "type": "code",
+      "name": ".:parse-json-reponse-ia.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:parse-json-reponse-ia.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:prompt-ia.test.ts": {
+      "id": "tu:utils:prompt-ia.test.ts",
+      "type": "tu",
+      "name": "prompt-ia.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:parametres-io.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:relève-offres-linkedin.test.ts": {
+      "id": "tu:utils:relève-offres-linkedin.test.ts",
+      "type": "tu",
+      "name": "relève-offres-linkedin.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:types:offres-releve.ts",
+        "code:.:relève-offres-linkedin.ts"
+      ],
+      "orphan": true
+    },
+    "code:types:offres-releve.ts": {
+      "id": "code:types:offres-releve.ts",
+      "type": "code",
+      "name": "types:offres-releve.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:relève-offres-linkedin.test.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:relève-offres-linkedin.ts": {
+      "id": "code:.:relève-offres-linkedin.ts",
+      "type": "code",
+      "name": ".:relève-offres-linkedin.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:relève-offres-linkedin.test.ts"
+      ],
+      "orphan": true
+    },
+    "ti:run-audit-sources.integration.test": {
+      "id": "ti:run-audit-sources.integration.test",
+      "type": "ti",
+      "name": "run-audit-sources.integration.test.ts",
+      "description": "Test d'intégration",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:scripts:run-audit-sources.ts"
+      ],
+      "orphan": true
+    },
+    "code:scripts:run-audit-sources.ts": {
+      "id": "code:scripts:run-audit-sources.ts",
+      "type": "code",
+      "name": "scripts:run-audit-sources.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ti:run-audit-sources.integration.test"
+      ],
+      "orphan": true
+    },
+    "ti:run-traitement.integration.test": {
+      "id": "ti:run-traitement.integration.test",
+      "type": "ti",
+      "name": "run-traitement.integration.test.ts",
+      "description": "Test d'intégration",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:scripts:run-traitement.ts"
+      ],
+      "orphan": true
+    },
+    "code:scripts:run-traitement.ts": {
+      "id": "code:scripts:run-traitement.ts",
+      "type": "code",
+      "name": "scripts:run-traitement.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "ti:run-traitement.integration.test"
+      ],
+      "orphan": true
+    },
+    "tu:utils:source-plugins.test.ts": {
+      "id": "tu:utils:source-plugins.test.ts",
+      "type": "tu",
+      "name": "source-plugins.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:source-plugins.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:statuts-offres-airtable.test.ts": {
+      "id": "tu:utils:statuts-offres-airtable.test.ts",
+      "type": "tu",
+      "name": "statuts-offres-airtable.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:statuts-offres-airtable.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:statuts-offres-airtable.ts": {
+      "id": "code:.:statuts-offres-airtable.ts",
+      "type": "code",
+      "name": ".:statuts-offres-airtable.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:statuts-offres-airtable.test.ts",
+        "tu:utils:tableau-synthese-offres.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:tableau-synthese-offres.test.ts": {
+      "id": "tu:utils:tableau-synthese-offres.test.ts",
+      "type": "tu",
+      "name": "tableau-synthese-offres.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:statuts-offres-airtable.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:test-connexion-compte.test.ts": {
+      "id": "tu:utils:test-connexion-compte.test.ts",
+      "type": "tu",
+      "name": "test-connexion-compte.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:test-connexion-compte.ts",
+        "code:types:compte.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:texte-consentement-identification.test.ts": {
+      "id": "tu:utils:texte-consentement-identification.test.ts",
+      "type": "tu",
+      "name": "texte-consentement-identification.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "tu:utils:validation-compte.test.ts": {
+      "id": "tu:utils:validation-compte.test.ts",
+      "type": "tu",
+      "name": "validation-compte.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:node:fs",
+        "code:node:os",
+        "code:node:path",
+        "code:.:validation-compte.ts"
+      ],
+      "orphan": true
+    },
+    "code:.:validation-compte.ts": {
+      "id": "code:.:validation-compte.ts",
+      "type": "code",
+      "name": ".:validation-compte.ts",
+      "description": "",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "tu:utils:validation-compte.test.ts"
+      ],
+      "orphan": true
+    },
+    "tu:utils:welcome-to-the-jungle-offer-fetch-plugin.test.ts": {
+      "id": "tu:utils:welcome-to-the-jungle-offer-fetch-plugin.test.ts",
+      "type": "tu",
+      "name": "welcome-to-the-jungle-offer-fetch-plugin.test.ts",
+      "description": "Test unitaire",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [
+        "code:.:welcome-to-the-jungle-offer-fetch-plugin.ts"
+      ],
+      "orphan": true
+    },
+    "code:app:api-handlers.ts": {
+      "id": "code:app:api-handlers.ts",
+      "type": "code",
+      "name": "api-handlers.ts",
+      "description": "app/api-handlers.ts",
+      "linkedIdsAmont": [
+        "us:1.01",
+        "us:1.03",
+        "us:1.07",
+        "us:1.13",
+        "us:2.4",
+        "us:2.5",
+        "us:3.1",
+        "us:3.3",
+        "us:3.4",
+        "us:3.15",
+        "us:4.6"
+      ],
+      "linkedIdsAval": [],
+      "orphan": false
+    },
+    "code:app:audit-html.ts": {
+      "id": "code:app:audit-html.ts",
+      "type": "code",
+      "name": "audit-html.ts",
+      "description": "app/audit-html.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:app:layout-html.ts": {
+      "id": "code:app:layout-html.ts",
+      "type": "code",
+      "name": "layout-html.ts",
+      "description": "app/layout-html.ts",
+      "linkedIdsAmont": [
+        "us:1.02",
+        "us:1.06",
+        "us:1.07",
+        "us:3.16",
+        "us:3.3",
+        "us:3.5"
+      ],
+      "linkedIdsAval": [],
+      "orphan": false
+    },
+    "code:app:page-html.ts": {
+      "id": "code:app:page-html.ts",
+      "type": "code",
+      "name": "page-html.ts",
+      "description": "app/page-html.ts",
+      "linkedIdsAmont": [
+        "us:1.01",
+        "us:1.06",
+        "us:2.1",
+        "us:2.2",
+        "us:2.3",
+        "us:2.4",
+        "us:3.15"
+      ],
+      "linkedIdsAval": [],
+      "orphan": false
+    },
+    "code:app:server.ts": {
+      "id": "code:app:server.ts",
+      "type": "code",
+      "name": "server.ts",
+      "description": "app/server.ts",
+      "linkedIdsAmont": [
+        "us:1.02"
+      ],
+      "linkedIdsAval": [],
+      "orphan": false
+    },
+    "code:utils:airtable-driver-par-defaut.ts": {
+      "id": "code:utils:airtable-driver-par-defaut.ts",
+      "type": "code",
+      "name": "airtable-driver-par-defaut.ts",
+      "description": "utils/airtable-driver-par-defaut.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:airtable-driver-reel.ts": {
+      "id": "code:utils:airtable-driver-reel.ts",
+      "type": "code",
+      "name": "airtable-driver-reel.ts",
+      "description": "utils/airtable-driver-reel.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:airtable-enrichissement-driver.ts": {
+      "id": "code:utils:airtable-enrichissement-driver.ts",
+      "type": "code",
+      "name": "airtable-enrichissement-driver.ts",
+      "description": "utils/airtable-enrichissement-driver.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:airtable-ensure-enums.ts": {
+      "id": "code:utils:airtable-ensure-enums.ts",
+      "type": "code",
+      "name": "airtable-ensure-enums.ts",
+      "description": "utils/airtable-ensure-enums.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:airtable-releve-driver.ts": {
+      "id": "code:utils:airtable-releve-driver.ts",
+      "type": "code",
+      "name": "airtable-releve-driver.ts",
+      "description": "utils/airtable-releve-driver.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:airtable-url.ts": {
+      "id": "code:utils:airtable-url.ts",
+      "type": "code",
+      "name": "airtable-url.ts",
+      "description": "utils/airtable-url.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:appeler-claudecode.ts": {
+      "id": "code:utils:appeler-claudecode.ts",
+      "type": "code",
+      "name": "appeler-claudecode.ts",
+      "description": "utils/appeler-claudecode.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:auth-microsoft.ts": {
+      "id": "code:utils:auth-microsoft.ts",
+      "type": "code",
+      "name": "auth-microsoft.ts",
+      "description": "utils/auth-microsoft.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:bump-version.ts": {
+      "id": "code:utils:bump-version.ts",
+      "type": "code",
+      "name": "bump-version.ts",
+      "description": "utils/bump-version.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:cache-audit-ram.ts": {
+      "id": "code:utils:cache-audit-ram.ts",
+      "type": "code",
+      "name": "cache-audit-ram.ts",
+      "description": "utils/cache-audit-ram.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:cadreemploi-offer-fetch-plugin.ts": {
+      "id": "code:utils:cadreemploi-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": "cadreemploi-offer-fetch-plugin.ts",
+      "description": "utils/cadreemploi-offer-fetch-plugin.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:cadreemploi-page-fetcher.ts": {
+      "id": "code:utils:cadreemploi-page-fetcher.ts",
+      "type": "code",
+      "name": "cadreemploi-page-fetcher.ts",
+      "description": "utils/cadreemploi-page-fetcher.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:comptage-emails-a-importer.ts": {
+      "id": "code:utils:comptage-emails-a-importer.ts",
+      "type": "code",
+      "name": "comptage-emails-a-importer.ts",
+      "description": "utils/comptage-emails-a-importer.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:compte-io.ts": {
+      "id": "code:utils:compte-io.ts",
+      "type": "code",
+      "name": "compte-io.ts",
+      "description": "utils/compte-io.ts",
+      "linkedIdsAmont": [
+        "us:3.15"
+      ],
+      "linkedIdsAval": [],
+      "orphan": false
+    },
+    "code:utils:configuration-airtable.ts": {
+      "id": "code:utils:configuration-airtable.ts",
+      "type": "code",
+      "name": "configuration-airtable.ts",
+      "description": "utils/configuration-airtable.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:connecteur-email-factory.ts": {
+      "id": "code:utils:connecteur-email-factory.ts",
+      "type": "code",
+      "name": "connecteur-email-factory.ts",
+      "description": "utils/connecteur-email-factory.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:connecteur-email-graph.ts": {
+      "id": "code:utils:connecteur-email-graph.ts",
+      "type": "code",
+      "name": "connecteur-email-graph.ts",
+      "description": "utils/connecteur-email-graph.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:connecteur-email-imap.ts": {
+      "id": "code:utils:connecteur-email-imap.ts",
+      "type": "code",
+      "name": "connecteur-email-imap.ts",
+      "description": "utils/connecteur-email-imap.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:connecteur-email-mock.ts": {
+      "id": "code:utils:connecteur-email-mock.ts",
+      "type": "code",
+      "name": "connecteur-email-mock.ts",
+      "description": "utils/connecteur-email-mock.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:data-dir.ts": {
+      "id": "code:utils:data-dir.ts",
+      "type": "code",
+      "name": "data-dir.ts",
+      "description": "utils/data-dir.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:default-activation-source.ts": {
+      "id": "code:utils:default-activation-source.ts",
+      "type": "code",
+      "name": "default-activation-source.ts",
+      "description": "utils/default-activation-source.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:electron-html-fetcher.ts": {
+      "id": "code:utils:electron-html-fetcher.ts",
+      "type": "code",
+      "name": "electron-html-fetcher.ts",
+      "description": "utils/electron-html-fetcher.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:electron-packaged.ts": {
+      "id": "code:utils:electron-packaged.ts",
+      "type": "code",
+      "name": "electron-packaged.ts",
+      "description": "utils/electron-packaged.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:enrichissement-offres.ts": {
+      "id": "code:utils:enrichissement-offres.ts",
+      "type": "code",
+      "name": "enrichissement-offres.ts",
+      "description": "utils/enrichissement-offres.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:env-html-fetcher.ts": {
+      "id": "code:utils:env-html-fetcher.ts",
+      "type": "code",
+      "name": "env-html-fetcher.ts",
+      "description": "utils/env-html-fetcher.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:envoi-email-identification.ts": {
+      "id": "code:utils:envoi-email-identification.ts",
+      "type": "code",
+      "name": "envoi-email-identification.ts",
+      "description": "utils/envoi-email-identification.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:envoi-identification-airtable.ts": {
+      "id": "code:utils:envoi-identification-airtable.ts",
+      "type": "code",
+      "name": "envoi-identification-airtable.ts",
+      "description": "utils/envoi-identification-airtable.ts",
+      "linkedIdsAmont": [
+        "us:3.15"
+      ],
+      "linkedIdsAval": [],
+      "orphan": false
+    },
+    "code:utils:erreur-reseau.ts": {
+      "id": "code:utils:erreur-reseau.ts",
+      "type": "code",
+      "name": "erreur-reseau.ts",
+      "description": "utils/erreur-reseau.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:extraction-offres-email.ts": {
+      "id": "code:utils:extraction-offres-email.ts",
+      "type": "code",
+      "name": "extraction-offres-email.ts",
+      "description": "utils/extraction-offres-email.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:fetch-offre-headers.ts": {
+      "id": "code:utils:fetch-offre-headers.ts",
+      "type": "code",
+      "name": "fetch-offre-headers.ts",
+      "description": "utils/fetch-offre-headers.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:fetcher-contenu-offre.ts": {
+      "id": "code:utils:fetcher-contenu-offre.ts",
+      "type": "code",
+      "name": "fetcher-contenu-offre.ts",
+      "description": "utils/fetcher-contenu-offre.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:gouvernance-sources-emails.ts": {
+      "id": "code:utils:gouvernance-sources-emails.ts",
+      "type": "code",
+      "name": "gouvernance-sources-emails.ts",
+      "description": "utils/gouvernance-sources-emails.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:hellowork-offer-fetch-plugin.ts": {
+      "id": "code:utils:hellowork-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": "hellowork-offer-fetch-plugin.ts",
+      "description": "utils/hellowork-offer-fetch-plugin.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:index.ts": {
+      "id": "code:utils:index.ts",
+      "type": "code",
+      "name": "index.ts",
+      "description": "utils/index.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:intentions-appels-api.ts": {
+      "id": "code:utils:intentions-appels-api.ts",
+      "type": "code",
+      "name": "intentions-appels-api.ts",
+      "description": "utils/intentions-appels-api.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:job-that-make-sense-offer-fetch-plugin.ts": {
+      "id": "code:utils:job-that-make-sense-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": "job-that-make-sense-offer-fetch-plugin.ts",
+      "description": "utils/job-that-make-sense-offer-fetch-plugin.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:lecteur-emails-graph.ts": {
+      "id": "code:utils:lecteur-emails-graph.ts",
+      "type": "code",
+      "name": "lecteur-emails-graph.ts",
+      "description": "utils/lecteur-emails-graph.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:lecteur-emails-imap.ts": {
+      "id": "code:utils:lecteur-emails-imap.ts",
+      "type": "code",
+      "name": "lecteur-emails-imap.ts",
+      "description": "utils/lecteur-emails-imap.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:lecteur-emails-mock.ts": {
+      "id": "code:utils:lecteur-emails-mock.ts",
+      "type": "code",
+      "name": "lecteur-emails-mock.ts",
+      "description": "utils/lecteur-emails-mock.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:linkedin-offer-fetch-plugin.ts": {
+      "id": "code:utils:linkedin-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": "linkedin-offer-fetch-plugin.ts",
+      "description": "utils/linkedin-offer-fetch-plugin.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:linkedin-page-fetcher.ts": {
+      "id": "code:utils:linkedin-page-fetcher.ts",
+      "type": "code",
+      "name": "linkedin-page-fetcher.ts",
+      "description": "utils/linkedin-page-fetcher.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:load-env-local.ts": {
+      "id": "code:utils:load-env-local.ts",
+      "type": "code",
+      "name": "load-env-local.ts",
+      "description": "utils/load-env-local.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:mapping-analyse-airtable.ts": {
+      "id": "code:utils:mapping-analyse-airtable.ts",
+      "type": "code",
+      "name": "mapping-analyse-airtable.ts",
+      "description": "utils/mapping-analyse-airtable.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:mask-email.ts": {
+      "id": "code:utils:mask-email.ts",
+      "type": "code",
+      "name": "mask-email.ts",
+      "description": "utils/mask-email.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:offre-test.ts": {
+      "id": "code:utils:offre-test.ts",
+      "type": "code",
+      "name": "offre-test.ts",
+      "description": "utils/offre-test.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:orchestration-traitements.ts": {
+      "id": "code:utils:orchestration-traitements.ts",
+      "type": "code",
+      "name": "orchestration-traitements.ts",
+      "description": "utils/orchestration-traitements.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:parametrages-complets.ts": {
+      "id": "code:utils:parametrages-complets.ts",
+      "type": "code",
+      "name": "parametrages-complets.ts",
+      "description": "utils/parametrages-complets.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:parametres-airtable.ts": {
+      "id": "code:utils:parametres-airtable.ts",
+      "type": "code",
+      "name": "parametres-airtable.ts",
+      "description": "utils/parametres-airtable.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:parametres-claudecode.ts": {
+      "id": "code:utils:parametres-claudecode.ts",
+      "type": "code",
+      "name": "parametres-claudecode.ts",
+      "description": "utils/parametres-claudecode.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:parse-json-reponse-ia.ts": {
+      "id": "code:utils:parse-json-reponse-ia.ts",
+      "type": "code",
+      "name": "parse-json-reponse-ia.ts",
+      "description": "utils/parse-json-reponse-ia.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:plugins-sources-airtable.ts": {
+      "id": "code:utils:plugins-sources-airtable.ts",
+      "type": "code",
+      "name": "plugins-sources-airtable.ts",
+      "description": "utils/plugins-sources-airtable.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:prompt-ia.ts": {
+      "id": "code:utils:prompt-ia.ts",
+      "type": "code",
+      "name": "prompt-ia.ts",
+      "description": "utils/prompt-ia.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:read-build-info.ts": {
+      "id": "code:utils:read-build-info.ts",
+      "type": "code",
+      "name": "read-build-info.ts",
+      "description": "utils/read-build-info.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:relève-offres-linkedin.ts": {
+      "id": "code:utils:relève-offres-linkedin.ts",
+      "type": "code",
+      "name": "relève-offres-linkedin.ts",
+      "description": "utils/relève-offres-linkedin.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:source-plugins.ts": {
+      "id": "code:utils:source-plugins.ts",
+      "type": "code",
+      "name": "source-plugins.ts",
+      "description": "utils/source-plugins.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:statuts-offres-airtable.ts": {
+      "id": "code:utils:statuts-offres-airtable.ts",
+      "type": "code",
+      "name": "statuts-offres-airtable.ts",
+      "description": "utils/statuts-offres-airtable.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:tableau-synthese-offres.ts": {
+      "id": "code:utils:tableau-synthese-offres.ts",
+      "type": "code",
+      "name": "tableau-synthese-offres.ts",
+      "description": "utils/tableau-synthese-offres.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:test-connexion-compte.ts": {
+      "id": "code:utils:test-connexion-compte.ts",
+      "type": "code",
+      "name": "test-connexion-compte.ts",
+      "description": "utils/test-connexion-compte.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:texte-consentement-identification.ts": {
+      "id": "code:utils:texte-consentement-identification.ts",
+      "type": "code",
+      "name": "texte-consentement-identification.ts",
+      "description": "utils/texte-consentement-identification.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:validation-compte.ts": {
+      "id": "code:utils:validation-compte.ts",
+      "type": "code",
+      "name": "validation-compte.ts",
+      "description": "utils/validation-compte.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    },
+    "code:utils:welcome-to-the-jungle-offer-fetch-plugin.ts": {
+      "id": "code:utils:welcome-to-the-jungle-offer-fetch-plugin.ts",
+      "type": "code",
+      "name": "welcome-to-the-jungle-offer-fetch-plugin.ts",
+      "description": "utils/welcome-to-the-jungle-offer-fetch-plugin.ts",
+      "linkedIdsAmont": [],
+      "linkedIdsAval": [],
+      "orphan": true
+    }
+  },
+  "byType": {
+    "us": [
+      "us:1.01",
+      "us:1.02",
+      "us:1.03",
+      "us:1.04",
+      "us:1.05",
+      "us:1.06",
+      "us:1.07",
+      "us:1.08",
+      "us:1.09",
+      "us:1.10",
+      "us:1.11",
+      "us:1.12",
+      "us:1.13",
+      "us:2.1",
+      "us:2.2",
+      "us:2.3",
+      "us:2.4",
+      "us:2.5",
+      "us:3.1",
+      "us:3.11",
+      "us:3.12",
+      "us:3.14",
+      "us:3.15",
+      "us:3.16",
+      "us:3.17",
+      "us:3.2",
+      "us:3.3",
+      "us:3.4",
+      "us:3.5",
+      "us:3.6",
+      "us:3.7",
+      "us:3.8",
+      "us:4.1",
+      "us:4.2",
+      "us:4.3",
+      "us:4.4",
+      "us:4.5",
+      "us:4.6",
+      "us:3.13",
+      "us:3.21",
+      "us:3.22",
+      "us:3.23",
+      "us:3.24",
+      "us:3.25",
+      "us:3.03",
+      "us:2.05",
+      "us:2.04",
+      "us:2.02",
+      "us:3.01",
+      "us:4.05",
+      "us:3.02",
+      "us:3.04",
+      "us:2.01",
+      "us:4.06",
+      "us:2.03",
+      "us:3.06",
+      "us:3.05"
+    ],
+    "ca": [
+      "ca:1.01.1",
+      "ca:1.01.2",
+      "ca:1.01.3",
+      "ca:1.02.1",
+      "ca:1.02.2",
+      "ca:1.02.3",
+      "ca:1.03.1",
+      "ca:1.03.2",
+      "ca:1.03.3",
+      "ca:1.03.4",
+      "ca:1.03.5",
+      "ca:1.03.6",
+      "ca:1.03.7",
+      "ca:1.05.1",
+      "ca:1.05.2",
+      "ca:1.05.3",
+      "ca:1.07.1",
+      "ca:1.07.2",
+      "ca:1.07.3",
+      "ca:1.08.1",
+      "ca:1.08.2",
+      "ca:1.08.3",
+      "ca:1.10.1",
+      "ca:1.10.2",
+      "ca:1.10.3",
+      "ca:1.10.4",
+      "ca:1.11.1",
+      "ca:1.11.2",
+      "ca:1.11.3",
+      "ca:1.12.1",
+      "ca:1.12.2",
+      "ca:1.12.3",
+      "ca:1.13.1",
+      "ca:1.13.2",
+      "ca:1.13.3",
+      "ca:2.1.1",
+      "ca:2.1.2",
+      "ca:2.2.1",
+      "ca:2.2.2",
+      "ca:2.2.3",
+      "ca:2.3.1",
+      "ca:2.3.2",
+      "ca:2.3.3",
+      "ca:2.3.4",
+      "ca:2.3.5",
+      "ca:2.4.1",
+      "ca:2.4.2",
+      "ca:2.4.3",
+      "ca:2.4.4",
+      "ca:2.5.1",
+      "ca:2.5.2",
+      "ca:2.5.3",
+      "ca:2.5.4",
+      "ca:3.1.1",
+      "ca:3.1.2",
+      "ca:3.1.3",
+      "ca:3.1.4",
+      "ca:3.1.5",
+      "ca:3.1.6",
+      "ca:3.1.7",
+      "ca:3.1.8",
+      "ca:3.1.9",
+      "ca:3.11.1",
+      "ca:3.11.2",
+      "ca:3.11.3",
+      "ca:3.11.4",
+      "ca:3.11.5",
+      "ca:3.11.6",
+      "ca:3.11.7",
+      "ca:3.11.8",
+      "ca:3.12.1",
+      "ca:3.12.2",
+      "ca:3.12.3",
+      "ca:3.12.4",
+      "ca:3.14.1",
+      "ca:3.14.2",
+      "ca:3.14.3",
+      "ca:3.14.4",
+      "ca:3.14.5",
+      "ca:3.15.1",
+      "ca:3.15.2",
+      "ca:3.15.3",
+      "ca:3.15.4",
+      "ca:3.15.5",
+      "ca:3.15.6",
+      "ca:3.2.1",
+      "ca:3.2.2",
+      "ca:3.2.3",
+      "ca:3.2.4",
+      "ca:3.2.5",
+      "ca:3.2.6",
+      "ca:3.3.1",
+      "ca:3.3.2",
+      "ca:3.3.3",
+      "ca:3.3.4",
+      "ca:3.4.1",
+      "ca:3.4.2",
+      "ca:3.4.3",
+      "ca:3.4.4",
+      "ca:3.4.5",
+      "ca:3.5.1",
+      "ca:3.5.2",
+      "ca:3.5.3",
+      "ca:3.5.4",
+      "ca:3.5.5",
+      "ca:3.6.1",
+      "ca:3.6.2",
+      "ca:3.6.3",
+      "ca:3.6.4",
+      "ca:3.6.5",
+      "ca:3.7.1",
+      "ca:3.7.2",
+      "ca:3.7.3",
+      "ca:3.7.4",
+      "ca:3.7.5",
+      "ca:3.7.6",
+      "ca:4.3.1",
+      "ca:4.3.2",
+      "ca:4.3.3",
+      "ca:4.5.1",
+      "ca:4.5.2",
+      "ca:4.5.3",
+      "ca:4.5.4",
+      "ca:4.5.5",
+      "ca:4.5.6",
+      "ca:4.6.1",
+      "ca:4.6.2",
+      "ca:4.6.3",
+      "ca:4.6.4",
+      "ca:4.6.5"
+    ],
+    "feature": [
+      "feature:audit-dossier-email",
+      "feature:comptage-appels-api",
+      "feature:configuration-airtable",
+      "feature:configuration-claudecode-test",
+      "feature:configuration-claudecode",
+      "feature:configuration-compte-email",
+      "feature:exemple",
+      "feature:gouvernance-sources-emails",
+      "feature:identification-utilisateurs",
+      "feature:introduction-parametrage",
+      "feature:justifications-rehibitoires",
+      "feature:log-appels-api-intention",
+      "feature:offres-emails-cadreemploi",
+      "feature:offres-emails-hellowork",
+      "feature:offres-emails-job-that-make-sense",
+      "feature:offres-emails-linkedin",
+      "feature:offres-emails-welcome-to-the-jungle",
+      "feature:parametrage-ia",
+      "feature:prerequis-enrichissement-electron",
+      "feature:prompt-ia",
+      "feature:publication-application-electron",
+      "feature:redirection-parametres-config-incomplete",
+      "feature:reorganisation-traitements",
+      "feature:single-instance",
+      "feature:sources-phases-activation",
+      "feature:tableau-synthese-offres"
+    ],
+    "step": [
+      "step:audit-dossier-email",
+      "step:comptage-appels-api",
+      "step:configuration-airtable",
+      "step:configuration-claudecode-test",
+      "step:configuration-claudecode",
+      "step:configuration-compte-email",
+      "step:exemple",
+      "step:gouvernance-sources-emails",
+      "step:identification-utilisateurs",
+      "step:introduction-parametrage",
+      "step:justifications-rehibitoires",
+      "step:log-appels-api-intention",
+      "step:offres-emails-cadreemploi",
+      "step:offres-emails-hellowork",
+      "step:offres-emails-job-that-make-sense",
+      "step:offres-emails-linkedin",
+      "step:offres-emails-welcome-to-the-jungle",
+      "step:parametrage-ia",
+      "step:prerequis-enrichissement-electron",
+      "step:prompt-ia",
+      "step:publication-application-electron",
+      "step:redirection-parametres-config-incomplete",
+      "step:reorganisation-traitements",
+      "step:single-instance",
+      "step:sources-phases-activation",
+      "step:tableau-synthese-offres"
+    ],
+    "scenario": [],
+    "tu": [
+      "tu:app:api-handlers.audit.test.ts",
+      "tu:app:api-handlers.consommation.test.ts",
+      "tu:app:api-handlers.test-connexion.test.ts",
+      "tu:app:api-handlers.test.ts",
+      "tu:app:layout-html.test.ts",
+      "tu:app:page-html.a-propos.test.ts",
+      "tu:app:page-html.claudecode.test.ts",
+      "tu:app:page-html.identification-utilisateurs.test.ts",
+      "tu:app:page-html.parametrage-ia.test.ts",
+      "tu:app:page-html.parametres-intro.test.ts",
+      "tu:utils:airtable-driver-reel.test.ts",
+      "tu:utils:airtable-enrichissement-driver.test.ts",
+      "tu:utils:airtable-releve-driver.test.ts",
+      "tu:utils:appeler-claudecode.test.ts",
+      "tu:utils:audit-sources-cli.test.ts",
+      "tu:utils:bump-version.test.ts",
+      "tu:utils:cache-audit-ram.test.ts",
+      "tu:utils:cadreemploi-login-playwright.test.ts",
+      "tu:utils:cadreemploi-offer-fetch-plugin.test.ts",
+      "tu:utils:cadreemploi-page-fetcher.test.ts",
+      "tu:utils:comptage-emails-a-importer.test.ts",
+      "tu:utils:compte-io.test.ts",
+      "tu:utils:configuration-airtable.test.ts",
+      "tu:utils:data-dir.test.ts",
+      "tu:utils:default-activation-source.test.ts",
+      "tu:utils:electron-html-fetcher.test.ts",
+      "tu:utils:electron-packaged.test.ts",
+      "tu:utils:enrichissement-offres.test.ts",
+      "tu:utils:env-html-fetcher.test.ts",
+      "tu:utils:envoi-email-identification.test.ts",
+      "tu:utils:erreur-reseau.test.ts",
+      "tu:utils:extraction-offres-email.test.ts",
+      "tu:utils:fetcher-contenu-offre.test.ts",
+      "tu:utils:gouvernance-sources-emails.test.ts",
+      "tu:utils:hellowork-offer-fetch-plugin.test.ts",
+      "tu:utils:intentions-appels-api.test.ts",
+      "tu:utils:job-that-make-sense-offer-fetch-plugin.test.ts",
+      "tu:utils:lecteur-emails-mock.test.ts",
+      "tu:utils:linkedin-offer-fetch-plugin.test.ts",
+      "tu:utils:linkedin-page-fetcher.test.ts",
+      "tu:utils:log-appels-api.test.ts",
+      "tu:utils:mapping-analyse-airtable.test.ts",
+      "tu:utils:offre-test.test.ts",
+      "tu:utils:orchestration-traitements.test.ts",
+      "tu:utils:parametrages-complets.test.ts",
+      "tu:utils:parametres-airtable.test.ts",
+      "tu:utils:parametres-claudecode.test.ts",
+      "tu:utils:parametres-io.test.ts",
+      "tu:utils:parse-json-reponse-ia.test.ts",
+      "tu:utils:prompt-ia.test.ts",
+      "tu:utils:relève-offres-linkedin.test.ts",
+      "tu:utils:source-plugins.test.ts",
+      "tu:utils:statuts-offres-airtable.test.ts",
+      "tu:utils:tableau-synthese-offres.test.ts",
+      "tu:utils:test-connexion-compte.test.ts",
+      "tu:utils:texte-consentement-identification.test.ts",
+      "tu:utils:validation-compte.test.ts",
+      "tu:utils:welcome-to-the-jungle-offer-fetch-plugin.test.ts"
+    ],
+    "ti": [
+      "ti:server-data-dir.integration.test",
+      "ti:configuration-airtable.integration.test",
+      "ti:connecteur-email-imap.integration.test",
+      "ti:run-audit-sources.integration.test",
+      "ti:run-traitement.integration.test"
+    ],
+    "code": [
+      "code:node:http",
+      "code:.:api-handlers.ts",
+      "code:node:fs",
+      "code:node:os",
+      "code:node:path",
+      "code:utils:log-appels-api.ts",
+      "code:types:compte.ts",
+      "code:.:layout-html.ts",
+      "code:.:page-html.ts",
+      "code:utils:parametres-io.ts",
+      "code:node:child_process",
+      "code:.:airtable-driver-reel.ts",
+      "code:.:plugins-sources-airtable.ts",
+      "code:.:airtable-enrichissement-driver.ts",
+      "code:.:airtable-releve-driver.ts",
+      "code:.:erreur-reseau.ts",
+      "code:.:appeler-claudecode.ts",
+      "code:scripts:audit-sources-cli.ts",
+      "code:.:bump-version.ts",
+      "code:.:cache-audit-ram.ts",
+      "code:.:parametres-io.ts",
+      "code:.:cadreemploi-offer-fetch-plugin.ts",
+      "code:.:electron-html-fetcher.ts",
+      "code:.:cadreemploi-page-fetcher.ts",
+      "code:.:comptage-emails-a-importer.ts",
+      "code:.:configuration-airtable.ts",
+      "code:.:parametres-airtable.ts",
+      "code:.:airtable-driver-par-defaut.ts",
+      "code:.:connecteur-email-imap.ts",
+      "code:.:test-connexion-compte.ts",
+      "code:.:data-dir.ts",
+      "code:.:source-plugins.ts",
+      "code:.:default-activation-source.ts",
+      "code:.:electron-packaged.ts",
+      "code:.:job-that-make-sense-offer-fetch-plugin.ts",
+      "code:.:welcome-to-the-jungle-offer-fetch-plugin.ts",
+      "code:.:texte-consentement-identification.ts",
+      "code:.:fetcher-contenu-offre.ts",
+      "code:.:hellowork-offer-fetch-plugin.ts",
+      "code:.:lecteur-emails-mock.ts",
+      "code:.:linkedin-offer-fetch-plugin.ts",
+      "code:.:linkedin-page-fetcher.ts",
+      "code:.:mapping-analyse-airtable.ts",
+      "code:.:offre-test.ts",
+      "code:.:orchestration-traitements.ts",
+      "code:.:compte-io.ts",
+      "code:.:parametrages-complets.ts",
+      "code:types:parametres.ts",
+      "code:.:parametres-claudecode.ts",
+      "code:.:parse-json-reponse-ia.ts",
+      "code:types:offres-releve.ts",
+      "code:.:relève-offres-linkedin.ts",
+      "code:scripts:run-audit-sources.ts",
+      "code:scripts:run-traitement.ts",
+      "code:.:statuts-offres-airtable.ts",
+      "code:.:validation-compte.ts",
+      "code:app:api-handlers.ts",
+      "code:app:audit-html.ts",
+      "code:app:layout-html.ts",
+      "code:app:page-html.ts",
+      "code:app:server.ts",
+      "code:utils:airtable-driver-par-defaut.ts",
+      "code:utils:airtable-driver-reel.ts",
+      "code:utils:airtable-enrichissement-driver.ts",
+      "code:utils:airtable-ensure-enums.ts",
+      "code:utils:airtable-releve-driver.ts",
+      "code:utils:airtable-url.ts",
+      "code:utils:appeler-claudecode.ts",
+      "code:utils:auth-microsoft.ts",
+      "code:utils:bump-version.ts",
+      "code:utils:cache-audit-ram.ts",
+      "code:utils:cadreemploi-offer-fetch-plugin.ts",
+      "code:utils:cadreemploi-page-fetcher.ts",
+      "code:utils:comptage-emails-a-importer.ts",
+      "code:utils:compte-io.ts",
+      "code:utils:configuration-airtable.ts",
+      "code:utils:connecteur-email-factory.ts",
+      "code:utils:connecteur-email-graph.ts",
+      "code:utils:connecteur-email-imap.ts",
+      "code:utils:connecteur-email-mock.ts",
+      "code:utils:data-dir.ts",
+      "code:utils:default-activation-source.ts",
+      "code:utils:electron-html-fetcher.ts",
+      "code:utils:electron-packaged.ts",
+      "code:utils:enrichissement-offres.ts",
+      "code:utils:env-html-fetcher.ts",
+      "code:utils:envoi-email-identification.ts",
+      "code:utils:envoi-identification-airtable.ts",
+      "code:utils:erreur-reseau.ts",
+      "code:utils:extraction-offres-email.ts",
+      "code:utils:fetch-offre-headers.ts",
+      "code:utils:fetcher-contenu-offre.ts",
+      "code:utils:gouvernance-sources-emails.ts",
+      "code:utils:hellowork-offer-fetch-plugin.ts",
+      "code:utils:index.ts",
+      "code:utils:intentions-appels-api.ts",
+      "code:utils:job-that-make-sense-offer-fetch-plugin.ts",
+      "code:utils:lecteur-emails-graph.ts",
+      "code:utils:lecteur-emails-imap.ts",
+      "code:utils:lecteur-emails-mock.ts",
+      "code:utils:linkedin-offer-fetch-plugin.ts",
+      "code:utils:linkedin-page-fetcher.ts",
+      "code:utils:load-env-local.ts",
+      "code:utils:mapping-analyse-airtable.ts",
+      "code:utils:mask-email.ts",
+      "code:utils:offre-test.ts",
+      "code:utils:orchestration-traitements.ts",
+      "code:utils:parametrages-complets.ts",
+      "code:utils:parametres-airtable.ts",
+      "code:utils:parametres-claudecode.ts",
+      "code:utils:parse-json-reponse-ia.ts",
+      "code:utils:plugins-sources-airtable.ts",
+      "code:utils:prompt-ia.ts",
+      "code:utils:read-build-info.ts",
+      "code:utils:relève-offres-linkedin.ts",
+      "code:utils:source-plugins.ts",
+      "code:utils:statuts-offres-airtable.ts",
+      "code:utils:tableau-synthese-offres.ts",
+      "code:utils:test-connexion-compte.ts",
+      "code:utils:texte-consentement-identification.ts",
+      "code:utils:validation-compte.ts",
+      "code:utils:welcome-to-the-jungle-offer-fetch-plugin.ts"
+    ]
+  }
+}

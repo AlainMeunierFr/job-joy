@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="30px" height="30px" viewBox="0 0 30 30" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>01 Atoms / 02 Symboles / 05 Arrow / 02 Small / 02 Left</title>
+    <g id="01-Atoms-/-02-Symboles-/-05-Arrow-/-02-Small-/-02-Left" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Group-Copy-12" transform="translate(14.849242, 15.049242) rotate(-180.000000) translate(-14.849242, -15.049242) translate(-0.000000, 0.200000)" fill="#FDC300">
+            <polygon id="Stroke-3" transform="translate(14.849242, 14.849242) rotate(-315.000000) translate(-14.849242, -14.849242) " points="25.3492424 4.3492424 25.3492424 25.3492424 23.3492424 25.3492424 23.3491068 6.34910678 4.3492424 6.3492424 4.3492424 4.3492424"></polygon>
+        </g>
+        <rect id="Rectangle" fill="#FDC300" transform="translate(15.998485, 15.098485) rotate(-180.000000) translate(-15.998485, -15.098485) " x="1.99848481" y="14.0984848" width="28" height="2"></rect>
+    </g>
+</svg>

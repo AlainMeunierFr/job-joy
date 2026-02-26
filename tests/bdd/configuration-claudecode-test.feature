@@ -13,21 +13,21 @@ Fonctionnalité: Configuration ClaudeCode - Test
     Et la section Configuration ClaudeCode comporte un champ ou une zone intitulée "Texte d'offre à tester"
     Et ce champ est une zone de texte multiligne (textarea)
 
-  # --- CA2 : Bouton "Récupérer le texte d'une offre" si au moins une offre en base ---
-  Scénario: Lorsqu'aucune offre Airtable n'est disponible, le bouton Récupérer le texte d'une offre n'est pas affiché
+  # --- CA2 : Bouton récupérer offre pour test (meilleur score) si au moins une offre en base ---
+  Scénario: Lorsqu'aucune offre Airtable n'est disponible, le bouton récupérer offre pour test n'est pas affiché
     Étant donné qu'aucune offre Airtable n'est disponible en base
     Quand je me rends sur la page Paramètres
-    Alors la section Configuration ClaudeCode n'affiche pas le bouton "Récupérer le texte d'une offre"
+    Alors la section Configuration ClaudeCode n'affiche pas le bouton récupérer offre pour test
 
-  Scénario: Lorsqu'au moins une offre Airtable est disponible, le bouton Récupérer le texte d'une offre est affiché
+  Scénario: Lorsqu'au moins une offre Airtable est disponible, le bouton récupérer offre pour test est affiché
     Étant donné qu'au moins une offre Airtable est disponible en base
     Quand je me rends sur la page Paramètres
-    Alors la section Configuration ClaudeCode affiche un bouton "Récupérer le texte d'une offre"
+    Alors la section Configuration ClaudeCode affiche un bouton récupérer offre pour test
 
-  Scénario: Au clic sur Récupérer le texte d'une offre, le champ Texte d'offre à tester est rempli avec le texte d'une offre
+  Scénario: Au clic sur récupérer offre pour test, tous les champs (texte et métadonnées) sont remplis avec l'offre qui a le meilleur score
     Étant donné qu'au moins une offre Airtable est disponible en base avec un texte connu
     Et que je suis sur la page Paramètres
-    Quand je clique sur le bouton "Récupérer le texte d'une offre" de la section Configuration ClaudeCode
+    Quand je clique sur le bouton récupérer offre pour test de la section Configuration ClaudeCode
     Alors le champ "Texte d'offre à tester" contient le texte d'une offre récupérée en base
 
   # --- CA3 : Bouton "Tester API" et affichage résultat ou erreur ---
@@ -57,5 +57,5 @@ Fonctionnalité: Configuration ClaudeCode - Test
     Alors la page comporte un container ou une section intitulée "Configuration ClaudeCode"
     Et la section Configuration ClaudeCode comporte un champ ou une zone intitulée "Texte d'offre à tester"
     Et la section Configuration ClaudeCode comporte un bouton "Tester API"
-    Et la section Configuration ClaudeCode comporte un bouton "Récupérer le texte d'une offre"
+    Et la section Configuration ClaudeCode comporte un bouton "Pour tester, récupérer les informations de l'offre qui a le meilleur score"
     Et ces éléments (champ et boutons) sont contenus dans la section Configuration ClaudeCode de la page Paramètres

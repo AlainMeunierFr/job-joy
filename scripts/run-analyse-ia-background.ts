@@ -9,13 +9,15 @@ import { lireClaudeCode } from '../utils/parametres-claudecode.js';
 import { createAirtableEnrichissementDriver } from '../utils/airtable-enrichissement-driver.js';
 import { getBaseSchema } from '../utils/airtable-ensure-enums.js';
 import { normaliserBaseId } from '../utils/airtable-url.js';
-import { construirePromptComplet } from '../utils/prompt-ia.js';
+import { construirePromptComplet, construireMessageUserAnalyse } from '../utils/prompt-ia.js';
 import { appelerClaudeCode } from '../utils/appeler-claudecode.js';
 import { enregistrerAppel } from '../utils/log-appels-api.js';
 import { INTENTION_ANALYSE_IA_LOT } from '../utils/intentions-appels-api.js';
 import { parseJsonReponseIA } from '../utils/parse-json-reponse-ia.js';
 import { STATUT_A_TRAITER, type ChampsOffreAirtable, type OffreAAnalyser } from '../utils/enrichissement-offres.js';
 import { jsonToChampsOffreAirtable } from '../utils/mapping-analyse-airtable.js';
+import { calculerScoreTotal, mergeFormuleDuScoreTotal } from '../utils/formule-score-total.js';
+import type { ScoresPourFormule } from '../utils/formule-score-total.js';
 
 /** Appelle updateOffre ; en cas d'erreur, écrit l'erreur dans Résumé et retourne false (ne pas arrêter le batch). */
 async function updateOffreOuRésuméErreur(
@@ -120,8 +122,10 @@ export async function runAnalyseIABackground(
   if (candidates.length === 0) {
     return { ok: true, nbCandidates: 0, nbAnalysees: 0, nbEchecs: 0, messages: [] };
   }
-  const parametrageIA = lireParametres(dir)?.parametrageIA ?? null;
+  const parametres = lireParametres(dir);
+  const parametrageIA = parametres?.parametrageIA ?? null;
   const promptSystem = construirePromptComplet(dir, parametrageIA);
+  const formuleParams = mergeFormuleDuScoreTotal(parametres?.formuleDuScoreTotal);
   const messages: string[] = [];
   let nbAnalysees = 0;
   let nbEchecs = 0;
@@ -129,8 +133,18 @@ export async function runAnalyseIABackground(
     if (i >= 1 && options?.shouldAbort?.()) break;
     const offre = candidates[i];
     options?.onProgress?.(offre, i, candidates.length);
-    const texteOffre = (offre.texteOffre ?? '').trim() || '(texte absent)';
-    const messageUser = `Analyse cette offre et retourne le JSON demandé.\n\nContenu de l'offre :\n${texteOffre}`;
+    const texteOffre = (offre.texteOffre ?? '').trim();
+    const messageUser = construireMessageUserAnalyse(
+      {
+        poste: offre.poste,
+        entreprise: offre.entreprise,
+        ville: offre.ville,
+        salaire: offre.salaire,
+        dateOffre: offre.dateOffre,
+        departement: offre.departement,
+      },
+      texteOffre
+    );
     const result = await appelerClaudeCode(dir, promptSystem, messageUser);
     enregistrerAppel(dir, {
       api: 'Claude',
@@ -144,6 +158,17 @@ export async function runAnalyseIABackground(
       if (parsed.ok) {
         resume = typeof parsed.json.Résumé_IA === 'string' ? parsed.json.Résumé_IA.trim() : result.texte;
         const champs = jsonToChampsOffreAirtable(parsed.json, resume);
+        const scores: ScoresPourFormule = {
+          ScoreLocalisation: champs.ScoreLocalisation ?? 0,
+          ScoreSalaire: champs.ScoreSalaire ?? 0,
+          ScoreCulture: champs.ScoreCulture ?? 0,
+          ScoreQualitéOffre: champs.ScoreQualiteOffre ?? 0,
+          ScoreCritère1: champs.ScoreCritère1 ?? 0,
+          ScoreCritère2: champs.ScoreCritère2 ?? 0,
+          ScoreCritère3: champs.ScoreCritère3 ?? 0,
+          ScoreCritère4: champs.ScoreCritère4 ?? 0,
+        };
+        champs.Score_Total = calculerScoreTotal(scores, formuleParams);
         const updated = await updateOffreOuRésuméErreur(driver, offre.id, champs, messages);
         if (updated) nbAnalysees += 1;
         else nbEchecs += 1;

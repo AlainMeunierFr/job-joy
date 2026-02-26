@@ -127,6 +127,66 @@ export async function ensureSingleSelectOption(
 }
 
 /**
+ * CA US-2.7 : s'assure que la table Offres a un champ Score_Total de type number (1 décimale).
+ * - Si le champ n'existe pas : le crée en number avec precision 1.
+ * - Si le champ existe en texte (ou autre) : tente un PATCH pour le passer en number (l'API Meta peut refuser le changement de type ; dans ce cas, passer la colonne en « Nombre » manuellement dans Airtable).
+ */
+const SCORE_TOTAL_PRECISION = 1;
+
+export async function ensureScoreTotalIsNumber(
+  baseId: string,
+  tableIdOrName: string,
+  apiKey: string
+): Promise<boolean> {
+  const schema = await getBaseSchema(baseId, apiKey);
+  const table = findTable(schema, tableIdOrName);
+  if (!table?.id) return false;
+  const fieldName = 'Score_Total';
+  const field = table.fields?.find(
+    (f) => (f.name ?? '').trim().toLowerCase() === fieldName.toLowerCase()
+  );
+  if (!field) {
+    try {
+      const createUrl = `${API_BASE}/meta/bases/${baseId}/tables/${table.id}/fields`;
+      const res = await fetch(createUrl, {
+        method: 'POST',
+        headers: headers(apiKey),
+        body: JSON.stringify({
+          name: fieldName,
+          type: 'number',
+          options: { precision: SCORE_TOTAL_PRECISION },
+        }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+  if (field.type === 'number') return true;
+  try {
+    const updateUrl = `${API_BASE}/meta/bases/${baseId}/tables/${table.id}/fields/${field.id}`;
+    const res = await fetch(updateUrl, {
+      method: 'PATCH',
+      headers: headers(apiKey),
+      body: JSON.stringify({
+        type: 'number',
+        options: { precision: SCORE_TOTAL_PRECISION },
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      console.warn(
+        `[Airtable] Score_Total est actuellement en type "${field.type ?? '?'}". Passage en "number" refusé (${res.status}). Passez la colonne Score_Total en « Nombre » manuellement dans Airtable. Détail: ${body || res.statusText}`
+      );
+    }
+    return res.ok;
+  } catch (err) {
+    console.warn('[Airtable] ensureScoreTotalIsNumber: PATCH échoué', err);
+    return false;
+  }
+}
+
+/**
  * Synchro des énumérations : Sources.plugin et Offres.Statut.
  * Même code générique pour les deux.
  */

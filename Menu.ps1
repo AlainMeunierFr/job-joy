@@ -15,8 +15,9 @@ function Afficher-Menu {
     Write-Host "  2. Forcer kill des process sur 3001 puis relancer le serveur (1)"
     Write-Host "  3. Lancer les tests d'integration Airtable (a la main, pas pendant le build)"
     Write-Host "  4. Tests complets (TU + BDD, sans skip)"
-        Write-Host "  5. Publish pre-prod (4 puis version/commit + tag preprod-v* + push ; CI build + Pre-release)"
-        Write-Host "  6. Rendre public (tag v* = version actuelle, push ; CI release stable depuis preprod)"
+    Write-Host "  5. Publish pre-prod (4 puis version/commit + tag preprod-v* + push ; CI build + Pre-release)"
+    Write-Host "  6. Rendre public (tag v* = version actuelle, push ; CI release stable depuis preprod)"
+    Write-Host "  7. Audit du code (tracabilite US <-> code ; puis /audit-code dans Cursor pour analyse semantique)"
     Write-Host "  Q. Quitter"
     Write-Host ""
 }
@@ -287,6 +288,29 @@ function Invoke-Publier-Version-CI {
     }
 }
 
+function Invoke-AuditCode {
+    Push-Location $PSScriptRoot
+    try {
+        Write-Host "Audit de tracabilite US <-> code." -ForegroundColor Cyan
+        Write-Host "Generation des artefacts et liens non ambigus..." -ForegroundColor Gray
+        node scripts/audit-traceability.js
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Erreur lors de la generation de l'audit." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        Write-Host "Fichier data/audit-traceability.json mis a jour. Consultez l'IHM : http://127.0.0.1:3001/audit" -ForegroundColor Green
+        Write-Host "Pour enrichir avec l'analyse semantique (liens, orphelins), executez la commande /audit-code dans Cursor." -ForegroundColor Gray
+        Write-Host ""
+        Read-Host "Appuyez sur Entree pour revenir au menu"
+    } catch {
+        Write-Host "Erreur : $($_.Exception.Message)" -ForegroundColor Red
+        Read-Host "Appuyez sur Entree pour revenir au menu"
+    } finally {
+        Pop-Location
+    }
+}
+
 function Lancer-Tests-Integration-Airtable {
     Charger-EnvSiPresent
     Write-Host "Tests d'integration Airtable (API reelle)." -ForegroundColor Yellow
@@ -317,6 +341,7 @@ do {
         "4" { Lancer-Tests-Complets }
         "5" { Invoke-Publier-Version-Preprod }
         "6" { Invoke-Publier-Version-CI }
+        "7" { Invoke-AuditCode }
         "q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         "Q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         default { Write-Host "Choix invalide." -ForegroundColor Red; Start-Sleep -Seconds 2 }
