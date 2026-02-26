@@ -16,7 +16,7 @@ function Afficher-Menu {
     Write-Host "  3. Lancer les tests d'integration Airtable (a la main, pas pendant le build)"
     Write-Host "  4. Tests complets (TU + BDD, sans skip)"
         Write-Host "  5. Publish pre-prod (4 puis version/commit + tag preprod-v* + push ; CI build + Pre-release)"
-        Write-Host "  6. Rendre public (version/commit + tag v* + push ; CI build + release stable)"
+        Write-Host "  6. Rendre public (tag v* = version actuelle, push ; CI release stable depuis preprod)"
     Write-Host "  Q. Quitter"
     Write-Host ""
 }
@@ -231,61 +231,21 @@ function Invoke-Publier-Version-CI {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Rendre public (bump + commit + tag v* + push ; CI construit l'exe, release stable)" -ForegroundColor Cyan
-        Write-Host "  major = marketing | schema = Airtable | feature = evolution | hotfix = correction" -ForegroundColor Gray
+        Write-Host "Rendre public : promouvoir la pre-prod courante en release stable." -ForegroundColor Cyan
+        Write-Host "Version = version actuelle (package.json). Tag v* + push ; CI publie depuis preprod-v*." -ForegroundColor Gray
         Write-Host ""
-        Write-Host "  0. Version actuelle (sans bump)"
-        Write-Host "  1. major   |  2. schema   |  3. feature   |  4. hotfix"
-        Write-Host "  q. Annuler"
-        Write-Host ""
-        $typeChoix = Read-Host "Choix (0-4 ou q)"
-        $useCurrentVersion = ($typeChoix -eq "0")
-        $type = switch ($typeChoix) {
-            "1" { "major" }
-            "2" { "schema" }
-            "3" { "feature" }
-            "4" { "hotfix" }
-            default { $null }
-        }
-        if (-not $useCurrentVersion -and -not $type) {
-            Write-Host "Annule." -ForegroundColor Yellow
+
+        $pkg = Get-Content "package.json" -Raw | ConvertFrom-Json
+        $nextVer = $pkg.version.Trim()
+        $parts = $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' }
+        if (-not $nextVer -or $parts.Count -ne 3) {
+            Write-Host "Version dans package.json invalide : $nextVer" -ForegroundColor Red
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-
-        Write-Host "Build (tsc)..." -ForegroundColor Gray
-        npm run build 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Build en echec." -ForegroundColor Red
-            Read-Host "Appuyez sur Entree pour revenir au menu"
-            return
-        }
-
-        if ($useCurrentVersion) {
-            $pkg = Get-Content "package.json" -Raw | ConvertFrom-Json
-            $nextVer = $pkg.version.Trim()
-            $parts = $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' }
-            if (-not $nextVer -or $parts.Count -ne 3) {
-                Write-Host "Version dans package.json invalide : $nextVer" -ForegroundColor Red
-                Read-Host "Appuyez sur Entree pour revenir au menu"
-                return
-            }
-            $tagName = "v$nextVer"
-        } else {
-            $bumpOut = node dist/scripts/bump-version-cli.js $type 2>&1 | Out-String
-            $verMatches = [regex]::Matches($bumpOut, '\d+\.\d+\.\d+')
-            $rawVer = if ($verMatches.Count -gt 0) { $verMatches[$verMatches.Count - 1].Value } else { $null }
-            $nextVer = if ($rawVer) { ($rawVer -replace '[^\d.]', '').Trim() } else { $null }
-            $parts = if ($nextVer) { $nextVer -split '\.' | Where-Object { $_ -match '^\d+$' } } else { @() }
-            if (-not $nextVer -or $parts.Count -ne 3) {
-                Write-Host "Bump en echec ou version invalide." -ForegroundColor Red
-                Read-Host "Appuyez sur Entree pour revenir au menu"
-                return
-            }
-            $nextVer = $parts -join '.'
-            $tagName = "v$nextVer"
-        }
-        Write-Host "Version : $tagName" -ForegroundColor Green
+        $tagName = "v$nextVer"
+        Write-Host "Version courante : $nextVer -> tag $tagName (preprod preprod-v$nextVer doit exister)." -ForegroundColor Green
+        Write-Host ""
 
         git add -A
         git commit -m "Release $tagName"
@@ -315,7 +275,7 @@ function Invoke-Publier-Version-CI {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Tag $tagName pousse. GitHub Actions va construire l'exe et publier la release stable." -ForegroundColor Green
+        Write-Host "Tag $tagName pousse. CI publie la release stable depuis preprod-v$nextVer." -ForegroundColor Green
         Write-Host "Lien : https://github.com/AlainMeunierFr/job-joy/releases" -ForegroundColor Gray
         Write-Host ""
         Read-Host "Appuyez sur Entree pour revenir au menu"
