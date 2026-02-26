@@ -10,6 +10,7 @@
 const { app, BrowserWindow, shell, dialog } = require('electron');
 const path = require('path');
 const http = require('http');
+const { pathToFileURL } = require('url');
 const { spawn } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 
@@ -133,24 +134,35 @@ app.whenReady().then(async () => {
   }
   const userDataDir = app.getPath('userData');
   const serverPath = getServerPath();
-  const env = {
-    ...process.env,
-    JOB_JOY_USER_DATA: userDataDir,
-    PORT: String(PORT),
-  };
-  serverProcess = spawn(process.execPath, [serverPath], {
-    env,
-    cwd: app.getAppPath(),
-    stdio: 'pipe',
-  });
-  serverProcess.on('error', (err) => {
-    console.error('Server spawn error:', err);
-    app.quit();
-  });
-  serverProcess.on('exit', (code, signal) => {
-    if (code !== null && code !== 0) console.error('Server exited with code', code);
-    serverProcess = null;
-  });
+  process.env.JOB_JOY_USER_DATA = userDataDir;
+  process.env.PORT = String(PORT);
+
+  if (app.isPackaged) {
+    // En app packagée, process.execPath est l'exe Electron, pas Node : on lance le serveur dans le processus principal.
+    try {
+      await import(pathToFileURL(serverPath).href);
+    } catch (err) {
+      console.error('Server load error:', err);
+      app.quit();
+      return;
+    }
+  } else {
+    // En dev, on spawn Node avec le script serveur.
+    const env = { ...process.env, JOB_JOY_USER_DATA: userDataDir, PORT: String(PORT) };
+    serverProcess = spawn(process.execPath, [serverPath], {
+      env,
+      cwd: app.getAppPath(),
+      stdio: 'pipe',
+    });
+    serverProcess.on('error', (err) => {
+      console.error('Server spawn error:', err);
+      app.quit();
+    });
+    serverProcess.on('exit', (code, signal) => {
+      if (code !== null && code !== 0) console.error('Server exited with code', code);
+      serverProcess = null;
+    });
+  }
 
   try {
     await waitForServer(Number(PORT), 15000);
