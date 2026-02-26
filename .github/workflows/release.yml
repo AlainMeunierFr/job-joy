@@ -5,7 +5,8 @@
 
 name: Release
 
-run-name: Release (…)
+# Nom du run = tag (ex. Release preprod-v1.0.0 ou Release v1.0.0). L'API ne permet pas de renommer un run après coup.
+run-name: Release ${{ github.ref_name }}
 
 on:
   push:
@@ -24,17 +25,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Nommer le run (version + pre-prod/prod)
-        run: |
-          if ("$env:GITHUB_REF" -match '^refs/tags/preprod-v(.+)$') { $ver = $Matches[1]; $type = "pre-prod" }
-          elseif ("$env:GITHUB_REF" -match '^refs/tags/v(.+)$') { $ver = $Matches[1]; $type = "prod" }
-          else { $ver = "?"; $type = "?" }
-          $name = "Release $ver ($type)"
-          gh api -X PATCH "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" -f name="$name"
-          echo "Run name: $name"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lire la version
         id: version
