@@ -42,8 +42,7 @@ import {
 } from '../utils/parametres-io.js';
 import { envoyerEmailIdentification } from '../utils/envoi-email-identification.js';
 import {
-  createEnvoyeurIdentificationAirtable,
-  createEnvoyeurIdentificationFormUrl,
+  createEnvoyeurIdentificationValTown,
 } from '../utils/envoi-identification-airtable.js';
 import { createLecteurEmailsMock } from '../utils/lecteur-emails-mock.js';
 import type { SourceEmail, TypeSource } from '../utils/gouvernance-sources-emails.js';
@@ -107,11 +106,6 @@ const bddEmailsIdentificationEnvoyes: ParametresEmailIdentification[] = [];
 /** BDD : si true, le port spy simule un échec d'envoi. */
 let bddEnvoyeurIdentificationDoFail = false;
 
-/** En production sans config SMTP : n'envoie rien, retourne ok: false pour ne pas marquer le consentement comme envoyé. */
-const noopEnvoyeurIdentification: EnvoyeurEmailIdentification = {
-  envoyer: async () => ({ ok: false, message: "Envoi email non configuré (aucun SMTP configuré)." }),
-};
-
 const spyEnvoyeurIdentification: EnvoyeurEmailIdentification = {
   envoyer: async (params: ParametresEmailIdentification) => {
     if (bddEnvoyeurIdentificationDoFail) {
@@ -122,14 +116,10 @@ const spyEnvoyeurIdentification: EnvoyeurEmailIdentification = {
   },
 };
 
-/** Port d'envoi identification : BDD → spy ; si AIRTABLE_SUIVI_* configuré → inscription Airtable ; sinon noop. */
+/** Port d'envoi identification : BDD → spy ; sinon toujours Val.town (URL en dur, pas de config). */
 export function getEnvoyeurIdentificationPort(): EnvoyeurEmailIdentification {
   if (process.env.BDD_IN_MEMORY_STORE === '1') return spyEnvoyeurIdentification;
-  const formUrl = createEnvoyeurIdentificationFormUrl();
-  if (formUrl) return formUrl;
-  const airtable = createEnvoyeurIdentificationAirtable();
-  if (airtable) return airtable;
-  return noopEnvoyeurIdentification;
+  return createEnvoyeurIdentificationValTown();
 }
 
 /** BDD : vide la liste des emails enregistrés (appelé au reset-compte). */
@@ -981,6 +971,18 @@ export async function handlePostTraitement(dataDir: string, res: ServerResponse)
 
 /** Démarre un traitement asynchrone et renvoie un taskId pour suivi de progression. */
 export function handlePostTraitementStart(dataDir: string, res: ServerResponse): void {
+  // US-3.15 : si consentement donné et pas encore envoyé, envoyer l'email d'identification (ex. vers Airtable) au moment du premier relevé
+  void (async () => {
+    const p = lireParametres(dataDir);
+    const consentGiven = p?.connexionBoiteEmail?.consentementIdentification === true;
+    if (!consentGiven || lireEmailIdentificationDejaEnvoye(dataDir)) return;
+    const adresse = lireCompte(dataDir)?.adresseEmail?.trim();
+    if (!adresse) return;
+    const port = getEnvoyeurIdentificationPort();
+    const result = await envoyerEmailIdentification(adresse, port);
+    if (result.ok === true) marquerEmailIdentificationEnvoye(dataDir);
+  })();
+
   const taskId = randomUUID();
   const task: TraitementTask = {
     status: 'running',
@@ -1241,18 +1243,28 @@ export interface OptionsTestConnexionConsentement {
   portEnvoiConsentement: EnvoyeurEmailIdentification;
 }
 
-/** Retourne l'URL à ouvrir (formulaire Airtable prérempli) si le port en fournit une. */
+/**
+ * Si case cochée et pas encore envoyé : envoie l'email vers Airtable/Val.town.
+ * Déclencheur : case cochée + Tester connexion (test réussi). La date (consentementEnvoyeLe) n'est écrite que si l'envoi réussit.
+ * Si adresseEmail du body est vide ou masquée (***), utilise l'email stocké dans le compte (champ non prérempli côté client).
+ */
 async function envoyerConsentementSiDemande(
   body: Record<string, unknown>,
   adresseEmail: string,
   options: OptionsTestConnexionConsentement | undefined
 ): Promise<string | undefined> {
-  if (!options || !adresseEmail.trim()) return undefined;
+  if (!options) return undefined;
+  let emailPourEnvoi = (adresseEmail ?? '').trim();
+  if (!emailPourEnvoi || emailPourEnvoi.includes('***')) {
+    const compte = lireCompte(options.dataDir);
+    emailPourEnvoi = (compte?.adresseEmail ?? '').trim();
+  }
+  if (!emailPourEnvoi) return undefined;
   const consentement =
     body.consentementIdentification === true || body.consentementIdentification === 'true';
   if (!consentement) return undefined;
   if (lireEmailIdentificationDejaEnvoye(options.dataDir)) return undefined;
-  const envoiResult = await envoyerEmailIdentification(adresseEmail, options.portEnvoiConsentement);
+  const envoiResult = await envoyerEmailIdentification(emailPourEnvoi, options.portEnvoiConsentement);
   if (envoiResult.ok === true) {
     marquerEmailIdentificationEnvoye(options.dataDir);
     const url = 'openUrl' in envoiResult && typeof envoiResult.openUrl === 'string' ? envoiResult.openUrl : undefined;
@@ -1263,7 +1275,7 @@ async function envoyerConsentementSiDemande(
 
 /**
  * Test de connexion : selon provider (IMAP / Microsoft / Gmail), valide et appelle le connecteur.
- * Si test OK et case consentement cochée et pas encore envoyé, envoie l'email de consentement et enregistre la date dans parametres.json (US-3.15).
+ * Déclencheur consentement : case cochée + Tester connexion. Si test OK et envoi Airtable/Val.town OK, enregistre consentementEnvoyeLe (US-3.15).
  */
 export async function handlePostTestConnexion(
   getConnecteurEmailFn: GetConnecteurEmailFn,

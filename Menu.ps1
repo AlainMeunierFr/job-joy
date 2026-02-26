@@ -15,7 +15,7 @@ function Afficher-Menu {
     Write-Host "  2. Forcer kill des process sur 3001 puis relancer le serveur (1)"
     Write-Host "  3. Lancer les tests d'integration Airtable (a la main, pas pendant le build)"
     Write-Host "  4. Tests complets (TU + BDD, sans skip)"
-        Write-Host "  5. Publish pre-prod (4 puis version/commit + push vers branche preprod ; CI build + Pre-release)"
+        Write-Host "  5. Publish pre-prod (4 puis version/commit + tag preprod-v* + push ; CI build + Pre-release)"
         Write-Host "  6. Rendre public (version/commit + tag v* + push ; CI build + release stable)"
     Write-Host "  Q. Quitter"
     Write-Host ""
@@ -119,7 +119,7 @@ function Invoke-Publier-Version-Preprod {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Publier version pre-prod (option 4 puis version/commit + push vers branche preprod)." -ForegroundColor Cyan
+        Write-Host "Publier version pre-prod (option 4 puis version/commit + tag preprod-v* + push)." -ForegroundColor Cyan
         Write-Host "Lancement des tests complets (4)..." -ForegroundColor Gray
         npm run test:all
         if ($LASTEXITCODE -ne 0) {
@@ -127,7 +127,7 @@ function Invoke-Publier-Version-Preprod {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Tests OK. Suite : version, commit, push vers preprod (CI cree la Pre-release)." -ForegroundColor Green
+        Write-Host "Tests OK. Suite : version, commit, tag preprod-v* + push (CI cree la Pre-release)." -ForegroundColor Green
         Write-Host ""
         Write-Host "Choix de version (bump ou actuelle) :" -ForegroundColor Gray
         Write-Host "  major = marketing | schema = Airtable | feature = evolution | hotfix = correction" -ForegroundColor Gray
@@ -181,12 +181,13 @@ function Invoke-Publier-Version-Preprod {
             }
             $nextVer = $parts -join '.'
         }
-        Write-Host "Version pre-prod : $nextVer (release preprod-v$nextVer creee par la CI)." -ForegroundColor Green
+        $tagName = "preprod-v$nextVer"
+        Write-Host "Version pre-prod : $nextVer (tag $tagName)." -ForegroundColor Green
 
         git add -A
         git commit -m "preprod-v$nextVer"
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Rien a committer (working tree clean). Push du commit actuel vers preprod." -ForegroundColor DarkYellow
+            Write-Host "Rien a committer (working tree clean). Tag et push du commit actuel." -ForegroundColor DarkYellow
         }
         git push
         if ($LASTEXITCODE -ne 0) {
@@ -194,13 +195,23 @@ function Invoke-Publier-Version-Preprod {
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        git push origin HEAD:preprod
+        $tagLocal = git tag -l $tagName 2>$null
+        if ($tagLocal) { git tag -d $tagName 2>$null }
+        $tagRemote = git ls-remote origin "refs/tags/$tagName" 2>$null
+        if ($tagRemote) { git push origin ":refs/tags/$tagName" 2>$null }
+        git tag $tagName
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Push vers preprod en echec. Verifiez la remote (la branche preprod sera creee au premier push)." -ForegroundColor Red
+            Write-Host "Tag en echec." -ForegroundColor Red
             Read-Host "Appuyez sur Entree pour revenir au menu"
             return
         }
-        Write-Host "Branche preprod mise a jour. GitHub Actions va construire l'exe et publier la Pre-release preprod-v$nextVer." -ForegroundColor Green
+        git push origin $tagName
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Push du tag en echec. Verifiez la remote et vos acces." -ForegroundColor Red
+            Read-Host "Appuyez sur Entree pour revenir au menu"
+            return
+        }
+        Write-Host "Tag $tagName pousse. A droite tu verras preprod-v$nextVer, comme en prod avec vX.Y.Z." -ForegroundColor Green
         Write-Host "Lien : https://github.com/AlainMeunierFr/job-joy/releases" -ForegroundColor Gray
         Write-Host ""
         Read-Host "Appuyez sur Entree pour revenir au menu"

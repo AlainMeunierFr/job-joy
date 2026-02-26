@@ -42,6 +42,7 @@ export function ecrireCompte(dataDir: string, parametres: ParametresCompte): voi
 
 /**
  * Enregistre le compte puis envoie l'email d'identification si consentement et pas encore envoyé (US-3.15).
+ * Déclencheur : case cochée + Enregistrer. La date (consentementEnvoyeLe) n'est écrite que lorsque l'envoi vers Airtable/Val.town réussit.
  * Échec d'envoi non bloquant : la sauvegarde est toujours considérée réussie.
  */
 export async function enregistrerCompteEtNotifierSiConsentement(

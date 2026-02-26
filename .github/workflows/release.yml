@@ -1,16 +1,17 @@
-# Deux flux :
-# - Push sur la branche preprod → build, release Pre-release (preprod-vX.Y.Z)
-# - Push d'un tag v* → build, release stable (vX.Y.Z)
-# On build sans --publish puis on crée la release avec le bon tag (gh release create).
+# Deux flux (tous deux déclenchés par un tag) :
+# - Tag preprod-v* → build complet + release Pre-release (exe généré ici).
+# - Tag v* → promotion : on réutilise les artefacts de preprod-v* (pas de build), release stable = copie/colle.
+# La prod est donc très rapide (~30 s).
 
 name: Release
 
+run-name: Release (…)
+
 on:
   push:
-    branches:
-      - preprod
     tags:
       - 'v*'
+      - 'preprod-v*'
 
 permissions:
   contents: write
@@ -24,13 +25,36 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Nommer le run (version + pre-prod/prod)
+        run: |
+          if ("$env:GITHUB_REF" -match '^refs/tags/preprod-v(.+)$') { $ver = $Matches[1]; $type = "pre-prod" }
+          elseif ("$env:GITHUB_REF" -match '^refs/tags/v(.+)$') { $ver = $Matches[1]; $type = "prod" }
+          else { $ver = "?"; $type = "?" }
+          $name = "Release $ver ($type)"
+          gh api -X PATCH "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" -f name="$name"
+          echo "Run name: $name"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lire la version
+        id: version
+        run: |
+          if ("$env:GITHUB_REF" -match '^refs/tags/preprod-v(.+)$') { $ver = $Matches[1] }
+          elseif ("$env:GITHUB_REF" -match '^refs/tags/v(.+)$') { $ver = $Matches[1] }
+          else { $ver = "0.0.0" }
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+          echo "Version: $ver"
+
+      # --- Pre-prod : build complet (long) ---
+      - name: Setup Node.js (preprod)
+        if: startsWith(github.ref, 'refs/tags/preprod-')
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Cache Electron
+      - name: Cache Electron (preprod)
+        if: startsWith(github.ref, 'refs/tags/preprod-')
         uses: actions/cache@v4
         with:
           path: ${{ runner.workspace }}/electron-cache
@@ -38,74 +62,65 @@ jobs:
           restore-keys: |
             electron-${{ runner.os }}-
 
-      - name: Install dependencies
+      - name: Install dependencies (preprod)
+        if: startsWith(github.ref, 'refs/tags/preprod-')
         run: npm ci
         env:
           ELECTRON_CACHE: ${{ runner.workspace }}/electron-cache
 
-      - name: Lire la version
-        id: version
-        run: |
-          if ("$env:GITHUB_REF" -match '^refs/tags/v(.+)$') {
-            $ver = $Matches[1]
-          } else {
-            $ver = (Get-Content package.json | ConvertFrom-Json).version
-          }
-          echo "version=$ver" >> $env:GITHUB_OUTPUT
-          echo "Version: $ver"
-
-      - name: Build Electron (sans publish)
+      - name: Build Electron (preprod)
+        if: startsWith(github.ref, 'refs/tags/preprod-')
         run: npm run build:electron -- --win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOY_PREPROD: '1'
 
-      - name: Déterminer le tag et le type de release
-        id: release
+      # --- Prod : promotion (rapide) ---
+      - name: Télécharger artefacts preprod (prod)
+        if: startsWith(github.ref, 'refs/tags/v') && !startsWith(github.ref, 'refs/tags/preprod-')
         run: |
-          $isPreprod = "$env:GITHUB_REF" -notmatch '^refs/tags/v'
-          if ($isPreprod) {
-            $tag = "preprod-v${{ steps.version.outputs.version }}"
-            $prerelease = "true"
-          } else {
-            $tag = "v${{ steps.version.outputs.version }}"
-            $prerelease = "false"
+          $ver = "${{ steps.version.outputs.version }}"
+          $preprodTag = "preprod-v$ver"
+          gh release download $preprodTag -D ./promote-assets
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Release $preprodTag introuvable. Faire d'abord l'option 5 (pre-prod) pour cette version."
+            exit 1
           }
-          echo "tag=$tag" >> $env:GITHUB_OUTPUT
-          echo "prerelease=$prerelease" >> $env:GITHUB_OUTPUT
-          echo "Tag: $tag (prerelease=$prerelease)"
-
-      - name: Créer le tag (preprod uniquement)
-        if: steps.release.outputs.prerelease == 'true'
-        run: |
-          $tag = "${{ steps.release.outputs.tag }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if (-not (git tag -l $tag)) { git tag $tag }
-          git push origin $tag 2>&1
-          if ($LASTEXITCODE -ne 0) { Write-Host "Tag peut deja exister (re-run), on continue."; exit 0 }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publier la release
+      - name: Publier la release (preprod)
+        if: startsWith(github.ref, 'refs/tags/preprod-')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $tag = "${{ steps.release.outputs.tag }}"
-          $prerelease = "${{ steps.release.outputs.prerelease }}"
-          $title = if ($prerelease -eq "true") { $tag } else { "Job-Joy $tag" }
+          $tag = "${{ github.ref_name }}"
+          $title = $tag
           $files = @("./dist-electron/Job-Joy-Setup.exe")
           if (Test-Path "./dist-electron/Job-Joy-Setup.exe.blockmap") { $files += "./dist-electron/Job-Joy-Setup.exe.blockmap" }
           if (Test-Path "./dist-electron/latest.yml") { $files += "./dist-electron/latest.yml" }
-          $createArgs = @($tag, "--title", $title) + $files
-          if ($prerelease -eq "true") { $createArgs += "--prerelease" }
+          $createArgs = @($tag, "--title", $title) + $files + @("--prerelease")
           $out = gh release create $createArgs 2>&1
           $code = $LASTEXITCODE
           if ($code -ne 0 -and "$out" -match "already exists") {
-            Write-Host "Release existante : mise a jour des artefacts."
             gh release upload $tag $files --clobber
-            if ($prerelease -eq "true") { gh release edit $tag --prerelease }
-          } elseif ($code -ne 0) {
-            Write-Host $out
-            exit $code
-          }
+            gh release edit $tag --prerelease
+          } elseif ($code -ne 0) { Write-Host $out; exit $code }
           Write-Host "Release $tag OK."
+
+      - name: Publier la release (prod = promotion)
+        if: startsWith(github.ref, 'refs/tags/v') && !startsWith(github.ref, 'refs/tags/preprod-')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $title = "Job-Joy $tag"
+          $dir = "promote-assets"
+          $files = @(Get-ChildItem $dir -File | ForEach-Object { "$dir\$($_.Name)" })
+          $createArgs = @($tag, "--title", $title) + $files
+          $out = gh release create $createArgs 2>&1
+          $code = $LASTEXITCODE
+          if ($code -ne 0 -and "$out" -match "already exists") {
+            gh release upload $tag (Get-ChildItem $dir -File | ForEach-Object { $_.FullName }) --clobber
+          } elseif ($code -ne 0) { Write-Host $out; exit $code }
+          Write-Host "Release $tag OK (promotion depuis preprod)."

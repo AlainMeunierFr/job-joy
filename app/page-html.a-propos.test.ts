@@ -76,6 +76,16 @@ describe('getPageAPropos (US-3.16)', () => {
     expect(html).toMatch(/février|21.*2025|14\s*:\s*30/);
   });
 
+  it('affiche " (pre-prod)" après la version quand preprod est true', () => {
+    const html = getPageAPropos({
+      version: '1.0.1',
+      buildTime: '2025-02-21T10:00:00.000Z',
+      preprod: true,
+    });
+    expect(html).toContain('Version 1.0.1 (pre-prod)');
+    expect(html).toContain('Publiée le');
+  });
+
   it('n\'affiche pas version ni date quand non fournis', () => {
     const html = getPageAPropos();
     expect(html).not.toContain('pageAProposVersion');

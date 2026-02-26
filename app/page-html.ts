@@ -198,9 +198,6 @@ export async function getParametresContent(
           ? !!(compte.adresseEmail?.trim())
           : false);
   const compteEmailConfigured = !!(dossierAAnalyserConfigure && modeConnexionOk);
-  const airtableOuvert = !tablesAirtableCreees;
-  const connexionOuvert = !compteEmailConfigured || (options?.flashConfigManque && options.flashConfigManque.length > 0);
-  const introOuvert = !!(options?.flashConfigManque && options.flashConfigManque.length > 0);
   const flash = options?.flash;
   const baseUrl = (options?.baseUrl ?? '').replace(/\/$/, '');
   const hrefMicrosoft = baseUrl ? `${baseUrl}/api/auth/microsoft` : '/api/auth/microsoft';
@@ -230,6 +227,14 @@ export async function getParametresContent(
   const { date: consentementDate, heure: consentementHeure } = consentementDejaEnvoye
     ? formatConsentementDateHeure(consentementEnvoyeLe.trim())
     : { date: '', heure: '' };
+  /* Ouverture des sections : Avant propos si une config incomplète ; chaque section selon son critère ; Paramétrage IA toujours ouvert. */
+  const airtableIncomplet = !(airtableBase?.trim()) || !hasApiKey;
+  const consentementMémorisé = consentementDejaEnvoye || consentementIdentification;
+  const connexionIncomplet = !modeConnexionOk || !dossierAAnalyserConfigure || !consentementMémorisé;
+  const claudecodeIncomplet = !options?.claudecodeHasApiKey;
+  const introOuvert = airtableIncomplet || connexionIncomplet || claudecodeIncomplet;
+  const airtableOuvert = airtableIncomplet;
+  const connexionOuvert = connexionIncomplet;
   /* Désactivation des boutons Tester connexion / Enregistrer : gérée en CSS (:has(#consentement-identification:not(:checked))) + JS (attribut disabled pour a11y). */
 
   const blocImapHtml = `
@@ -310,10 +315,9 @@ export async function getParametresContent(
       (v) => (v ?? '').trim() !== ''
     );
   const parametrageIAConfigured = scoresIncontournablesRemplis;
-  /** Paramétrage prompt de l'IA : rester ouvert (ajustements fréquents). */
+  /** Paramétrage prompt de l'IA : toujours ouvert. */
   const parametrageIAOuvert = true;
-  /** Configuration ClaudeCode : enroulé une fois l'API Key configurée. */
-  const claudecodeOuvert = !options?.claudecodeHasApiKey;
+  const claudecodeOuvert = claudecodeIncomplet;
   const zoneRehibitoiresHtml = `
     <div class="zoneParametrageIA zoneRehibitoires" data-zone="rehibitoires" aria-labelledby="titre-zone-rehibitoires">
       <h3 id="titre-zone-rehibitoires" class="zoneParametrageIATitle">Rédhibitoires</h3>
@@ -563,6 +567,10 @@ export async function getPageParametres(
 export interface PageAProposOptions {
   version?: string;
   buildTime?: string | null;
+  /** Si fourni et true, affiche " (pre-prod)" après la version. */
+  preprod?: boolean;
+  /** Si false, masque le lien Tableau de bord dans le header. */
+  configComplète?: boolean;
   /** Répertoire des ressources projet (ex. ressources/). Si fourni, le contenu est lu depuis resourcesDir/guides/APropos.html. */
   resourcesDir?: string;
 }
@@ -631,8 +639,9 @@ const PAGE_A_PROPOS_FALLBACK = `
 
 /** Page À propos (US-3.16) : contenu depuis ressources/guides/APropos.html si options.resourcesDir fourni, sinon fallback. */
 export function getPageAPropos(options?: PageAProposOptions): string {
-  const { version, buildTime, resourcesDir } = options ?? {};
-  const versionLine = version ? `<p class="pageAProposVersion">Version ${version}</p>` : '';
+  const { version, buildTime, preprod, configComplète, resourcesDir } = options ?? {};
+  const versionLabel = version ? (preprod ? `Version ${version} (pre-prod)` : `Version ${version}`) : '';
+  const versionLine = versionLabel ? `<p class="pageAProposVersion">${versionLabel}</p>` : '';
   const buildTimeLine = buildTime
     ? `<p class="pageAProposBuildTime">Publiée le&nbsp;: ${formatBuildTime(buildTime)}</p>`
     : '';
@@ -652,7 +661,7 @@ export function getPageAPropos(options?: PageAProposOptions): string {
     .replace(/<!-- INJECT_VERSION_LINE -->/g, versionLine)
     .replace(/<!-- INJECT_BUILD_TIME_LINE -->/g, buildTimeLine);
 
-  return getLayoutHtml('a-propos', 'À propos', content);
+  return getLayoutHtml('a-propos', 'À propos', content, { configComplète });
 }
 
 /** @deprecated Utiliser getPageParametres pour le layout avec menu. Conservé pour compatibilité (ex. BDD). */

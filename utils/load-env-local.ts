@@ -24,7 +24,11 @@ function loadEnv(): void {
     }
     config({ path: envPath, override: true });
   } else {
-    config({ path: join(process.cwd(), '.env.local'), override: true });
+    const cwd = process.cwd();
+    const envPath = join(cwd, '.env');
+    const envLocalPath = join(cwd, '.env.local');
+    if (existsSync(envPath)) config({ path: envPath });
+    config({ path: envLocalPath, override: true });
   }
 }
 

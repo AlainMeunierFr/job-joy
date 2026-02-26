@@ -24,8 +24,16 @@
   box-sizing: border-box;
 }
 
+html {
+  width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.5;
@@ -71,6 +79,38 @@ body {
   max-width: 720px;
   margin: 0 auto;
   padding: var(--space-xl);
+}
+
+/* Mobile / petit écran : toute la largeur, pas de bande grise sur les côtés */
+@media (max-width: 768px) {
+  body.standalone {
+    background: var(--color-bg-card);
+  }
+
+  .page-header,
+  .page-main {
+    max-width: none;
+    width: 100%;
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+
+  .page-header {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+
+  /* Table responsive : scroll horizontal si nécessaire sans faire déborder la page */
+  .introParametrage .introParametrageListePlugins {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .introParametrage .introParametrageListePlugins th,
+  .introParametrage .introParametrageListePlugins td {
+    white-space: nowrap;
+  }
 }
 
 /* --- Intro paramétrage (contenu) --- */

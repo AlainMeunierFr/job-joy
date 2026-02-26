@@ -307,12 +307,21 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === 'GET' && pathname === '/a-propos') {
-    const { version, buildTime } = getVersionEtBuildTime();
+    const { complet } = evaluerParametragesComplets(DATA_DIR);
+    const { version, buildTime, preprod } = getVersionEtBuildTime(PROJECT_ROOT);
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
     });
-    res.end(getPageAPropos({ version, buildTime, resourcesDir: RESOURCES_DIR }));
+    res.end(
+      getPageAPropos({
+        version,
+        buildTime,
+        preprod,
+        configComplète: complet,
+        resourcesDir: RESOURCES_DIR,
+      })
+    );
     return;
   }
 

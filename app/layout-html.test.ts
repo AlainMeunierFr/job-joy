@@ -5,10 +5,10 @@
 import { getHeaderHtml, getPageTableauDeBord } from './layout-html.js';
 
 describe('getHeaderHtml', () => {
-  it('affiche toujours le lien Tableau de bord (configComplète option ignorée pour ne pas bloquer en paramètres)', () => {
+  it('affiche le lien Tableau de bord sauf quand configComplète est false (US-1.6)', () => {
     expect(getHeaderHtml('parametres')).toContain('/tableau-de-bord');
     expect(getHeaderHtml('parametres', { configComplète: true })).toContain('/tableau-de-bord');
-    expect(getHeaderHtml('parametres', { configComplète: false })).toContain('/tableau-de-bord');
+    expect(getHeaderHtml('parametres', { configComplète: false })).not.toContain('/tableau-de-bord');
     expect(getHeaderHtml('tableau-de-bord')).toContain('/tableau-de-bord');
   });
 

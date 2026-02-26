@@ -52,7 +52,22 @@ describe('page Paramètres - bloc Avant propos', () => {
   });
 
   it('le bloc est fermé quand la config est complète (pas de flash)', async () => {
-    const html = await getParametresContent(dataDir);
+    const p = getDefaultParametres();
+    p.connexionBoiteEmail = {
+      ...p.connexionBoiteEmail,
+      dossierAAnalyser: 'INBOX',
+      imap: {
+        host: 'imap.example.com',
+        port: 993,
+        secure: true,
+        adresseEmail: 'test@example.com',
+        motDePasseChiffre: '',
+      },
+      consentementEnvoyeLe: '2026-01-01T12:00:00.000Z',
+    };
+    p.airtable = { base: 'https://airtable.com/appX/tblY', apiKey: 'patXXX' };
+    ecrireParametres(dataDir, p);
+    const html = await getParametresContent(dataDir, { claudecodeHasApiKey: true });
     const idx = html.indexOf('data-layout="intro-parametrage"');
     const slice = html.slice(html.lastIndexOf('<details', idx), idx + 350);
     expect(slice).not.toMatch(/<details[^>]*open/);

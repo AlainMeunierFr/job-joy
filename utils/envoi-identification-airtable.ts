@@ -1,15 +1,49 @@
 /**
  * Port d'inscription « nouvel utilisateur » (US-3.15).
- * - Mode formulaire : INSCRIPTION_CONSENTEMENT_FORM_URL → préremplissage Airtable via URL (prefill_email), retourne openUrl pour ouverture par le client. Pas de clé.
- * - Mode API : AIRTABLE_NOUVEL_UTILISATEUR + URL → appel direct Airtable.
+ * En production : envoi systématique vers Val.town (URL en dur). Val.town stocke la clé Airtable et écrit dans la base.
+ * Pas de variable d'environnement ni de condition.
  */
 import type { EnvoyeurEmailIdentification, ParametresEmailIdentification, ResultatEnvoiEmailIdentification } from '../types/compte.js';
 import { extraireBaseIdDepuisUrl, extraireTableIdDepuisUrl, normaliserBaseId } from './airtable-url.js';
 
 const API_BASE = 'https://api.airtable.com/v0';
 
+/** Endpoint Val.town : l'app POST l'email ; Val.town détient la clé API et écrit dans Airtable. */
+const VALTOWN_ENDPOINT_URL = 'https://alainmeunierfr--c81a360612ae11f198d342dde27851f2.web.val.run';
+
+/** URL de la table Airtable « nouvel utilisateur » (mode API direct, si utilisé). */
+const INSCRIPTION_AIRTABLE_TABLE_URL = 'https://airtable.com/appXXX/tblYYY';
+
 /** Préfixe Airtable pour préremplir un champ (doc : https://support.airtable.com/docs/prefilling-a-form-via-encoded-url). */
 const PREFILL_PREFIX = 'prefill_';
+
+function isValTownUrl(value: string): boolean {
+  const v = value.trim();
+  return v.startsWith('http://') || v.startsWith('https://');
+}
+
+/** Port Val.town : envoie toujours l'email à l'endpoint (POST JSON { email }). Aucune config requise. */
+export function createEnvoyeurIdentificationValTown(): EnvoyeurEmailIdentification {
+  return {
+    async envoyer(params: ParametresEmailIdentification): Promise<ResultatEnvoiEmailIdentification> {
+      try {
+        const res = await fetch(VALTOWN_ENDPOINT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+          body: JSON.stringify({ email: params.from }),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          return { ok: false, message: `Val.town ${res.status}: ${text.slice(0, 200)}` };
+        }
+        return { ok: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { ok: false, message };
+      }
+    },
+  };
+}
 
 /**
  * Port formulaire Airtable : construit l'URL préremplie (prefill_email=...) et retourne openUrl pour que le client ouvre dans le navigateur.
@@ -29,9 +63,10 @@ export function createEnvoyeurIdentificationFormUrl(): EnvoyeurEmailIdentificati
 }
 
 function getConfig(): { apiKey: string; baseId: string; tableId: string } | null {
-  const apiKey = process.env.AIRTABLE_NOUVEL_UTILISATEUR?.trim();
-  if (!apiKey) return null;
-  const url = process.env.AIRTABLE_NOUVEL_UTILISATEUR_URL?.trim();
+  const raw = process.env.AIRTABLE_NOUVEL_UTILISATEUR?.trim();
+  if (!raw || isValTownUrl(raw)) return null; // Val.town utilise la même var comme URL
+  const apiKey = raw;
+  const url = process.env.AIRTABLE_NOUVEL_UTILISATEUR_URL?.trim() || INSCRIPTION_AIRTABLE_TABLE_URL;
   if (url) {
     const baseId = extraireBaseIdDepuisUrl(url);
     const tableId = extraireTableIdDepuisUrl(url);
