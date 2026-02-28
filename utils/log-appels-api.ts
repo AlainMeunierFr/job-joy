@@ -1,5 +1,5 @@
 /**
- * Log des appels API (Claude, Airtable) pour suivi consommation (US-2.5).
+ * Log des appels API (Mistral, Airtable) pour suivi consommation (US-2.5).
  * Stockage : dataDir/log-appels-api/AAAA-MM-JJ.json
  */
 import {
@@ -96,7 +96,7 @@ export function lireLogsDuJour(dataDir: string, dateISO: string): EntreeLogAppel
 
 /**
  * Agrégation pour le tableau de bord : totaux par jour et par API.
- * Retourne { [date AAAA-MM-JJ]: { Claude: number, Airtable: number, ... } }.
+ * Retourne { [date AAAA-MM-JJ]: { Mistral: number, Airtable: number, ... } }.
  * Le dossier log-appels-api doit exister (sinon retourne {}).
  */
 export function agregerConsommationParJourEtApi(

@@ -18,6 +18,7 @@ function Afficher-Menu {
     Write-Host "  5. Publish pre-prod (4 puis version/commit + tag preprod-v* + push ; CI build + Pre-release)"
     Write-Host "  6. Rendre public (tag v* = version actuelle, push ; CI release stable depuis preprod)"
     Write-Host "  7. Audit du code (tracabilite US <-> code ; puis /audit-code dans Cursor pour analyse semantique)"
+    Write-Host "  8. Compter les lignes de code (app, data, docs, ressources, scripts, temps, tests, types, utils)"
     Write-Host "  Q. Quitter"
     Write-Host ""
 }
@@ -288,6 +289,57 @@ function Invoke-Publier-Version-CI {
     }
 }
 
+function Compter-LignesCode {
+    Push-Location $PSScriptRoot
+    try {
+        $dossiers = @("app", "data", "docs", "ressources", "scripts", "temps", "test-results", "tests", "types", "utils")
+        $extensions = @("*.ts", "*.tsx", "*.js", "*.css", "*.html", "*.feature", "*.md", "*.json")
+        $exclureDossiers = @("node_modules", "dist", "coverage", ".cursor", "playwright-report", ".playwright")
+        $totalLignes = 0
+        $parDossier = @{}
+        $extPattern = "\.(ts|tsx|js|css|html|feature|md|json)$"
+
+        foreach ($d in $dossiers) {
+            $chemin = Join-Path $PSScriptRoot $d
+            if (-not (Test-Path $chemin -PathType Container)) { continue }
+            $nb = 0
+            Get-ChildItem -Path $chemin -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+                $rel = $_.FullName.Substring($PSScriptRoot.Length + 1)
+                $exclu = $false
+                foreach ($ex in $exclureDossiers) {
+                    if ($rel -match [regex]::Escape($ex)) { $exclu = $true; break }
+                }
+                -not $exclu -and $_.Name -match $extPattern
+            } | ForEach-Object {
+                $n = (Get-Content $_.FullName -ErrorAction SilentlyContinue | Measure-Object -Line).Lines
+                $nb += $n
+            }
+            $parDossier[$d] = $nb
+            $totalLignes += $nb
+        }
+
+        Write-Host ""
+        Write-Host "Lignes de code (dossiers projet uniquement)" -ForegroundColor Cyan
+        Write-Host "Extensions : .ts .tsx .js .css .html .feature .md .json" -ForegroundColor Gray
+        Write-Host "Exclus : node_modules, dist, coverage, .cursor, playwright-report" -ForegroundColor Gray
+        Write-Host ""
+        foreach ($d in $dossiers) {
+            if ($parDossier.ContainsKey($d) -and $parDossier[$d] -gt 0) {
+                Write-Host ("  {0,-15} : {1,6} lignes" -f $d, $parDossier[$d])
+            }
+        }
+        Write-Host "  -------------------------------"
+        Write-Host ("  {0,-15} : {1,6} lignes" -f "TOTAL", $totalLignes) -ForegroundColor Green
+        Write-Host ""
+        Read-Host "Appuyez sur Entree pour revenir au menu"
+    } catch {
+        Write-Host "Erreur : $($_.Exception.Message)" -ForegroundColor Red
+        Read-Host "Appuyez sur Entree pour revenir au menu"
+    } finally {
+        Pop-Location
+    }
+}
+
 function Invoke-AuditCode {
     Push-Location $PSScriptRoot
     try {
@@ -342,6 +394,7 @@ do {
         "5" { Invoke-Publier-Version-Preprod }
         "6" { Invoke-Publier-Version-CI }
         "7" { Invoke-AuditCode }
+        "8" { Compter-LignesCode }
         "q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         "Q" { Write-Host "Au revoir." -ForegroundColor Cyan; exit 0 }
         default { Write-Host "Choix invalide." -ForegroundColor Red; Start-Sleep -Seconds 2 }

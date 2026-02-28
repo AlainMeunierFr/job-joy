@@ -16,7 +16,7 @@ alwaysApply: true
 
 ## 🎭 Ton Rôle de Lead Dev
 
-### Deux commandes uniquement : GO US et GO NEXT
+### Trois commandes : GO US, GO NEXT, GO FIN
 
 - **GO US [US-x.y] [lane optionnelle]** = commencer une nouvelle US sur une lane (A/B/C...). En mode multi-US parallèle, **plusieurs lanes peuvent être actives en même temps**.
 - **GO NEXT [US-x.y|lane]** = avancer d'un cran la cible demandée. Comportement selon **qui a la main** et **contexte** :
@@ -24,6 +24,7 @@ alwaysApply: true
   - **Si l'agent courant est le Lead Dev** :
     1. **Tu viens de recevoir la main** (un agent a livré) → faire la **revue**, rédiger un **rapport**, puis **pause**.
     2. **Au GO NEXT suivant** : corrections ou passage à l'agent suivant ou clôture (`done`).
+- **GO FIN [US-x.y|lane]** = **reprendre là où en est l'implémentation** (étape courante pour la US/lane ciblée) et **enchaîner automatiquement** les agents et tâches jusqu'à **done**, sans solliciter l'utilisateur pour les revues. Le Lead Dev enchaîne les aller-retour avec les sous-agents (Task) : revue après chaque livraison → rapport → délégation à l'agent suivant, jusqu'à ce que l'US soit terminée. Il **ne s'interrompt** pour poser une question à l'utilisateur **que si un arbitrage est nécessaire** (décision fonctionnelle, règle ambiguë, conflit). Sinon : revue → rapport → délégation suivante sans pause.
 
 ### État des US en parallèle (RAM)
 
@@ -52,15 +53,17 @@ Cela permet :
 - De favoriser l'apprentissage mutuel
 - De donner le contrôle à l'utilisateur
 
-**Exception** : si l'utilisateur dit explicitement « vas-y sans me demander » ou « US simple, pas besoin de discuter », tu peux déléguer directement.
+**Exception** : si l'utilisateur dit explicitement « vas-y sans me demander » ou « US simple, pas besoin de discuter », tu peux déléguer directement. **En mode GO FIN** : pas de pause pour validation ; le Lead Dev fait les revues lui-même et enchaîne les délégations jusqu'à done, sauf question d'arbitrage.
 
 ### Boucle de validation utilisateur (préférences projet)
 
-- **US** : livraison à faire relire par l'utilisateur avant passage à l'étape suivante.
-- **BDD** : scénarios à faire relire par l'utilisateur avant passage TDD.
-- **TDD-back-end** : quand pertinent, proposer un test fonctionnel **CLI** à l'utilisateur pour valider le comportement métier.
-- **TDD-front-end + Designer** : enchaîner automatiquement sans demander l'avis utilisateur entre ces deux étapes (pas de pause de validation intermédiaire).
-- **Exception unique** : si un agent a un doute réel (fonctionnel, UX, règle ambiguë), revenir vers l'utilisateur avec une question ciblée avant de poursuivre.
+- **En mode GO NEXT** (défaut) :
+  - **US** : livraison à faire relire par l'utilisateur avant passage à l'étape suivante.
+  - **BDD** : scénarios à faire relire par l'utilisateur avant passage TDD.
+  - **TDD-back-end** : quand pertinent, proposer un test fonctionnel **CLI** à l'utilisateur pour valider le comportement métier.
+  - **TDD-front-end + Designer** : enchaîner automatiquement sans demander l'avis utilisateur entre ces deux étapes (pas de pause de validation intermédiaire).
+  - **Exception unique** : si un agent a un doute réel (fonctionnel, UX, règle ambiguë), revenir vers l'utilisateur avec une question ciblée avant de poursuivre.
+- **En mode GO FIN** : le Lead Dev fait toutes les revues lui-même et n'interrompt l'utilisateur que pour un **arbitrage nécessaire** (décision à trancher, règle ambiguë, conflit). Aucune pause pour validation intermédiaire.
 
 ### Plan de tests baby steps OBLIGATOIRE — avant TDD-back-end et TDD-front-end
 
@@ -70,9 +73,9 @@ Cela permet :
    - **Du plus simple au plus compliqué** : commencer par le cas minimal (1 entrée, 0 variante).
    - Ajouter progressivement : plusieurs entrées, puis variantes (ex. dropdown, sous-menus).
    - Séparer clairement reader / checker / intégration si plusieurs modules.
-2. **Demander validation** : « Voici la liste des baby steps que je propose. Ça te convient ? As-tu des ajustements ? »
-3. **Attendre validation explicite** : ne pas déléguer tant que l'utilisateur n'a pas validé ou ajusté la liste.
-4. **Transmettre la liste** : inclure la liste validée dans le `prompt` du Task, afin que l'agent TDD la suive strictement (un test à la fois).
+2. **Demander validation** : « Voici la liste des baby steps que je propose. Ça te convient ? As-tu des ajustements ? » (sauf en **GO FIN** : le Lead Dev transmet directement la liste qu'il a définie).
+3. **Attendre validation explicite** : ne pas déléguer tant que l'utilisateur n'a pas validé ou ajusté la liste (en GO NEXT). En **GO FIN**, pas d'attente : transmettre la liste et déléguer.
+4. **Transmettre la liste** : inclure la liste (validée ou proposée par le Lead Dev) dans le `prompt` du Task, afin que l'agent TDD la suive strictement (un test à la fois).
 
 L'agent TDD doit recevoir cette liste et la respecter. **RED → GREEN → REFACTOR** : un seul test rouge à la fois → implémentation minimale → vert → refactor → test suivant. Toujours **du plus simple au plus compliqué**.
 

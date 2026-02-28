@@ -10,10 +10,12 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync } 
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getVersionEtBuildTime } from '../utils/read-build-info.js';
-import { getPageParametres, getPageAPropos } from './page-html.js';
+import { getPageParametres, getPageAPropos, getPageDocumentation, getPageOffres } from './page-html.js';
+import { markdownToHtml } from './markdown-to-html.js';
 import { getPageTableauDeBord } from './layout-html.js';
 import { getPageAudit } from './audit-html.js';
-import type { PluginSource } from '../utils/gouvernance-sources-emails.js';
+import type { SourceNom } from '../utils/gouvernance-sources-emails.js';
+import { STATUTS_OFFRES_AVEC_AUTRE } from '../utils/statuts-offres-airtable.js';
 import {
   handleGetCompte,
   handleGetAirtable,
@@ -30,6 +32,7 @@ import {
   handlePostEnrichissementWorkerStop,
   handleGetTableauSyntheseOffres,
   handlePostRefreshSyntheseOffres,
+  handlePatchSourceActivation,
   handleGetConsommationApi,
   setBddMockEmailsGouvernance,
   setBddMockSources,
@@ -39,15 +42,25 @@ import {
   getBddMockOffresAAnalyser,
   handlePostSetMockCacheAudit,
   setBddMockOffreTest,
-  setBddMockTestClaudecode,
   getOffreTestHasOffre,
   handleGetOffreTest,
   handleGetMeilleureOffre,
-  handlePostTestClaudecode,
+  handleGetHistogrammeScoresOffres,
+  handlePostTestMistral,
+  setBddMockTestMistral,
   getEnvoyeurIdentificationPort,
   clearBddEmailsIdentificationEnvoyes,
   handleGetEmailsIdentification,
   setBddMockEnvoyeurIdentificationFail,
+  getOffresRepository,
+  handleGetOffres,
+  handleGetParametrageIALibelles,
+  handleGetVuesOffres,
+  handlePostVueOffres,
+  handlePatchVueOffres,
+  handleDeleteVueOffres,
+  handlePostTestSeedOffreSqlite,
+  handlePostTestClearOffresSqlite,
 } from './api-handlers.js';
 import {
   ecrireCompte,
@@ -74,8 +87,9 @@ import {
 import {
   getPartieModifiablePromptDefaut,
   getPartieFixePromptIA,
+  injecterParametrageIA,
 } from '../utils/prompt-ia.js';
-import { lireClaudeCode, ecrireClaudeCode } from '../utils/parametres-claudecode.js';
+import { lireMistral, ecrireMistral } from '../utils/parametres-mistral.js';
 import { getConnecteurEmail } from '../utils/connecteur-email-factory.js';
 import {
   microsoftTokenDisponible,
@@ -93,7 +107,7 @@ import {
 } from '../utils/formule-score-total.js';
 import { getUrlOuvertureBase } from '../utils/airtable-url.js';
 import { enregistrerAppel } from '../utils/log-appels-api.js';
-import { getDataDir } from '../utils/data-dir.js';
+import { getDataDirForApp } from '../utils/data-dir.js';
 
 process.on('uncaughtException', (err) => {
   console.error('\n[ERREUR] Exception non gérée au démarrage ou en cours d’exécution:', err);
@@ -110,15 +124,9 @@ const PROJECT_ROOT = join(__dirname, '..', '..');
 const RESOURCES_DIR = join(PROJECT_ROOT, 'ressources');
 /** Répertoire docs (page téléchargement / À propos) pour GitHub et /docs/ */
 const DOCS_DIR = join(PROJECT_ROOT, 'docs');
-/**
- * DATA_DIR : en dev = projet/data (npm run dev), en version packagée Electron = userData (npm run start:electron).
- * Pour tester en mode "packagé" sans installer : lancer le serveur avec JOB_JOY_USER_DATA défini.
- */
+/** Répertoire des données : source unique (getDataDirForApp). */
 const DATA_DIR = (() => {
-  const dir =
-    process.env.JOB_JOY_USER_DATA !== undefined && process.env.JOB_JOY_USER_DATA !== ''
-      ? getDataDir({ isPackaged: true, userDataDir: process.env.JOB_JOY_USER_DATA })
-      : getDataDir({ cwd: PROJECT_ROOT });
+  const dir = getDataDirForApp();
   mkdirSync(dir, { recursive: true });
   return dir;
 })();
@@ -265,7 +273,7 @@ const server = createServer(async (req, res) => {
     if (flash) clearCookies.push(clearFlashCookieHeader());
     if (flashConfig) clearCookies.push(clearFlashConfigCookieHeader());
     if (clearCookies.length) headers['Set-Cookie'] = clearCookies;
-    const { complet } = evaluerParametragesComplets(DATA_DIR);
+    const { complet, manque } = evaluerParametragesComplets(DATA_DIR);
     res.writeHead(200, headers);
     const parametres = lireParametres(DATA_DIR);
     if (isDev) {
@@ -273,14 +281,24 @@ const server = createServer(async (req, res) => {
       console.log(
         `[parametres page] ${parametresPath} → parametrageIA: ${parametres?.parametrageIA ? 'oui' : 'non'}`
       );
+      if (!complet && manque.length) {
+        console.warn('[parametres page] Tableau de bord inaccessible tant que manque:', manque);
+      }
     }
     const tokenObtainedAt = parametres?.connexionBoiteEmail?.microsoft?.tokenObtainedAt;
-    const claudecode = lireClaudeCode(DATA_DIR);
+    const mistral = lireMistral(DATA_DIR);
     const promptIAModifiable = lirePartieModifiablePrompt(DATA_DIR);
-    const promptIAPartieModifiable =
-      promptIAModifiable !== '' ? promptIAModifiable : getPartieModifiablePromptDefaut();
+    const promptIAPartieModifiable = promptIAModifiable;
+    const promptIAPartieModifiablePlaceholder =
+      promptIAModifiable !== ''
+        ? promptIAModifiable
+        : injecterParametrageIA(
+            getPartieModifiablePromptDefaut(),
+            parametres?.parametrageIA ?? null
+          );
     const offreTestHasOffre = await getOffreTestHasOffre(DATA_DIR);
     const formuleDuScoreTotal = lireFormuleDuScoreTotalOuDefaut(DATA_DIR);
+    const hasOffresParametres = getOffresRepository(DATA_DIR).getAll().length >= 1;
     res.end(
       await getPageParametres(DATA_DIR, {
         microsoftAvailable: microsoftTokenDisponible(),
@@ -290,14 +308,16 @@ const server = createServer(async (req, res) => {
         configComplète: complet,
         flashConfigManque: flashConfig ?? undefined,
         parametrageIA: parametres?.parametrageIA ?? undefined,
-        claudecodeHasApiKey: claudecode?.hasApiKey ?? false,
+        mistralHasApiKey: mistral?.hasApiKey ?? false,
         promptIAPartieModifiable,
+        promptIAPartieModifiablePlaceholder,
         promptIAPartieFixe: getPartieFixePromptIA(parametres?.parametrageIA ?? null),
         offreTestHasOffre,
         formuleDuScoreTotal,
         resourcesDir: RESOURCES_DIR,
         docsDir: DOCS_DIR,
         showAuditLink: isDev,
+        showOffresLink: hasOffresParametres,
       })
     );
     return;
@@ -306,6 +326,7 @@ const server = createServer(async (req, res) => {
   if (req.method === 'GET' && pathname === '/tableau-de-bord') {
     const { complet, manque } = evaluerParametragesComplets(DATA_DIR);
     if (!complet) {
+      console.warn('[tableau-de-bord] Accès refusé (paramètres incomplets). manque:', manque, 'DATA_DIR:', DATA_DIR);
       const flashConfigId = randomId();
       flashConfigStore.set(flashConfigId, manque);
       res.writeHead(302, {
@@ -322,13 +343,25 @@ const server = createServer(async (req, res) => {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
     });
-    res.end(getPageTableauDeBord({ airtableBaseUrl, showAuditLink: isDev }));
+    const hasOffres = getOffresRepository(DATA_DIR).getAll().length >= 1;
+    res.end(getPageTableauDeBord({ airtableBaseUrl, showAuditLink: isDev, showOffresLink: hasOffres }));
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/offres') {
+    const hasOffres = getOffresRepository(DATA_DIR).getAll().length >= 1;
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    res.end(getPageOffres({ showOffresLink: hasOffres }));
     return;
   }
 
   if (req.method === 'GET' && pathname === '/a-propos') {
     const { complet } = evaluerParametragesComplets(DATA_DIR);
     const { version, buildTime, preprod } = getVersionEtBuildTime(PROJECT_ROOT);
+    const hasOffresAPropos = getOffresRepository(DATA_DIR).getAll().length >= 1;
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
@@ -341,6 +374,57 @@ const server = createServer(async (req, res) => {
         configComplète: complet,
         resourcesDir: RESOURCES_DIR,
         showAuditLink: isDev,
+        showOffresLink: !!hasOffresAPropos,
+      })
+    );
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/documentation') {
+    const { complet } = evaluerParametragesComplets(DATA_DIR);
+    const docsDocumentationDir = join(DOCS_DIR, 'documentation');
+    let articles: { name: string; title: string }[] = [];
+    if (existsSync(docsDocumentationDir)) {
+      const files = readdirSync(docsDocumentationDir).filter((f) => f.endsWith('.md'));
+      articles = files.map((f) => ({ name: f, title: f.replace(/\.md$/i, '') }));
+      articles.sort((a, b) => a.title.localeCompare(b.title));
+    }
+    let articleHtml: string | undefined;
+    let selectedArticle: string | undefined;
+    const reqUrl = req.url ?? '';
+    const queryIndex = reqUrl.indexOf('?');
+    if (queryIndex >= 0) {
+      const params = new URLSearchParams(reqUrl.slice(queryIndex));
+      const articleParam = params.get('article');
+      if (articleParam) {
+        const safeName = articleParam.replace(/\.\./g, '').replace(/[/\\]/g, '');
+        if (safeName && articles.some((a) => a.name === safeName)) {
+          const articlePath = join(docsDocumentationDir, safeName);
+          if (existsSync(articlePath)) {
+            try {
+              const raw = readFileSync(articlePath, 'utf-8');
+              articleHtml = markdownToHtml(raw);
+              selectedArticle = safeName;
+            } catch {
+              /* leave articleHtml undefined */
+            }
+          }
+        }
+      }
+    }
+    const hasOffresDoc = getOffresRepository(DATA_DIR).getAll().length >= 1;
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    res.end(
+      getPageDocumentation({
+        configComplète: complet,
+        showAuditLink: isDev,
+        showOffresLink: !!hasOffresDoc,
+        articles,
+        articleHtml,
+        selectedArticle,
       })
     );
     return;
@@ -356,11 +440,12 @@ const server = createServer(async (req, res) => {
         // garder null
       }
     }
+    const hasOffresAudit = getOffresRepository(DATA_DIR).getAll().length >= 1;
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
     });
-    res.end(getPageAudit(auditData));
+    res.end(getPageAudit(auditData, { showOffresLink: hasOffresAudit }));
     return;
   }
 
@@ -458,6 +543,50 @@ const server = createServer(async (req, res) => {
     } catch {
       try {
         js = await readFile(scriptPathSource, 'utf-8');
+      } catch {
+        notFound(res);
+        return;
+      }
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    });
+    res.end(js);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/scripts/enregistrement-api-ia.js') {
+    const scriptPathDist = join(__dirname, 'scripts', 'enregistrement-api-ia.js');
+    const scriptPathSource = join(PROJECT_ROOT, 'app', 'scripts', 'enregistrement-api-ia.js');
+    let js: string;
+    try {
+      js = await readFile(scriptPathDist, 'utf-8');
+    } catch {
+      try {
+        js = await readFile(scriptPathSource, 'utf-8');
+      } catch {
+        notFound(res);
+        return;
+      }
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    });
+    res.end(js);
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/scripts/offres-page.js') {
+    const scriptPathDist = join(__dirname, 'scripts', 'offres-page.js');
+    const scriptPathRepoSource = join(__dirname, '..', '..', 'app', 'scripts', 'offres-page.js');
+    let js: string;
+    try {
+      js = await readFile(scriptPathRepoSource, 'utf-8');
+    } catch {
+      try {
+        js = await readFile(scriptPathDist, 'utf-8');
       } catch {
         notFound(res);
         return;
@@ -652,8 +781,18 @@ const server = createServer(async (req, res) => {
       await handleGetTableauSyntheseOffres(DATA_DIR, res);
     } catch (err) {
       console.error('GET /api/tableau-synthese-offres error', err);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, message: String(err) }));
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(
+        JSON.stringify({
+          lignes: [],
+          statutsOrdre: [...STATUTS_OFFRES_AVEC_AUTRE],
+          totauxColonnes: {},
+          totalParLigne: [],
+          totalGeneral: 0,
+          erreur: message,
+        })
+      );
     }
     return;
   }
@@ -663,6 +802,18 @@ const server = createServer(async (req, res) => {
       await handlePostRefreshSyntheseOffres(DATA_DIR, res);
     } catch (err) {
       console.error('POST /api/tableau-synthese-offres/refresh error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  if ((req.method === 'POST' || req.method === 'PATCH') && pathname === '/api/sources/activation') {
+    try {
+      const body = (await parseBody(req)) as Record<string, unknown>;
+      await handlePatchSourceActivation(DATA_DIR, body, res);
+    } catch (err) {
+      console.error('POST/PATCH /api/sources/activation error', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, message: String(err) }));
     }
@@ -700,6 +851,81 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify({ ok: false, message: String(err) }));
     }
     return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/histogramme-scores-offres') {
+    try {
+      await handleGetHistogrammeScoresOffres(DATA_DIR, res);
+    } catch (err) {
+      console.error('GET /api/histogramme-scores-offres error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err), buckets: [], total: 0 }));
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/parametrage-ia-libelles') {
+    handleGetParametrageIALibelles(DATA_DIR, res);
+    return;
+  }
+  if (req.method === 'GET' && pathname === '/api/offres') {
+    try {
+      handleGetOffres(DATA_DIR, res);
+    } catch (err) {
+      console.error('GET /api/offres error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ offres: [], message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/offres/vues') {
+    try {
+      handleGetVuesOffres(DATA_DIR, res);
+    } catch (err) {
+      console.error('GET /api/offres/vues error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ vues: [], message: String(err) }));
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/offres/vues') {
+    try {
+      const body = (await parseBody(req)) as Record<string, unknown>;
+      handlePostVueOffres(DATA_DIR, body, res);
+    } catch (err) {
+      console.error('POST /api/offres/vues error', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: String(err) }));
+    }
+    return;
+  }
+
+  const matchVuesId = pathname.match(/^\/api\/offres\/vues\/([^/]+)$/);
+  if (matchVuesId) {
+    const vueId = decodeURIComponent(matchVuesId[1]);
+    if (req.method === 'PATCH') {
+      try {
+        const body = (await parseBody(req)) as Record<string, unknown>;
+        handlePatchVueOffres(DATA_DIR, vueId, body, res);
+      } catch (err) {
+        console.error('PATCH /api/offres/vues/:id error', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'DELETE') {
+      try {
+        handleDeleteVueOffres(DATA_DIR, vueId, res);
+      } catch (err) {
+        console.error('DELETE /api/offres/vues/:id error', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
   }
 
   if (req.method === 'POST' && pathname === '/api/test-connexion') {
@@ -888,28 +1114,28 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'GET' && pathname === '/api/claudecode') {
+  if (req.method === 'GET' && pathname === '/api/mistral') {
     try {
-      const claudecode = lireClaudeCode(DATA_DIR);
+      const mistral = lireMistral(DATA_DIR);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ hasApiKey: claudecode?.hasApiKey ?? false }));
+      res.end(JSON.stringify({ hasApiKey: mistral?.hasApiKey ?? false }));
     } catch (err) {
-      console.error('GET /api/claudecode error', err);
+      console.error('GET /api/mistral error', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, message: String(err) }));
     }
     return;
   }
 
-  if (req.method === 'POST' && pathname === '/api/claudecode') {
+  if (req.method === 'POST' && pathname === '/api/mistral') {
     try {
       const body = (await parseBody(req)) as { apiKey?: string };
       const apiKey = typeof body.apiKey === 'string' ? body.apiKey.trim() : undefined;
-      ecrireClaudeCode(DATA_DIR, apiKey ? { apiKey } : {});
+      ecrireMistral(DATA_DIR, apiKey ? { apiKey } : {});
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
     } catch (err) {
-      console.error('POST /api/claudecode error', err);
+      console.error('POST /api/mistral error', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, message: String(err) }));
     }
@@ -953,12 +1179,12 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === 'POST' && pathname === '/api/test-claudecode') {
+  if (req.method === 'POST' && pathname === '/api/test-mistral') {
     try {
       const body = (await parseBody(req)) as Record<string, unknown>;
-      await handlePostTestClaudecode(DATA_DIR, body, res);
+      await handlePostTestMistral(DATA_DIR, body, res);
     } catch (err) {
-      console.error('POST /api/test-claudecode error', err);
+      console.error('POST /api/test-mistral error', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, message: String(err) }));
     }
@@ -1109,9 +1335,8 @@ const server = createServer(async (req, res) => {
         const body = (await parseBody(req)) as Record<string, unknown>;
         const apiKey = String(body.apiKey ?? '').trim();
         const base = typeof body.base === 'string' ? body.base.trim() : undefined;
-        const sources = typeof body.sources === 'string' ? body.sources.trim() : undefined;
         const offres = typeof body.offres === 'string' ? body.offres.trim() : undefined;
-        ecrireAirTable(DATA_DIR, { apiKey, base, sources, offres });
+        ecrireAirTable(DATA_DIR, { apiKey, base, offres });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       } catch (err) {
@@ -1140,7 +1365,7 @@ const server = createServer(async (req, res) => {
         const body = (await parseBody(req)) as {
           sources?: Array<{
             emailExpéditeur: string;
-            plugin: string;
+            source?: string;
             type?: 'email' | 'liste html' | 'liste csv';
             activerCreation: boolean;
             activerEnrichissement: boolean;
@@ -1150,7 +1375,7 @@ const server = createServer(async (req, res) => {
         const raw = Array.isArray(body?.sources) ? body.sources : [];
         const sources = raw.map((s) => ({
           emailExpéditeur: s.emailExpéditeur,
-          plugin: s.plugin as PluginSource,
+          source: s.source as SourceNom,
           type: s.type,
           activerCreation: s.activerCreation,
           activerEnrichissement: s.activerEnrichissement,
@@ -1174,6 +1399,25 @@ const server = createServer(async (req, res) => {
         setBddMockOffres(offres);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/seed-offre-sqlite') {
+      try {
+        const body = (await parseBody(req)) as Record<string, unknown>;
+        handlePostTestSeedOffreSqlite(DATA_DIR, body, res);
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, message: String(err) }));
+      }
+      return;
+    }
+    if (req.method === 'POST' && pathname === '/api/test/clear-offres-sqlite') {
+      try {
+        handlePostTestClearOffresSqlite(DATA_DIR, res);
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, message: String(err) }));
@@ -1239,7 +1483,7 @@ const server = createServer(async (req, res) => {
       }
       return;
     }
-    if (req.method === 'POST' && pathname === '/api/test/set-mock-test-claudecode') {
+    if (req.method === 'POST' && pathname === '/api/test/set-mock-test-mistral') {
       try {
         const body = (await parseBody(req)) as {
           ok?: boolean;
@@ -1249,7 +1493,7 @@ const server = createServer(async (req, res) => {
           jsonValidation?: { valid: true; json: Record<string, unknown>; conform?: boolean; validationErrors?: string[] };
         };
         if (body?.ok === true && typeof body.texte === 'string') {
-          setBddMockTestClaudecode({
+          setBddMockTestMistral({
             ok: true,
             texte: body.texte,
             ...(body.jsonValidation && body.jsonValidation.valid === true && body.jsonValidation.json
@@ -1257,13 +1501,13 @@ const server = createServer(async (req, res) => {
               : {}),
           });
         } else if (body?.ok === false && typeof body.code === 'string') {
-          setBddMockTestClaudecode({
+          setBddMockTestMistral({
             ok: false,
             code: body.code,
             ...(typeof body.message === 'string' && { message: body.message }),
           });
         } else {
-          setBddMockTestClaudecode(null);
+          setBddMockTestMistral(null);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
@@ -1273,16 +1517,16 @@ const server = createServer(async (req, res) => {
       }
       return;
     }
-    if (req.method === 'POST' && pathname === '/api/test/set-claudecode') {
+    if (req.method === 'POST' && pathname === '/api/test/set-mistral') {
       try {
         const body = (await parseBody(req)) as { apiKey?: string };
         const apiKey = typeof body.apiKey === 'string' ? body.apiKey.trim() : '';
         if (apiKey) {
-          ecrireClaudeCode(DATA_DIR, { apiKey });
+          ecrireMistral(DATA_DIR, { apiKey });
         } else {
           const p = lireParametres(DATA_DIR) ?? getDefaultParametres();
           const pMut = p as unknown as Record<string, unknown>;
-          delete pMut.claudecode;
+          delete pMut.mistral;
           ecrireParametres(DATA_DIR, p);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1418,6 +1662,9 @@ server.listen(
     console.log(`Server listening on http://127.0.0.1:${PORT}`);
     const parametresPath = join(DATA_DIR, 'parametres.json');
     console.log(`Paramètres (parametres.json): ${parametresPath}`);
+    const offresPath = join(DATA_DIR, 'offres.sqlite');
+    const offresCount = getOffresRepository(DATA_DIR).getAll().length;
+    console.log(`Offres (source unique SQLite): ${offresPath} → ${offresCount} offre(s) [au démarrage]. Vérifier en cours d'exécution : npm run cli:sqlite-offres`);
     if (existsSync(parametresPath) && lireParametres(DATA_DIR) === null) {
       console.warn(
         '[parametres] Le fichier parametres.json existe mais n’a pas pu être chargé (JSON invalide ou structure incorrecte). Corrigez le fichier ou renommez-le pour repartir des valeurs par défaut.'
@@ -1430,18 +1677,16 @@ server.listen(
         if (
           airtable?.apiKey?.trim() &&
           airtable?.base?.trim() &&
-          airtable?.sources?.trim() &&
           airtable?.offres?.trim()
         ) {
           const baseId = normaliserBaseId(airtable.base.trim());
           const result = await ensureAirtableEnums(
             airtable.apiKey.trim(),
             baseId,
-            airtable.sources.trim(),
             airtable.offres.trim()
           );
-          if (!result.plugin || !result.statut) {
-            console.warn('[Airtable] Énumérations: plugin=%s statut=%s', result.plugin, result.statut);
+          if (!result.statut) {
+            console.warn('[Airtable] Énumération Statut (Offres): échec');
           }
         }
       } catch (e) {

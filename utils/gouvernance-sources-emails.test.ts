@@ -13,7 +13,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
       sourcesExistantes: [
         {
           emailExpéditeur: 'notification@emails.hellowork.com',
-          plugin: 'HelloWork',
+          source: 'HelloWork',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -38,7 +38,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
       sourcesExistantes: [
         {
           emailExpéditeur: 'notification@emails.hellowork.com',
-          plugin: 'HelloWork',
+          source: 'HelloWork',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -54,22 +54,14 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
 
     expect(result.traitementsExecutés).toBe(0);
     expect(traitements).toEqual([]);
-    expect(result.creees).toEqual([
-      {
-        emailExpéditeur: 'notification@emails.hellowork.com.fake-domain.test',
-        plugin: 'Inconnu',
-        type: 'email',
-        activerCreation: false,
-        activerEnrichissement: false,
-        activerAnalyseIA: true,
-      },
-    ]);
+    // CA2 US-6.2 : expéditeur non en base → pas de création, pas de traitement
+    expect(result.creees).toEqual([]);
   });
 
   it('US-3.1: SourceEmail a type (TypeSource) et activerCreation, activerEnrichissement, activerAnalyseIA (pas actif)', () => {
     const source: SourceEmail = {
       emailExpéditeur: 'test@test.com',
-      plugin: 'Inconnu',
+      source: 'Inconnu',
       type: 'email',
       activerCreation: true,
       activerEnrichissement: false,
@@ -82,19 +74,32 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(source).not.toHaveProperty('actif');
   });
 
+  /** US-6.6 : liste canonique 15 + Inconnu (alignée SOURCES_NOMS_ATTENDUS dans governance). */
+  const SOURCES_OPTIONS_US_6_6 = [
+    'Linkedin',
+    'HelloWork',
+    'APEC',
+    'Cadre Emploi',
+    'Welcome to the Jungle',
+    'Job That Make Sense',
+    'Indeed',
+    'France Travail',
+    'LesJeudis',
+    'Michael Page',
+    'Robert Walters',
+    'Hays',
+    'Monster',
+    'Glassdoor',
+    'Makesense',
+    'Inconnu',
+  ];
+
   it('CA1 schéma: emailExpéditeur + plugin + type(single select) + 3 checkboxes (Activer la création, enrichissement, analyse IA)', () => {
     const ok = preparerMigrationSources({
       emailExpéditeur: { type: 'text' },
-      plugin: {
+      source: {
         type: 'singleSelect',
-        options: [
-          'Linkedin',
-          'Inconnu',
-          'HelloWork',
-          'Welcome to the Jungle',
-          'Job That Make Sense',
-          'Cadre Emploi',
-        ],
+        options: [...SOURCES_OPTIONS_US_6_6],
       },
       type: { type: 'singleSelect', options: ['email', 'liste html', 'liste csv'] },
       activerCreation: { type: 'checkbox' },
@@ -105,7 +110,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
 
     const koPlugin = preparerMigrationSources({
       emailExpéditeur: { type: 'text' },
-      plugin: {
+      source: {
         type: 'singleSelect',
         options: ['Inconnu', 'Autre'],
       },
@@ -121,7 +126,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     const sources: SourceEmail[] = [
       {
         emailExpéditeur: 'alertes@unknown-source.test',
-        plugin: 'Inconnu',
+        source: 'Inconnu',
         type: 'email',
         activerCreation: false,
         activerEnrichissement: false,
@@ -143,7 +148,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'alertes@unknown-source.test',
-        plugin: 'Inconnu',
+        source: 'Inconnu',
         type: 'email',
         activerCreation: false,
         activerEnrichissement: false,
@@ -160,7 +165,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'jobs-listings@linkedin.com',
-        plugin: 'Linkedin',
+        source: 'Linkedin',
         type: 'email',
         activerCreation: true,
         activerEnrichissement: true,
@@ -177,7 +182,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'notification@emails.hellowork.com',
-        plugin: 'HelloWork',
+        source: 'HelloWork',
         type: 'email',
         activerCreation: true,
         activerEnrichissement: true,
@@ -189,16 +194,9 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
   it('schéma plugin doit contenir toutes les sources connues', () => {
     const ok = preparerMigrationSources({
       emailExpéditeur: { type: 'text' },
-      plugin: {
+      source: {
         type: 'singleSelect',
-        options: [
-          'Linkedin',
-          'Inconnu',
-          'HelloWork',
-          'Welcome to the Jungle',
-          'Job That Make Sense',
-          'Cadre Emploi',
-        ],
+        options: [...SOURCES_OPTIONS_US_6_6],
       },
       type: { type: 'singleSelect', options: ['email', 'liste html', 'liste csv'] },
       activerCreation: { type: 'checkbox' },
@@ -211,16 +209,9 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
   it('US-1.10: la valeur plugin "Welcome to the Jungle" est acceptée dans le schéma Sources', () => {
     const ok = preparerMigrationSources({
       emailExpéditeur: { type: 'text' },
-      plugin: {
+      source: {
         type: 'singleSelect',
-        options: [
-          'Linkedin',
-          'Inconnu',
-          'HelloWork',
-          'Welcome to the Jungle',
-          'Job That Make Sense',
-          'Cadre Emploi',
-        ],
+        options: [...SOURCES_OPTIONS_US_6_6],
       },
       type: { type: 'singleSelect', options: ['email', 'liste html', 'liste csv'] },
       activerCreation: { type: 'checkbox' },
@@ -238,7 +229,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'alerts@welcometothejungle.com',
-        plugin: 'Welcome to the Jungle',
+        source: 'Welcome to the Jungle',
         type: 'email',
         activerCreation: true,
         activerEnrichissement: true,
@@ -255,7 +246,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'alerts@welcometothejungle.com',
-        plugin: 'Welcome to the Jungle',
+        source: 'Welcome to the Jungle',
         type: 'email',
         activerCreation: true,
         activerEnrichissement: true,
@@ -272,7 +263,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'alerts+jobs@welcometothejungle.com',
-        plugin: 'Inconnu',
+        source: 'Inconnu',
         type: 'email',
         activerCreation: false,
         activerEnrichissement: false,
@@ -289,7 +280,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'jobs@makesense.org',
-        plugin: 'Job That Make Sense',
+        source: 'Job That Make Sense',
         type: 'email',
         activerCreation: true,
         activerEnrichissement: true,
@@ -306,7 +297,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'jobs+alias@makesense.org',
-        plugin: 'Inconnu',
+        source: 'Inconnu',
         type: 'email',
         activerCreation: false,
         activerEnrichissement: false,
@@ -323,7 +314,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'offres@alertes.cadremploi.fr',
-        plugin: 'Cadre Emploi',
+        source: 'Cadre Emploi',
         type: 'email',
         activerCreation: true,
         activerEnrichissement: true,
@@ -340,7 +331,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(audit.creees).toEqual([
       {
         emailExpéditeur: 'offres+alias@alertes.cadremploi.fr',
-        plugin: 'Inconnu',
+        source: 'Inconnu',
         type: 'email',
         activerCreation: false,
         activerEnrichissement: false,
@@ -349,7 +340,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     ]);
   });
 
-  it('R1 traitement source absente: auto-création Inconnu/inactif, pas de traitement, pas de déplacement', async () => {
+  it('CA2 US-6.2: expéditeur absent des sources → pas de création, pas de traitement, pas de déplacement', async () => {
     const traitements: string[] = [];
     const deplacements: string[] = [];
     const result = await traiterEmailsSelonStatutSource({
@@ -364,37 +355,19 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
         deplacements.push(email.id);
       },
     });
-    expect(result.creees).toEqual([
-      {
-        emailExpéditeur: 'noreply@nouvelle-source.test',
-        plugin: 'Inconnu',
-        type: 'email',
-        activerCreation: false,
-        activerEnrichissement: false,
-        activerAnalyseIA: true,
-      },
-    ]);
+    expect(result.creees).toEqual([]);
     expect(traitements).toEqual([]);
     expect(deplacements).toEqual([]);
   });
 
-  it('R1 traitement source absente linkedin: auto-création Linkedin/actif', async () => {
+  it('CA2 US-6.2: expéditeur linkedin absent des sources → pas de création', async () => {
     const result = await traiterEmailsSelonStatutSource({
       emails: [{ id: 'm1', from: '"LinkedIn Jobs" <jobs-listings@linkedin.com>', html: '<html>a</html>' }],
       sourcesExistantes: [],
       parseursDisponibles: ['Linkedin'],
       traiterEmail: async () => ({ ok: false }),
     });
-    expect(result.creees).toEqual([
-      {
-        emailExpéditeur: 'jobs-listings@linkedin.com',
-        plugin: 'Linkedin',
-        type: 'email',
-        activerCreation: true,
-        activerEnrichissement: true,
-        activerAnalyseIA: true,
-      },
-    ]);
+    expect(result.creees).toEqual([]);
   });
 
   it('R3 capture: plugin=Inconnu -> capture HTML max 3 par expéditeur', async () => {
@@ -409,7 +382,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
       sourcesExistantes: [
         {
           emailExpéditeur: 'noreply@nouvelle-source.test',
-          plugin: 'Inconnu',
+          source: 'Inconnu',
           type: 'email',
           activerCreation: false,
           activerEnrichissement: false,
@@ -433,7 +406,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
       sourcesExistantes: [
         {
           emailExpéditeur: 'jobs@linkedin.com',
-          plugin: 'Linkedin',
+          source: 'Linkedin',
           type: 'email',
           activerCreation: false,
           activerEnrichissement: false,
@@ -460,7 +433,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
       sourcesExistantes: [
         {
           emailExpéditeur: 'jobs@linkedin.com',
-          plugin: 'Linkedin',
+          source: 'Linkedin',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -487,7 +460,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
       sourcesExistantes: [
         {
           emailExpéditeur: 'alertes@unknown-source.test',
-          plugin: 'Inconnu',
+          source: 'Inconnu',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -515,7 +488,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
       sourcesExistantes: [
         {
           emailExpéditeur: 'u1@unknown-a.test',
-          plugin: 'Inconnu',
+          source: 'Inconnu',
           type: 'email',
           activerCreation: false,
           activerEnrichissement: false,
@@ -541,7 +514,7 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
       sourcesExistantes: [
         {
           emailExpéditeur: 'jobs@linkedin.com',
-          plugin: 'Linkedin',
+          source: 'Linkedin',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -555,8 +528,8 @@ describe('gouvernance-sources-emails (US-1.6)', () => {
     expect(result.corrections).toEqual([
       {
         emailExpéditeur: 'jobs@linkedin.com',
-        ancienPlugin: 'Linkedin',
-        nouveauPlugin: 'Inconnu',
+        ancienSourceNom: 'Linkedin',
+        nouveauSourceNom: 'Inconnu',
       },
     ]);
     expect(result.traitementsExecutés).toBe(0);

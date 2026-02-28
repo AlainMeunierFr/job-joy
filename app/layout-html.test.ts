@@ -2,7 +2,8 @@
  * Tests TDD tableau de bord (US-1.4) : bouton « Lancer le traitement ».
  * US-1.6 : getHeaderHtml avec configComplète.
  */
-import { getHeaderHtml, getPageTableauDeBord } from './layout-html.js';
+import { parseHTML } from 'linkedom';
+import { buildSourceCapsuleHtml, getHeaderHtml, getPageTableauDeBord } from './layout-html.js';
 
 describe('getHeaderHtml', () => {
   it('affiche le lien Tableau de bord sauf quand configComplète est false (US-1.6)', () => {
@@ -24,6 +25,14 @@ describe('getHeaderHtml', () => {
 
 describe('getPageTableauDeBord', () => {
   // US-3.5 : ancien bloc "Dossier de la boîte aux lettres" / "Auditer le dossier" supprimé ; structure 3 blocs (Synthèse, Traitements, Consommation API).
+  it('contient le H1 de page (masqué visuellement, double emploi avec le lien actif du menu)', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('pageTitleBar');
+    expect(html).toContain('visuallyHidden');
+    expect(html).toContain('pageTitleBarTitle');
+    expect(html).toContain('>Tableau de bord</h1>');
+  });
+
   it('contient le bloc Synthèse des offres avec tableau et bouton Ouvrir Airtable', () => {
     const html = getPageTableauDeBord({ airtableBaseUrl: 'https://airtable.com/appTest123' });
     expect(html).toContain('data-layout="synthese-offres"');
@@ -109,19 +118,18 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('class="syntheseOffres"');
   });
 
-  it('affiche les colonnes fixes du tableau synthèse offres : email expéditeur, plugin, création, enrichissement, analyse', () => {
+  it('affiche les colonnes fixes du tableau synthèse offres (US-7.4) : Source, Créer par email/liste html, Enrichir, Analyser, Emails/Fichiers à importer', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('renderTableauSyntheseHead');
-    expect(html).toContain('email expéditeur</th>');
-    expect(html).toContain('plugin</th>');
-    expect(html).toContain("création");
-    expect(html).toContain("enrichissement");
-    expect(html).toContain("analyse");
-    expect(html).toContain("Phase 1 : Extraction de l'URL des offres dans les emails");
-    expect(html).toContain("Phase 2 : Ouverture des offres pour en récupérer le texte complet");
-    expect(html).toContain("Phase 3 : Analyse et calcul");
-    expect(html).toContain("score par l'IA");
-    expect(html).toContain('synthesePluginCapsule');
+    expect(html).toContain('syntheseOffresThLabel');
+    expect(html).toContain('Source');
+    expect(html).toContain('Créer par email');
+    expect(html).toContain('Créer par liste html');
+    expect(html).toContain('Emails à importer');
+    expect(html).toContain('Fichiers à importer');
+    expect(html).toContain('Enrichir');
+    expect(html).toContain('Analyser');
+    expect(html).toContain('syntheseSourceCapsule');
     expect(html).not.toContain("'<th scope=\"col\">actif</th>'");
   });
 
@@ -137,37 +145,64 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('<tbody id="synthese-offres-body"></tbody>');
   });
 
+  it('échappe l’apostrophe dans le script (ex. l\'IA) pour éviter SyntaxError en navigateur', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain("l\\'IA");
+    expect(html).not.toMatch(/\btitle="[^"]*l'IA/);
+  });
+
   it('contient un script avec la fonction renderTableauSyntheseOffres', () => {
     const html = getPageTableauDeBord();
     expect(html).toContain('function renderTableauSyntheseOffres');
     expect(html).toContain('renderTableauSyntheseOffres');
   });
 
-  it('renderTableauSyntheseOffres rend expéditeur, états de phases (emoji) et compteurs par statut', () => {
+  describe('US-6.6 CA5 : lien source vers URL officielle', () => {
+    it('buildSourceCapsuleHtml avec urlOfficielle non vide retourne un <a> avec href et target="_blank"', () => {
+      const html = buildSourceCapsuleHtml('LinkedIn', 'linkedin', 'https://www.linkedin.com/jobs');
+      expect(html).toContain('<a ');
+      expect(html).toContain('target="_blank"');
+      expect(html).toContain('rel="noopener noreferrer"');
+      expect(html).toContain('href="https://www.linkedin.com/jobs"');
+      expect(html).toContain('syntheseSourceCapsule');
+      expect(html).toContain('LinkedIn');
+    });
+
+    it('buildSourceCapsuleHtml sans urlOfficielle (ou vide) ne contient pas de <a>', () => {
+      const html1 = buildSourceCapsuleHtml('Inconnu', 'inconnu');
+      expect(html1).not.toContain('<a ');
+      expect(html1).toContain('syntheseSourceCapsule');
+      expect(html1).toContain('Inconnu');
+      const html2 = buildSourceCapsuleHtml('Inconnu', 'inconnu', '');
+      expect(html2).not.toContain('<a ');
+    });
+
+    it('le script renderTableauSyntheseOffres utilise urlOfficielle et target="_blank" pour le lien source', () => {
+      const html = getPageTableauDeBord();
+      expect(html).toContain('ligne.urlOfficielle');
+      expect(html).toContain('target="_blank"');
+      expect(html).toContain('noopener noreferrer');
+    });
+  });
+
+  it('renderTableauSyntheseOffres rend source, états de phases (emoji) et compteurs par statut (US-7.4)', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('ligne.emailExpéditeur');
+    expect(html).toContain('ligne.sourceEtape2');
     expect(html).toContain('phaseEtat--ok');
     expect(html).toContain('phaseEtat--ko');
     expect(html).toContain('ligne.statuts');
-    expect(html).toContain('phase1Html');
+    expect(html).toContain('phase1EmailHtml');
+    expect(html).toContain('phase1ListeHtmlHtml');
     expect(html).toContain('phase2Html');
     expect(html).toContain('phase3Html');
-    expect(html).toContain('activerCreation');
+    expect(html).toContain('creationEmailActivé');
     expect(html).toContain('activerEnrichissement');
     expect(html).toContain('activerAnalyseIA');
   });
 
-  it('ajoute une info-bulle qui décrit les phases 1, 2 et 3', () => {
+  it('n\'affiche pas les quantités à 0 (qteOuVide) pour rendre visibles les phases avec travail restant', () => {
     const html = getPageTableauDeBord();
-    expect(html).toContain('class="syntheseOffresInfoBulle"');
-    expect(html).toContain("Phase 1 : Extraction de l'URL des offres dans les emails");
-    expect(html).toContain('Phase 2 : Ouverture des offres pour en récupérer le texte complet');
-    expect(html).toContain("Phase 3 : Analyse et calcul d'un score par l'IA");
-  });
-
-  it('affiche les zéros pour les compteurs (largeur stable)', () => {
-    const html = getPageTableauDeBord();
-    expect(html).toContain("String(n)");
+    expect(html).toContain('qteOuVide');
     expect(html).toContain("ligne.statuts[statut] != null");
   });
 
@@ -197,6 +232,33 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain('syntheseOffresCellTotaux');
     expect(html).toContain('e2eid-synthese-offres-ligne-totaux');
     expect(html).toContain('e2eid-synthese-offres-cellule-totaux-generaux');
+  });
+
+  // --- US Statistiques des scores : bloc histogramme (centre, 3 colonnes) ---
+  it('contient un bloc Statistiques des scores avec titre, intro, canvas et bouton Calculer', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('data-layout="histogramme-scores-offres"');
+    expect(html).toContain('Statistiques des scores');
+    expect(html).toContain('histogrammeScoresOffresIntro');
+    expect(html).toContain('score total ≠ 0 ou statut « Expiré »');
+    expect(html).toContain('id="histogramme-scores-chart"');
+    expect(html).toContain('e2eid="e2eid-bouton-calculer-histogramme-scores"');
+    expect(html).toContain('Histogramme des scores des offres');
+  });
+
+  it('le script appelle l’API /api/histogramme-scores-offres au clic sur Calculer (histogramme)', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain("'/api/histogramme-scores-offres'");
+    expect(html).toContain('drawHistogrammeScores');
+    expect(html).toContain('e2eid-bouton-calculer-histogramme-scores');
+  });
+
+  it('le script histogramme applique les couleurs par plage (gris, orange, vert)', () => {
+    const html = getPageTableauDeBord();
+    expect(html).toContain('barColorForBucketIndex');
+    expect(html).toContain('rgb(110, 119, 129)');
+    expect(html).toContain('rgb(217, 115, 13)');
+    expect(html).toContain('rgb(26, 127, 55)');
   });
 
   // --- US-2.5 : Consommation API (container, tableau, bouton Calculer) ---
@@ -273,5 +335,65 @@ describe('getPageTableauDeBord', () => {
     expect(html).toContain("'/api/tableau-synthese-offres/refresh'");
     expect(html).toContain("method: 'POST'");
     expect(html).toContain("'/api/tableau-synthese-offres'");
+  });
+
+  it('après exécution du script dans un DOM réel, le thead et le tbody du tableau synthèse sont remplis (détecte bug affichage vide)', async () => {
+    const html = getPageTableauDeBord({ airtableBaseUrl: 'https://airtable.com/appTest' });
+    const { document, window } = parseHTML(html);
+    const mockLignes = [
+      {
+        sourceEtape1: 'Test Source',
+        sourceEtape2: 'Test Source',
+        emailExpéditeur: 'Test Source',
+        statuts: { 'A compléter': 1, 'À analyser': 0 },
+        emailÀImporter: 0,
+        fichierÀImporter: 0,
+        creationEmailActivé: true,
+        creationListeHtmlActivé: false,
+        activerEnrichissement: true,
+        activerAnalyseIA: false,
+        phase1EmailImplemented: true,
+        phase1ListeHtmlImplemented: false,
+        phase2Implemented: true,
+        phase3Implemented: false,
+      },
+    ];
+    const mockData = {
+      lignes: mockLignes,
+      statutsOrdre: ['A compléter', 'À analyser', 'À traiter', 'Autre'],
+      totauxColonnes: { 'A compléter': 1 },
+      totalParLigne: [1],
+      totalGeneral: 1,
+    };
+    window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+      const method = (init?.method ?? (typeof input === 'string' ? 'GET' : 'GET')).toUpperCase();
+      if (method === 'POST') return Promise.resolve({ json: () => Promise.resolve({ ok: true }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve(mockData) } as Response);
+    };
+    const g = globalThis as typeof globalThis & { window?: unknown; document?: unknown };
+    const prevWindow = g.window;
+    const prevDocument = g.document;
+    g.window = window;
+    g.document = document;
+    try {
+      const main = document.querySelector('main');
+      expect(main).toBeTruthy();
+      const script = main?.querySelector('script');
+      expect(script).toBeTruthy();
+      expect(script?.textContent).toContain('initSynthese');
+      window.eval(script!.textContent!);
+      await new Promise((r) => setTimeout(r, 150));
+    } finally {
+      g.window = prevWindow;
+      g.document = prevDocument;
+    }
+    const thead = document.getElementById('synthese-offres-head');
+    const tbody = document.getElementById('synthese-offres-body');
+    expect(thead).toBeTruthy();
+    expect(tbody).toBeTruthy();
+    expect(thead!.innerHTML).toContain('<tr>');
+    expect(thead!.innerHTML).toContain('Source');
+    expect(tbody!.innerHTML).toMatch(/<tr/);
+    expect(tbody!.innerHTML).toContain('Test Source');
   });
 });

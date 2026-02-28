@@ -11,9 +11,9 @@ Fonctionnalité: Justifications des arbitrages réhibitoires
 
   # --- CA4 : Exposition API — les réponses qui exposent les données d'analyse incluent les justifications ---
   Scénario: La réponse de l'API de test d'analyse inclut les justifications des réhibitoires lorsqu'elles sont présentes
-    Étant donné que l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse contenant des justifications pour les réhibitoires configurés
+    Étant donné que l'API Mistral est mockée pour renvoyer un résultat d'analyse contenant des justifications pour les réhibitoires configurés
     Et que le champ "Texte d'offre à tester" contient un texte
-    Quand j'appelle l'API de test d'analyse ClaudeCode (POST /api/test-claudecode)
+    Quand j'appelle l'API de test d'analyse Mistral (POST /api/test-mistral ou équivalent)
     Alors la réponse contient les champs Réhibitoire1 à RéhibitoireN (string justification) pour chaque réhibitoire configuré
     Et chaque justification est une chaîne de caractères (texte court)
 
@@ -25,25 +25,25 @@ Fonctionnalité: Justifications des arbitrages réhibitoires
 
   # --- CA5 : Interface utilisateur — affichage des justifications à côté de chaque réhibitoire ---
   Scénario: À côté de chaque critère rédhibitoire affiché (true/false), la justification est visible
-    Étant donné que l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse contenant des justifications pour les réhibitoires configurés
+    Étant donné que l'API Mistral est mockée pour renvoyer un résultat d'analyse contenant des justifications pour les réhibitoires configurés
     Et que le champ "Texte d'offre à tester" contient un texte
     Et que je suis sur la page Paramètres
-    Quand je clique sur le bouton "Tester API" de la section Configuration ClaudeCode
-    Alors la zone de résultat du test ClaudeCode affiche le résultat de l'analyse
+    Quand je clique sur le bouton "Tester API" de la section API IA
+    Alors la zone de résultat du test API IA affiche le résultat de l'analyse
     Et pour chaque critère rédhibitoire affiché (Réhibitoire1 à N), la justification associée est affichée à côté ou en dessous du booléen
 
   Scénario: Les justifications sont affichées en texte lisible sans balises HTML brutes
-    Étant donné que l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse contenant une justification avec du texte explicatif
+    Étant donné que l'API Mistral est mockée pour renvoyer un résultat d'analyse contenant une justification avec du texte explicatif
     Et que le champ "Texte d'offre à tester" contient un texte
     Et que je suis sur la page Paramètres
-    Quand je clique sur le bouton "Tester API" de la section Configuration ClaudeCode
-    Alors la zone de résultat du test ClaudeCode affiche les justifications en texte lisible
+    Quand je clique sur le bouton "Tester API" de la section API IA
+    Alors la zone de résultat du test API IA affiche les justifications en texte lisible
     Et aucune balise HTML brute n'est visible dans le texte des justifications
 
   Scénario: L'ordre des justifications correspond à l'ordre des critères rédhibitoires (1 à 4)
-    Étant donné que l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse avec des justifications distinctes pour Réhibitoire1, Réhibitoire2, Réhibitoire3 et Réhibitoire4
+    Étant donné que l'API Mistral est mockée pour renvoyer un résultat d'analyse avec des justifications distinctes pour Réhibitoire1, Réhibitoire2, Réhibitoire3 et Réhibitoire4
     Et que le paramétrage IA définit quatre critères rédhibitoires
     Et que je suis sur la page Paramètres
-    Quand je clique sur le bouton "Tester API" de la section Configuration ClaudeCode
+    Quand je clique sur le bouton "Tester API" de la section API IA
     Alors la zone de résultat affiche les critères rédhibitoires dans l'ordre (1 puis 2 puis 3 puis 4)
     Et chaque justification est affichée à côté du bon critère (justification 1 avec réhibitoire 1, etc.)

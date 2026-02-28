@@ -12,7 +12,7 @@ export {
   type AirtableConfigDriver,
 } from './configuration-airtable.js';
 export { lireAirTable, ecrireAirTable } from './parametres-airtable.js';
-export { lireClaudeCode, ecrireClaudeCode } from './parametres-claudecode.js';
+export { lireMistral, ecrireMistral } from './parametres-mistral.js';
 export { evaluerParametragesComplets, type ResultatParametragesComplets } from './parametrages-complets.js';
 export {
   createAirtableDriverReel,
@@ -45,11 +45,12 @@ export {
 } from './relève-offres-linkedin.js';
 export { extractOffresFromHtml } from './extraction-offres-email.js';
 export { createAirtableReleveDriver, type AirtableReleveDriverOptions } from './airtable-releve-driver.js';
+export { createReleveOffresSqliteDriver, type ReleveOffresSqliteDriverOptions } from './releve-offres-sqlite.js';
 export {
   preparerMigrationSources,
   auditerSourcesDepuisEmails,
   traiterEmailsSelonStatutSource,
-  type PluginSource,
+  type SourceNom,
   type SourceEmail,
   type EmailAAnalyser,
   type OptionsTraitementSources,
@@ -66,6 +67,7 @@ export {
   type OptionsEnrichissement,
 } from './enrichissement-offres.js';
 export { createAirtableEnrichissementDriver, type AirtableEnrichissementDriverOptions } from './airtable-enrichissement-driver.js';
+export { createEnrichissementOffresSqliteDriver, type EnrichissementOffresSqliteDriverOptions } from './enrichissement-offres-sqlite.js';
 export { createFetcherContenuOffre } from './fetcher-contenu-offre.js';
 export { STATUTS_OFFRES_AIRTABLE, STATUTS_OFFRES_AVEC_AUTRE } from './statuts-offres-airtable.js';
 export {
@@ -106,3 +108,32 @@ export {
   type ResultatOrchestrationTraitements,
 } from './orchestration-traitements.js';
 export { getDataDir, type DataDirOptions } from './data-dir.js';
+export {
+  getListeHtmlDir,
+  getListeHtmlPluginDir,
+  getListeHtmlAdresseRelative,
+  toFullPathListeHtml,
+} from './liste-html-paths.js';
+export {
+  extraireOffresApecFromHtml,
+  extraireUrlsApecDepuisDossier,
+  extraireUrlsApecDepuisDossierDir,
+  type OffreApecExtraite,
+  type UrlApecAvecSource,
+  type DepsExtraireUrlsApecDepuisDossier,
+} from './apec-liste-html-parser.js';
+export {
+  lireFichiersHtmlEnAttente,
+  type FichierHtmlLu,
+} from './lire-fichiers-html-en-attente.js';
+export {
+  initOffresRepository,
+  type OffresRepository,
+  type OffreRow,
+  type TableColumnInfo,
+} from './repository-offres-sqlite.js';
+export {
+  reprendreOffresAirtableVersSqlite,
+  type RepriseOffresOptions,
+  type RepriseOffresResult,
+} from './reprise-offres-airtable-vers-sqlite.js';

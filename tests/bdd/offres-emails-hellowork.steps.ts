@@ -15,7 +15,7 @@ type AuditResult = {
   status: string;
   result?: {
     ok: boolean;
-    synthese?: Array<{ emailExpéditeur: string; plugin: string; actif: string }>;
+    synthese?: Array<{ emailExpéditeur: string; source: string; actif: string }>;
   };
 };
 type TraitementResponse = { ok: boolean; message?: string; nbOffresCreees?: number };
@@ -407,7 +407,7 @@ Then('son plugin est {string}', async ({ page: _page }, plugin: string) => {
   const row = synthese.find(
     (r) => r.emailExpéditeur?.toLowerCase() === 'notification@emails.hellowork.com'
   );
-  expect(row?.plugin).toBe(plugin);
+  expect(row?.source).toBe(plugin);
 });
 
 Then('la valeur {string} est disponible', async ({ page: _page }, valeur: string) => {
@@ -418,7 +418,7 @@ Then('la source créée porte l\'plugin {string} avec le champ {string} à true'
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === lastExpectedExpediteur);
   expect(row).toBeDefined();
-  expect(row?.plugin).toBe(plugin);
+  expect(row?.source).toBe(plugin);
   if (champ === 'actif' || champ === '"actif"') expect(row?.actif).toBe('Oui');
 });
 
@@ -445,7 +445,7 @@ Then('cet email est rattaché à la source {string}', async ({ page: _page }, pl
   expect(lastAuditResult?.result?.ok).toBe(true);
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === (lastEmailExpediteurInFolder || lastExpectedExpediteur));
-  expect(row?.plugin).toBe(plugin);
+  expect(row?.source).toBe(plugin);
 });
 
 Then('la source est reportée avec l\'expéditeur {string}, l\'plugin {string} et {string} à true', async (
@@ -457,7 +457,7 @@ Then('la source est reportée avec l\'expéditeur {string}, l\'plugin {string} e
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === expediteur.toLowerCase());
   expect(row).toBeDefined();
-  expect(row?.plugin).toBe(plugin);
+  expect(row?.source).toBe(plugin);
   expect(row?.actif).toBe('Oui');
 });
 Then('la source est reportée avec l\'expéditeur {string}, l\'plugin {string} et {string} à {string}', async (
@@ -470,20 +470,20 @@ Then('la source est reportée avec l\'expéditeur {string}, l\'plugin {string} e
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === expediteur.toLowerCase());
   expect(row).toBeDefined();
-  expect(row?.plugin).toBe(plugin);
+  expect(row?.source).toBe(plugin);
   expect(row?.actif).toBe(valeur === 'true' ? 'Oui' : valeur);
 });
 
 Then('cet email n\'est pas rattaché à la source {string}', async ({ page: _page }, plugin: string) => {
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === lastEmailExpediteurInFolder);
-  expect(row?.plugin).not.toBe(plugin);
+  expect(row?.source).not.toBe(plugin);
 });
 
 Then('l\'audit signale une source inconnue pour cet expéditeur', async () => {
   const synthese = lastAuditResult?.result?.synthese ?? [];
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === lastEmailExpediteurInFolder);
-  expect(row?.plugin).toBe('Inconnu');
+  expect(row?.source).toBe('Inconnu');
 });
 
 Then('une ligne est créée dans la table Offres', async () => {

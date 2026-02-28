@@ -106,16 +106,16 @@ describe('createAirtableEnrichissementDriver', () => {
                 id: 'recHW',
                 fields: {
                   'Activer l\'enrichissement': true,
-                  plugin: 'HelloWork',
-                  emailExpéditeur: 'notification@emails.hellowork.com',
+                  source: 'HelloWork',
+                  Adresse: 'notification@emails.hellowork.com',
                 },
               },
               {
                 id: 'recLinkedIn',
                 fields: {
-                                    "Activer l'enrichissement": false,
-                  plugin: 'Linkedin',
-                  emailExpéditeur: 'jobs@linkedin.com',
+                  "Activer l'enrichissement": false,
+                  source: 'Linkedin',
+                  Adresse: 'jobs@linkedin.com',
                 },
               },
             ],
@@ -132,7 +132,7 @@ describe('createAirtableEnrichissementDriver', () => {
                 fields: {
                   URL: 'https://www.hellowork.com/fr-fr/emplois/1.html',
                   Statut: 'A compléter',
-                  'email expéditeur': ['recHW'],
+                  Adresse: ['recHW'],
                 },
               },
             ],
@@ -195,16 +195,16 @@ describe('createAirtableEnrichissementDriver', () => {
                 id: 'recAvecIA',
                 fields: {
                   "Activer l'analyse par IA": true,
-                  plugin: 'Linkedin',
-                  emailExpéditeur: 'avec-ia@test.com',
+                  source: 'Linkedin',
+                  Adresse: 'avec-ia@test.com',
                 },
               },
               {
                 id: 'recSansIA',
                 fields: {
                   "Activer l'analyse par IA": false,
-                  plugin: 'HelloWork',
-                  emailExpéditeur: 'sans-ia@test.com',
+                  source: 'HelloWork',
+                  Adresse: 'sans-ia@test.com',
                 },
               },
             ],
@@ -223,7 +223,7 @@ describe('createAirtableEnrichissementDriver', () => {
                   Poste: 'Dev',
                   Ville: 'Paris',
                   "Texte de l'offre": 'Desc',
-                  'email expéditeur': ['recAvecIA'],
+                  Adresse: ['recAvecIA'],
                 },
               },
               {
@@ -233,7 +233,7 @@ describe('createAirtableEnrichissementDriver', () => {
                   Poste: 'PO',
                   Ville: 'Lyon',
                   "Texte de l'offre": 'Desc2',
-                  'email expéditeur': ['recSansIA'],
+                  Adresse: ['recSansIA'],
                 },
               },
             ],
@@ -253,6 +253,38 @@ describe('createAirtableEnrichissementDriver', () => {
       const r = await driver.getOffresAAnalyser!();
       expect(r).toHaveLength(1);
       expect(r[0].id).toBe('recOffre1');
+      expect(r[0].poste).toBe('Dev');
+    } finally {
+      globalThis.fetch = globalFetch;
+    }
+  });
+
+  it('getOffresAAnalyser filtre par sourceNomsActifs (sources.json) quand fourni', async () => {
+    const globalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockImplementation((url: string) => {
+      if (url.includes(offresId)) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            records: [
+              { id: 'rec1', fields: { Statut: 'À analyser', source: 'APEC', Poste: 'Dev', "Texte de l'offre": 'T' } },
+              { id: 'rec2', fields: { Statut: 'À analyser', source: 'Cadre Emploi', Poste: 'PO', "Texte de l'offre": 'T2' } },
+            ],
+          }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ records: [] }) });
+    });
+    try {
+      const driver = createAirtableEnrichissementDriver({
+        apiKey,
+        baseId,
+        offresId,
+        sourceNomsActifs: new Set(['APEC']),
+      });
+      const r = await driver.getOffresAAnalyser!();
+      expect(r).toHaveLength(1);
+      expect(r[0].id).toBe('rec1');
       expect(r[0].poste).toBe('Dev');
     } finally {
       globalThis.fetch = globalFetch;

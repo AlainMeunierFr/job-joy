@@ -1,0 +1,13 @@
+---
+description: Dossier docs exposé — écrire en temps/ pour la doc de travail
+alwaysApply: true
+---
+
+# docs vs temps
+
+**Le dossier `docs/` est exposé sur internet.** Ne pas y écrire de contenu de travail ou interne.
+
+- **À ne pas mettre dans `docs/`** : US d’état de l’art, rapports de revue, plans d’implémentation, revues de code, tableaux de suivi, notes de conversation, tout document destiné au travail d’équipe ou aux agents.
+- **À écrire dans `temps/`** : ce type de contenu (US, rapports, plans, revues, tableaux, notes) doit être créé ou mis à jour dans le dossier **`temps/`** (ou `.cursor/` selon le type, ex. sprints, commands).
+
+Règle pour tous les agents : **ne jamais écrire dans `docs/`** pour des artefacts de travail ; utiliser **`temps/`** (ou le dossier prévu pour le type de fichier, ex. `.cursor/sprints/` pour les US de backlog).

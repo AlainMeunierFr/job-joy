@@ -125,7 +125,7 @@ function parseHtmlToChamps(html: string): ResultatEnrichissementOffre {
 
 export function createCadreEmploiOfferFetchPlugin(): SourceOfferFetchPlugin {
   return {
-    plugin: 'Cadre Emploi',
+    source: 'Cadre Emploi',
     stage2Implemented: true,
     async recupererContenuOffre(url: string): Promise<ResultatEnrichissementOffre> {
       const u = (url ?? '').trim();

@@ -19,7 +19,7 @@ let lastWasARecuperer: boolean | null = null;
 
 type SourceMock = {
   emailExpéditeur: string;
-  plugin: string;
+  source: string;
   type: 'email' | 'liste html' | 'liste csv';
   activerCreation: boolean;
   activerEnrichissement: boolean;
@@ -48,7 +48,7 @@ async function flushMockSourcesAndOffres(): Promise<void> {
     body: JSON.stringify({
       sources: currentSources.map((s) => ({
         emailExpéditeur: s.emailExpéditeur,
-        plugin: s.plugin,
+        source: s.source,
         type: s.type,
         activerCreation: s.activerCreation,
         activerEnrichissement: s.activerEnrichissement,
@@ -70,14 +70,14 @@ Given('les sources suivantes existent en base', async ({ page: _page }, dataTabl
   if (rows.length < 2) return;
   const headers = rows[0].map((h) => h.trim());
   const idxEmail = headers.indexOf('emailExpéditeur');
-  const idxPlugin = headers.indexOf('plugin');
+  const idxSource = headers.indexOf('source') >= 0 ? headers.indexOf('source') : headers.indexOf('plugin');
   const idxType = headers.indexOf('type');
   const idxCre = headers.indexOf('Activer la création');
   const idxEnrich = headers.indexOf('Activer l\'enrichissement');
   const idxIA = headers.indexOf('Activer l\'analyse par IA');
   const sources: Array<{
     emailExpéditeur: string;
-    plugin: string;
+    source: string;
     type?: 'email' | 'liste html' | 'liste csv';
     activerCreation: boolean;
     activerEnrichissement: boolean;
@@ -88,7 +88,7 @@ Given('les sources suivantes existent en base', async ({ page: _page }, dataTabl
     const toBool = (v: string) => (v || '').trim().toLowerCase() === 'true';
     sources.push({
       emailExpéditeur: row[idxEmail]?.trim() ?? '',
-      plugin: row[idxPlugin]?.trim() ?? 'Inconnu',
+      source: row[idxSource]?.trim() ?? 'Inconnu',
       type: idxType >= 0 ? (row[idxType]?.trim() as 'email' | 'liste html' | 'liste csv') || 'email' : 'email',
       activerCreation: idxCre >= 0 ? toBool(row[idxCre]) : true,
       activerEnrichissement: idxEnrich >= 0 ? toBool(row[idxEnrich]) : true,
@@ -103,8 +103,8 @@ Given('les sources suivantes existent en base', async ({ page: _page }, dataTabl
   if (!res.ok) throw new Error(`set-mock-sources failed: ${res.status}`);
   const lignes = sources.map((s) => ({
     emailExpéditeur: s.emailExpéditeur,
-    pluginEtape1: s.plugin,
-    pluginEtape2: s.plugin,
+    sourceEtape1: s.source,
+    sourceEtape2: s.source,
     activerCreation: s.activerCreation,
     activerEnrichissement: s.activerEnrichissement,
     activerAnalyseIA: s.activerAnalyseIA,
@@ -176,7 +176,7 @@ When('je crée une source avec emailExpéditeur {string}, plugin {string}, type 
   const sources = [
     {
       emailExpéditeur: (email || '').replace(/^"|"$/g, '').trim(),
-      plugin: (plugin || '').replace(/^"|"$/g, '').trim(),
+      source: (plugin || '').replace(/^"|"$/g, '').trim(),
       type: (type || 'email').replace(/^"|"$/g, '').trim() as 'email' | 'liste html' | 'liste csv',
       activerCreation: true,
       activerEnrichissement: true,
@@ -191,8 +191,8 @@ When('je crée une source avec emailExpéditeur {string}, plugin {string}, type 
   if (!res.ok) throw new Error(`set-mock-sources failed: ${res.status}`);
   const lignes = sources.map((s) => ({
     emailExpéditeur: s.emailExpéditeur,
-    pluginEtape1: s.plugin,
-    pluginEtape2: s.plugin,
+    sourceEtape1: s.source,
+    sourceEtape2: s.source,
     activerCreation: s.activerCreation,
     activerEnrichissement: s.activerEnrichissement,
     activerAnalyseIA: s.activerAnalyseIA,
@@ -221,7 +221,7 @@ Then('une source {string} existe avec type {string}, activerCreation true, activ
 Given('une source {string} existe avec Activer la création true, Activer l\'enrichissement true, Activer l\'analyse par IA true', async ({ page: _page }, email: string) => {
   const exp = (email || '').replace(/^"|"$/g, '').trim();
   const sources = [
-    { emailExpéditeur: exp, plugin: 'Inconnu', type: 'email' as const, activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true },
+    { emailExpéditeur: exp, source: 'Inconnu', type: 'email' as const, activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true },
   ];
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
     method: 'POST',
@@ -231,8 +231,8 @@ Given('une source {string} existe avec Activer la création true, Activer l\'enr
   if (!res.ok) throw new Error(`set-mock-sources failed: ${res.status}`);
   const lignes = sources.map((s) => ({
     emailExpéditeur: s.emailExpéditeur,
-    pluginEtape1: s.plugin,
-    pluginEtape2: s.plugin,
+    sourceEtape1: s.source,
+    sourceEtape2: s.source,
     activerCreation: s.activerCreation,
     activerEnrichissement: s.activerEnrichissement,
     activerAnalyseIA: s.activerAnalyseIA,
@@ -249,7 +249,7 @@ Given('une source {string} existe avec Activer la création true, Activer l\'enr
 When('je mets à jour la source {string} avec Activer l\'enrichissement false', async ({ page: _page }, email: string) => {
   const exp = (email || '').replace(/^"|"$/g, '').trim();
   const sources = [
-    { emailExpéditeur: exp, plugin: 'Inconnu', type: 'email' as const, activerCreation: true, activerEnrichissement: false, activerAnalyseIA: true },
+    { emailExpéditeur: exp, source: 'Inconnu', type: 'email' as const, activerCreation: true, activerEnrichissement: false, activerAnalyseIA: true },
   ];
   const res = await fetch(`${API_BASE}/api/test/set-mock-sources`, {
     method: 'POST',
@@ -259,8 +259,8 @@ When('je mets à jour la source {string} avec Activer l\'enrichissement false', 
   if (!res.ok) throw new Error(`set-mock-sources failed: ${res.status}`);
   const lignes = sources.map((s) => ({
     emailExpéditeur: s.emailExpéditeur,
-    pluginEtape1: s.plugin,
-    pluginEtape2: s.plugin,
+    sourceEtape1: s.source,
+    sourceEtape2: s.source,
     activerCreation: s.activerCreation,
     activerEnrichissement: s.activerEnrichissement,
     activerAnalyseIA: s.activerAnalyseIA,
@@ -297,7 +297,7 @@ async function addSourceAndOffre(
   const em = (email || '').replace(/^"|"$/g, '').trim();
   currentSources.push({
     emailExpéditeur: em,
-    plugin: 'Inconnu',
+    source: 'Inconnu',
     type: 'email',
     activerCreation: true,
     activerEnrichissement: activerEnrich,
@@ -373,7 +373,7 @@ Given('une source {string} a Activer la création true', async ({ page: _page },
   const em = (email || '').replace(/^"|"$/g, '').trim();
   currentSources.push({
     emailExpéditeur: em,
-    plugin: 'Inconnu',
+    source: 'Inconnu',
     type: 'email',
     activerCreation: true,
     activerEnrichissement: true,
@@ -386,7 +386,7 @@ Given('une source {string} a Activer la création false', async ({ page: _page }
   const em = (email || '').replace(/^"|"$/g, '').trim();
   currentSources.push({
     emailExpéditeur: em,
-    plugin: 'Inconnu',
+    source: 'Inconnu',
     type: 'email',
     activerCreation: false,
     activerEnrichissement: true,
@@ -456,7 +456,7 @@ When('une source {string} est créée \\(relève ou audit)', async ({ page: _pag
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       sources: [
-        { emailExpéditeur: `noreply@${d}`, plugin: 'Linkedin', type: 'email', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true },
+        { emailExpéditeur: `noreply@${d}`, source: 'Linkedin', type: 'email', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true },
       ],
     }),
   });
@@ -511,11 +511,11 @@ Given('une source {string} est affichée dans l\'audit des sources avec Activer 
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sources: [{ emailExpéditeur: em, plugin: 'Inconnu', type: 'email', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true }],
+      sources: [{ emailExpéditeur: em, source: 'Inconnu', type: 'email', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true }],
     }),
   });
   const lignes = [
-    { emailExpéditeur: em, pluginEtape1: 'Inconnu', pluginEtape2: 'Inconnu', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true, statuts: {} as Record<string, number>, aImporter: 0 },
+    { emailExpéditeur: em, sourceEtape1: 'Inconnu', sourceEtape2: 'Inconnu', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true, statuts: {} as Record<string, number>, aImporter: 0 },
   ];
   await fetch(`${API_BASE}/api/test/set-mock-tableau-synthese`, {
     method: 'POST',
@@ -538,11 +538,11 @@ When('j\'enregistre les modifications', async ({ page }) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sources: [{ emailExpéditeur: lastAuditSourceEmail, plugin: 'Inconnu', type: 'email', activerCreation: true, activerEnrichissement: false, activerAnalyseIA: true }],
+      sources: [{ emailExpéditeur: lastAuditSourceEmail, source: 'Inconnu', type: 'email', activerCreation: true, activerEnrichissement: false, activerAnalyseIA: true }],
     }),
   });
   const lignes = [
-    { emailExpéditeur: lastAuditSourceEmail, pluginEtape1: 'Inconnu', pluginEtape2: 'Inconnu', activerCreation: true, activerEnrichissement: false, activerAnalyseIA: true, statuts: {} as Record<string, number>, aImporter: 0 },
+    { emailExpéditeur: lastAuditSourceEmail, sourceEtape1: 'Inconnu', sourceEtape2: 'Inconnu', activerCreation: true, activerEnrichissement: false, activerAnalyseIA: true, statuts: {} as Record<string, number>, aImporter: 0 },
   ];
   await fetch(`${API_BASE}/api/test/set-mock-tableau-synthese`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lignes }) });
 });
@@ -561,7 +561,7 @@ Given('la base Airtable contient au moins une source', async () => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sources: [{ emailExpéditeur: 'cli@test.com', plugin: 'Inconnu', type: 'email', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true }],
+      sources: [{ emailExpéditeur: 'cli@test.com', source: 'Inconnu', type: 'email', activerCreation: true, activerEnrichissement: true, activerAnalyseIA: true }],
     }),
   });
 });

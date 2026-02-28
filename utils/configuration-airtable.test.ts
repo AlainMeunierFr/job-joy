@@ -34,7 +34,7 @@ describe('executerConfigurationAirtable (baby step 3)', () => {
 
   it('retourne ok: false avec message si apiKey vide', async () => {
     const driver: AirtableConfigDriver = {
-      creerBaseEtTables: async () => ({ baseId: 'b', sourcesId: 's', offresId: 'o' }),
+      creerBaseEtTables: async () => ({ baseId: 'b', offresId: 'o' }),
     };
     const r = await executerConfigurationAirtable('', dataDir, driver);
     expect(r.ok).toBe(false);
@@ -43,17 +43,16 @@ describe('executerConfigurationAirtable (baby step 3)', () => {
 
   it('retourne ok: false si apiKey uniquement espaces', async () => {
     const driver: AirtableConfigDriver = {
-      creerBaseEtTables: async () => ({ baseId: 'b', sourcesId: 's', offresId: 'o' }),
+      creerBaseEtTables: async () => ({ baseId: 'b', offresId: 'o' }),
     };
     const r = await executerConfigurationAirtable('   ', dataDir, driver);
     expect(r.ok).toBe(false);
   });
 
-  it('retourne ok: true avec baseId, sourcesId, offresId en cas de succès (mock)', async () => {
+  it('retourne ok: true avec baseId, offresId en cas de succès (mock)', async () => {
     const driver: AirtableConfigDriver = {
       creerBaseEtTables: async () => ({
         baseId: 'base123',
-        sourcesId: 'sources456',
         offresId: 'offres789',
       }),
     };
@@ -61,7 +60,6 @@ describe('executerConfigurationAirtable (baby step 3)', () => {
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.baseId).toBe('base123');
-      expect(r.sourcesId).toBe('sources456');
       expect(r.offresId).toBe('offres789');
     }
   });
@@ -110,7 +108,7 @@ describe('intégration parametres après configuration réussie (baby step 4)', 
   });
 
   it('libelleStatutConfigurationAirtable retourne "AirTable prêt" ou "Erreur avec AirTable" + message', () => {
-    expect(libelleStatutConfigurationAirtable({ ok: true, baseId: 'b', sourcesId: 's', offresId: 'o' })).toBe(
+    expect(libelleStatutConfigurationAirtable({ ok: true, baseId: 'b', offresId: 'o' })).toBe(
       'AirTable prêt'
     );
     expect(libelleStatutConfigurationAirtable({ ok: false, message: 'API Key invalide' })).toBe(
@@ -118,12 +116,11 @@ describe('intégration parametres après configuration réussie (baby step 4)', 
     );
   });
 
-  it('après appel réussi (mock), parametres contient apiKey, base, sources, offres', async () => {
+  it('après appel réussi (mock), parametres contient apiKey, base, offres', async () => {
     ecrireParametres(dataDir, getDefaultParametres());
     const driver: AirtableConfigDriver = {
       creerBaseEtTables: async () => ({
         baseId: 'baseId',
-        sourcesId: 'sourcesId',
         offresId: 'offresId',
       }),
     };
@@ -134,7 +131,6 @@ describe('intégration parametres après configuration réussie (baby step 4)', 
     expect(at).not.toBeNull();
     expect(at?.apiKey).toBe('my-api-key');
     expect(at?.base).toBe('baseId');
-    expect(at?.sources).toBe('sourcesId');
     expect(at?.offres).toBe('offresId');
   });
 
@@ -148,7 +144,6 @@ describe('intégration parametres après configuration réussie (baby step 4)', 
       const driver: AirtableConfigDriver = {
         creerBaseEtTables: async () => ({
           baseId: 'appXyz123',
-          sourcesId: 'sourcesId',
           offresId: 'offresId',
         }),
       };
@@ -156,7 +151,6 @@ describe('intégration parametres après configuration réussie (baby step 4)', 
       expect(r.ok).toBe(true);
       const at = lireAirTable(dataDir);
       expect(at?.base).toBe(urlBase);
-      expect(at?.sources).toBe('sourcesId');
       expect(at?.offres).toBe('offresId');
     } finally {
       rmSync(dataDir, { recursive: true, force: true });

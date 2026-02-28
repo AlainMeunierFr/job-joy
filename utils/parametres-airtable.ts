@@ -31,7 +31,11 @@ export function lireAirTable(dataDir: string): AirTable | null {
   if (apiKeyChiffre) {
     try {
       apiKey = dechiffrerMotDePasse(apiKeyChiffre);
-    } catch {
+    } catch (e) {
+      console.warn(
+        '[parametres-airtable] Déchiffrement apiKey Airtable impossible. Vérifiez que PARAMETRES_ENCRYPTION_KEY (ex. dans .env) est défini et identique à celui utilisé à l’enregistrement.',
+        e instanceof Error ? e.message : e
+      );
       apiKey = apiKeyEnClair ?? '';
     }
   } else {

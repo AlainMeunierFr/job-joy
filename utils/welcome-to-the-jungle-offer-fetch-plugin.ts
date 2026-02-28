@@ -61,7 +61,7 @@ function extractFromMeta(html: string, property: string): string | undefined {
 
 export function createWelcomeToTheJungleOfferFetchPlugin(): SourceOfferFetchPlugin {
   return {
-    plugin: 'Welcome to the Jungle',
+    source: 'Welcome to the Jungle',
     stage2Implemented: true,
     async recupererContenuOffre(url: string): Promise<ResultatEnrichissementOffre> {
       const u = (url ?? '').trim();

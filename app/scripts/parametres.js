@@ -99,6 +99,45 @@
       }
       setButtonsCompteFromConsentement();
     })();
+    /* Formulaire API IA : submit (bouton Enregistrer ou Entrée dans le champ) → POST /api/mistral + feedback */
+    (function() {
+      var formApiIa = document.getElementById('form-api-ia');
+      if (!formApiIa) return;
+      formApiIa.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+        var apiKeyInput = document.getElementById('api-key-ia');
+        var value = (apiKeyInput && apiKeyInput.value) ? apiKeyInput.value.trim() : '';
+        var body = value ? { apiKey: value } : {};
+        var btnIa = document.getElementById('bouton-enregistrer-ia');
+        var feedbackEl = document.getElementById('feedback-enregistrement-ia');
+        function setFeedback(msg, type) {
+          if (feedbackEl) {
+            feedbackEl.textContent = msg;
+            feedbackEl.setAttribute('data-type', type || '');
+          }
+        }
+        if (btnIa) btnIa.disabled = true;
+        setFeedback('');
+        fetch(origin + '/api/mistral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data && data.ok) {
+              setFeedback('Clé enregistrée.', 'succes');
+              if (apiKeyInput) {
+                apiKeyInput.value = '';
+                apiKeyInput.placeholder = 'API Key correctement enregistrée';
+              }
+            } else {
+              setFeedback((data && data.message) ? data.message : 'Erreur lors de l\'enregistrement.', 'erreur');
+            }
+          })
+          .catch(function(err) {
+            setFeedback((err && err.message) ? err.message : 'Erreur réseau.', 'erreur');
+          })
+          .finally(function() { if (btnIa) btnIa.disabled = false; });
+      });
+    })();
     /* Un seul listener consentement : l’IIFE ci‑dessus (change + click sur la case). Pas de doublon sur document.change. */
     document.addEventListener('click', function(e) {
       var t = e.target;
@@ -391,18 +430,7 @@
           })
           .finally(function() { if (btnConfig) btnConfig.disabled = false; });
       }
-      if (t.id === 'bouton-enregistrer-claudecode' || (t.closest && t.closest('#bouton-enregistrer-claudecode'))) {
-        e.preventDefault();
-        var claudecodeInput = document.getElementById('claudecode-api-key');
-        var value = (claudecodeInput && claudecodeInput.value) ? claudecodeInput.value.trim() : '';
-        var body = value ? { apiKey: value } : {};
-        var btnClaude = document.getElementById('bouton-enregistrer-claudecode');
-        if (btnClaude) btnClaude.disabled = true;
-        fetch(origin + '/api/claudecode', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-          .then(function(r) { return r.json(); })
-          .then(function(data) { if (data && data.ok) { window.location.reload(); } })
-          .finally(function() { if (btnClaude) btnClaude.disabled = false; });
-      }
+      /* Enregistrement API IA géré par le submit du formulaire #form-api-ia (voir plus haut). */
       if (t.id === 'bouton-recuperer-texte-offre' || (t.closest && t.closest('#bouton-recuperer-texte-offre'))) {
         e.preventDefault();
         var ta = document.getElementById('texte-offre-test');
@@ -428,10 +456,11 @@
           })
           .finally(function() { if (btnRecup) btnRecup.disabled = false; });
       }
-      if (t.id === 'bouton-tester-api' || (t.closest && t.closest('#bouton-tester-api'))) {
+      /* « Tester API » géré par enregistrement-api-ia.js (même script que le formulaire API IA). */
+      if (false && (t.id === 'bouton-tester-api' || (t.closest && t.closest('#bouton-tester-api')))) {
         e.preventDefault();
         var taTest = document.getElementById('texte-offre-test');
-        var zoneResultat = document.getElementById('zone-resultat-test-claudecode');
+        var zoneResultat = document.getElementById('zone-resultat-test-ia');
         var btnTester = document.getElementById('bouton-tester-api');
         if (!zoneResultat) return;
         var texteOffre = (taTest && taTest.value) ? taTest.value : '';
@@ -450,11 +479,11 @@
         if (departement) body.departement = departement;
         if (btnTester) btnTester.disabled = true;
         zoneResultat.setAttribute('data-type', '');
-        zoneResultat.classList.remove('zoneResultatTestClaudecode--erreur');
+        zoneResultat.classList.remove('zoneResultatTestApiIa--erreur');
         zoneResultat.removeAttribute('role');
         zoneResultat.textContent = 'Test en cours…';
-        zoneResultat.setAttribute('aria-label', 'Résultat du test API ClaudeCode');
-        fetch(origin + '/api/test-claudecode', {
+        zoneResultat.setAttribute('aria-label', 'Résultat du test API IA');
+        fetch(origin + '/api/test-mistral', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
@@ -464,7 +493,7 @@
             zoneResultat.setAttribute('role', 'status');
             if (data && data.ok === true) {
               zoneResultat.setAttribute('data-type', 'succes');
-              zoneResultat.setAttribute('aria-label', 'Résultat du test API ClaudeCode');
+              zoneResultat.setAttribute('aria-label', 'Résultat du test API IA');
               var txt = (typeof data.texte === 'string') ? data.texte : '';
               var html = '<pre class="resultatTestClaudecodeTexte">' + escapeHtml(txt) + '</pre>';
               var jv = data.jsonValidation;
@@ -504,8 +533,8 @@
               zoneResultat.innerHTML = html;
             } else {
               zoneResultat.setAttribute('data-type', 'erreur');
-              zoneResultat.classList.add('zoneResultatTestClaudecode--erreur');
-              zoneResultat.setAttribute('aria-label', 'Erreur du test API ClaudeCode');
+              zoneResultat.classList.add('zoneResultatTestApiIa--erreur');
+              zoneResultat.setAttribute('aria-label', 'Erreur du test API IA');
               var code = (data && data.code) ? String(data.code) : '';
               var msg = (data && data.message) ? String(data.message) : '';
               zoneResultat.textContent = code ? (msg ? code + ' : ' + msg : code) : (msg || 'Erreur inconnue');
@@ -514,10 +543,11 @@
           .catch(function(err) {
             zoneResultat.setAttribute('role', 'status');
             zoneResultat.setAttribute('data-type', 'erreur');
-            zoneResultat.classList.add('zoneResultatTestClaudecode--erreur');
+            zoneResultat.classList.add('zoneResultatTestApiIa--erreur');
             zoneResultat.textContent = 'Erreur : ' + (err && err.message ? err.message : 'requête échouée');
           })
           .finally(function() { if (btnTester) btnTester.disabled = false; });
+        return;
       }
     });
     function runParametres() {

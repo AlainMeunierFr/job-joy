@@ -17,7 +17,7 @@ describe('runAuditSources - audit seul des sources', () => {
     offres: 'tblOffres',
   };
 
-  it('construit la synthese brute par emailExpéditeur + enrichissement source existante + sous-totaux', async () => {
+  it('construit la synthese brute par emailExpéditeur + enrichissement source existante + sous-totaux (CA2: uniquement sources déjà en base)', async () => {
     const deplacer = jest.fn().mockResolvedValue({ ok: true });
     const createOffres = jest.fn();
     const driverReleve = {
@@ -26,7 +26,7 @@ describe('runAuditSources - audit seul des sources', () => {
         {
           sourceId: 'src_linkedin',
           emailExpéditeur: ' Jobs@Linkedin.com ',
-          plugin: 'Linkedin',
+          source: 'Linkedin',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -62,22 +62,17 @@ describe('runAuditSources - audit seul des sources', () => {
       },
     });
 
+    // CA2 US-6.2 : on ne crée jamais de source pour un expéditeur trouvé dans la boîte ; synthèse uniquement pour sources déjà en base.
     expect(result).toEqual({
       ok: true,
       nbEmailsScannes: 4,
-      nbSourcesCreees: 1,
+      nbSourcesCreees: 0,
       nbSourcesExistantes: 1,
       synthese: [
         {
           emailExpéditeur: 'jobs@linkedin.com',
-          plugin: 'Linkedin',
+          source: 'Linkedin',
           actif: 'Oui',
-          nbEmails: 2,
-        },
-        {
-          emailExpéditeur: 'alerte@emails.hellowork.com',
-          plugin: 'Inconnu',
-          actif: 'Non',
           nbEmails: 2,
         },
       ],
@@ -86,14 +81,7 @@ describe('runAuditSources - audit seul des sources', () => {
         emailsÀAnalyser: 2,
       },
     });
-    expect(driverReleve.creerSource).toHaveBeenCalledWith({
-      emailExpéditeur: 'alerte@emails.hellowork.com',
-      plugin: 'Inconnu',
-      type: 'email',
-      activerCreation: false,
-      activerEnrichissement: false,
-      activerAnalyseIA: true,
-    });
+    expect(driverReleve.creerSource).not.toHaveBeenCalled();
     expect(deplacer).not.toHaveBeenCalled();
     expect(createOffres).not.toHaveBeenCalled();
   });
@@ -105,7 +93,7 @@ describe('runAuditSources - audit seul des sources', () => {
         {
           sourceId: 'rec_existing',
           emailExpéditeur: 'alertes@unknown-source.test',
-          plugin: 'Inconnu',
+          source: 'Inconnu',
           type: 'email',
           activerCreation: false,
           activerEnrichissement: false,
@@ -141,7 +129,7 @@ describe('runAuditSources - audit seul des sources', () => {
       synthese: [
         {
           emailExpéditeur: 'alertes@unknown-source.test',
-          plugin: 'Inconnu',
+          source: 'Inconnu',
           actif: 'Non',
           nbEmails: 1,
         },
@@ -155,7 +143,7 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(deplacer).not.toHaveBeenCalled();
   });
 
-  it('source absente non-linkedin: crée en Inconnu/inactif', async () => {
+  it('CA2 US-6.2: source absente (expéditeur inconnu) ne crée pas de source et n’apparaît pas dans la synthèse', async () => {
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([]),
       creerSource: jest.fn().mockImplementation(async (source) => ({
@@ -185,32 +173,42 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(result).toEqual({
       ok: true,
       nbEmailsScannes: 1,
-      nbSourcesCreees: 1,
+      nbSourcesCreees: 0,
       nbSourcesExistantes: 0,
-      synthese: [
-        {
-          emailExpéditeur: 'hr@example.org',
-          plugin: 'Inconnu',
-          actif: 'Non',
-          nbEmails: 1,
-        },
-      ],
+      synthese: [],
       sousTotauxPrevisionnels: {
         emailsÀArchiver: 0,
         emailsÀAnalyser: 0,
       },
     });
-    expect(driverReleve.creerSource).toHaveBeenCalledWith({
-      emailExpéditeur: 'hr@example.org',
-      plugin: 'Inconnu',
-      type: 'email',
-      activerCreation: false,
-      activerEnrichissement: false,
-      activerAnalyseIA: true,
-    });
+    expect(driverReleve.creerSource).not.toHaveBeenCalled();
   });
 
-  it("audit strictement séparé: n'appelle ni traitement, ni enrichissement, ni déplacement", async () => {
+  it('CA2 US-6.2: plusieurs expéditeurs inconnus ne créent aucune source et n’apparaissent pas dans la synthèse', async () => {
+    const driverReleve = {
+      listerSources: jest.fn().mockResolvedValue([]),
+      creerSource: jest.fn(),
+      mettreAJourSource: jest.fn().mockResolvedValue(undefined),
+    };
+    const lecteurEmails = {
+      lireEmailsGouvernance: jest.fn().mockResolvedValue({
+        ok: true,
+        emails: [
+          { id: 'm1', from: 'nouveau@domaine-inconnu.test', html: '<html>1</html>' },
+          { id: 'm2', from: 'autre@domaine-inconnu.test', html: '<html>2</html>' },
+        ],
+      }),
+      deplacerEmailsVersDossier: jest.fn().mockResolvedValue({ ok: true }),
+    };
+    const result = await runAuditSources('/tmp/data', {
+      deps: { compte, airtable, motDePasse: 'x', driverReleve: driverReleve as never, lecteurEmails: lecteurEmails as never },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.synthese).toHaveLength(0);
+    expect(driverReleve.creerSource).not.toHaveBeenCalled();
+  });
+
+  it("audit strictement séparé: n'appelle ni traitement, ni enrichissement, ni déplacement (expéditeurs inconnus ignorés)", async () => {
     const deplacer = jest.fn().mockResolvedValue({ ok: true });
     const createOffres = jest.fn();
     const mettreAJourSource = jest.fn();
@@ -242,12 +240,14 @@ describe('runAuditSources - audit seul des sources', () => {
     });
 
     expect(result.ok).toBe(true);
+    expect(result.ok && result.synthese).toHaveLength(0);
+    expect(driverReleve.creerSource).not.toHaveBeenCalled();
     expect(createOffres).not.toHaveBeenCalled();
     expect(mettreAJourSource).not.toHaveBeenCalled();
     expect(deplacer).not.toHaveBeenCalled();
   });
 
-  it('source absente avec email linkedin: crée en Linkedin/actif par défaut', async () => {
+  it('source absente avec email linkedin: CA2 ne crée pas de source (uniquement synthèse pour sources déjà en base)', async () => {
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([]),
       creerSource: jest.fn().mockImplementation(async (source) => ({
@@ -277,32 +277,18 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(result).toEqual({
       ok: true,
       nbEmailsScannes: 1,
-      nbSourcesCreees: 1,
+      nbSourcesCreees: 0,
       nbSourcesExistantes: 0,
-      synthese: [
-        {
-          emailExpéditeur: 'jobs-noreply@linkedin.com',
-          plugin: 'Linkedin',
-          actif: 'Oui',
-          nbEmails: 1,
-        },
-      ],
+      synthese: [],
       sousTotauxPrevisionnels: {
-        emailsÀArchiver: 1,
-        emailsÀAnalyser: 1,
+        emailsÀArchiver: 0,
+        emailsÀAnalyser: 0,
       },
     });
-    expect(driverReleve.creerSource).toHaveBeenCalledWith({
-      emailExpéditeur: 'jobs-noreply@linkedin.com',
-      plugin: 'Linkedin',
-      type: 'email',
-      activerCreation: true,
-      activerEnrichissement: true,
-      activerAnalyseIA: true,
-    });
+    expect(driverReleve.creerSource).not.toHaveBeenCalled();
   });
 
-  it('normalise "from" avec nom + email et détecte Linkedin', async () => {
+  it('normalise "from" avec nom + email (expéditeur inconnu ignoré en CA2, pas de création)', async () => {
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([]),
       creerSource: jest.fn().mockImplementation(async (source) => ({
@@ -330,17 +316,11 @@ describe('runAuditSources - audit seul des sources', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(driverReleve.creerSource).toHaveBeenCalledWith({
-      emailExpéditeur: 'jobs-listings@linkedin.com',
-      plugin: 'Linkedin',
-      type: 'email',
-      activerCreation: true,
-      activerEnrichissement: true,
-      activerAnalyseIA: true,
-    });
+    expect(result.ok && result.synthese).toHaveLength(0);
+    expect(driverReleve.creerSource).not.toHaveBeenCalled();
   });
 
-  it('US-1.10: source absente WTTJ -> crée avec plugin "Welcome to the Jungle" et actif=true', async () => {
+  it('US-1.10: source absente WTTJ -> CA2 ne crée pas de source (expéditeur ignoré)', async () => {
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([]),
       creerSource: jest.fn().mockImplementation(async (source) => ({
@@ -370,39 +350,25 @@ describe('runAuditSources - audit seul des sources', () => {
     expect(result).toEqual({
       ok: true,
       nbEmailsScannes: 1,
-      nbSourcesCreees: 1,
+      nbSourcesCreees: 0,
       nbSourcesExistantes: 0,
-      synthese: [
-        {
-          emailExpéditeur: 'alerts@welcometothejungle.com',
-          plugin: 'Welcome to the Jungle',
-          actif: 'Oui',
-          nbEmails: 1,
-        },
-      ],
+      synthese: [],
       sousTotauxPrevisionnels: {
-        emailsÀArchiver: 1,
-        emailsÀAnalyser: 1,
+        emailsÀArchiver: 0,
+        emailsÀAnalyser: 0,
       },
     });
-    expect(driverReleve.creerSource).toHaveBeenCalledWith({
-      emailExpéditeur: 'alerts@welcometothejungle.com',
-      plugin: 'Welcome to the Jungle',
-      type: 'email',
-      activerCreation: true,
-      activerEnrichissement: true,
-      activerAnalyseIA: true,
-    });
+    expect(driverReleve.creerSource).not.toHaveBeenCalled();
   });
 
-  it('US-1.10: source WTTJ préexistante incohérente -> corrigée en plugin WTTJ uniquement (actif inchangé)', async () => {
+  it('US-1.10: source WTTJ préexistante incohérente -> corrigée en source WTTJ uniquement (actif inchangé)', async () => {
     const mettreAJourSource = jest.fn().mockResolvedValue(undefined);
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([
         {
           sourceId: 'rec_wttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          plugin: 'Inconnu',
+          source: 'Inconnu',
           type: 'email',
           activerCreation: false,
           activerEnrichissement: false,
@@ -438,7 +404,7 @@ describe('runAuditSources - audit seul des sources', () => {
       synthese: [
         {
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          plugin: 'Welcome to the Jungle',
+          source: 'Welcome to the Jungle',
           actif: 'Non',
           nbEmails: 1,
         },
@@ -448,18 +414,18 @@ describe('runAuditSources - audit seul des sources', () => {
         emailsÀAnalyser: 0,
       },
     });
-    expect(mettreAJourSource).toHaveBeenCalledWith('rec_wttj', { plugin: 'Welcome to the Jungle' });
+    expect(mettreAJourSource).toHaveBeenCalledWith('rec_wttj', { source: 'Welcome to the Jungle' });
     expect(driverReleve.creerSource).not.toHaveBeenCalled();
   });
 
-  it('US-1.10: source WTTJ préexistante est corrigée (plugin uniquement) même sans email WTTJ dans le dossier', async () => {
+  it('US-1.10: source WTTJ préexistante est corrigée (source uniquement) même sans email WTTJ dans le dossier', async () => {
     const mettreAJourSource = jest.fn().mockResolvedValue(undefined);
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([
         {
           sourceId: 'rec_wttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          plugin: 'Inconnu',
+          source: 'Inconnu',
           type: 'email',
           activerCreation: false,
           activerEnrichissement: false,
@@ -488,11 +454,11 @@ describe('runAuditSources - audit seul des sources', () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(mettreAJourSource).toHaveBeenCalledWith('rec_wttj', { plugin: 'Welcome to the Jungle' });
+    expect(mettreAJourSource).toHaveBeenCalledWith('rec_wttj', { source: 'Welcome to the Jungle' });
     expect(driverReleve.creerSource).not.toHaveBeenCalled();
   });
 
-  it('US-1.11: source absente JTMS -> crée plugin "Job That Make Sense" actif=true', async () => {
+  it('US-1.11: source absente JTMS -> CA2 ne crée pas de source (expéditeur ignoré)', async () => {
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([]),
       creerSource: jest.fn().mockImplementation(async (source) => ({
@@ -512,24 +478,18 @@ describe('runAuditSources - audit seul des sources', () => {
       deps: { compte, airtable, motDePasse: 'x', driverReleve: driverReleve as never, lecteurEmails: lecteurEmails as never },
     });
     expect(result.ok).toBe(true);
-    expect(driverReleve.creerSource).toHaveBeenCalledWith({
-      emailExpéditeur: 'jobs@makesense.org',
-      plugin: 'Job That Make Sense',
-      type: 'email',
-      activerCreation: true,
-      activerEnrichissement: true,
-      activerAnalyseIA: true,
-    });
+    expect(result.ok && result.synthese).toHaveLength(0);
+    expect(driverReleve.creerSource).not.toHaveBeenCalled();
   });
 
-  it('US-1.12: source préexistante Cadre Emploi incohérente -> corrigée plugin uniquement (actif inchangé)', async () => {
+  it('US-1.12: source préexistante Cadre Emploi incohérente -> corrigée source uniquement (actif inchangé)', async () => {
     const mettreAJourSource = jest.fn().mockResolvedValue(undefined);
     const driverReleve = {
       listerSources: jest.fn().mockResolvedValue([
         {
           sourceId: 'rec_ce',
           emailExpéditeur: 'offres@alertes.cadremploi.fr',
-          plugin: 'Inconnu',
+          source: 'Inconnu',
           type: 'email',
           activerCreation: false,
           activerEnrichissement: false,
@@ -550,6 +510,6 @@ describe('runAuditSources - audit seul des sources', () => {
       deps: { compte, airtable, motDePasse: 'x', driverReleve: driverReleve as never, lecteurEmails: lecteurEmails as never },
     });
     expect(result.ok).toBe(true);
-    expect(mettreAJourSource).toHaveBeenCalledWith('rec_ce', { plugin: 'Cadre Emploi' });
+    expect(mettreAJourSource).toHaveBeenCalledWith('rec_ce', { source: 'Cadre Emploi' });
   });
 });

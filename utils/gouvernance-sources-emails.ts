@@ -1,16 +1,27 @@
-export type PluginSource =
+/** US-6.6 : 15 noms canoniques + Inconnu (orphelins). Externatic et Talent.io retirés de la liste canonique. */
+export type SourceNom =
   | 'Linkedin'
-  | 'Inconnu'
   | 'HelloWork'
+  | 'APEC'
+  | 'Cadre Emploi'
   | 'Welcome to the Jungle'
   | 'Job That Make Sense'
-  | 'Cadre Emploi';
+  | 'Indeed'
+  | 'France Travail'
+  | 'LesJeudis'
+  | 'Michael Page'
+  | 'Robert Walters'
+  | 'Hays'
+  | 'Monster'
+  | 'Glassdoor'
+  | 'Makesense'
+  | 'Inconnu';
 
 export type TypeSource = 'email' | 'liste html' | 'liste csv';
 
 export interface SourceEmail {
   emailExpéditeur: string;
-  plugin: PluginSource;
+  source: SourceNom;
   type: TypeSource;
   activerCreation: boolean;
   activerEnrichissement: boolean;
@@ -28,7 +39,7 @@ export interface SchemaSourceEmail {
   emailExpéditeur?: {
     type: string;
   };
-  plugin?: {
+  source?: {
     type: string;
     options: string[];
   };
@@ -47,13 +58,24 @@ export interface SchemaSourceEmail {
   };
 }
 
-const PLUGINS_ATTENDUS: PluginSource[] = [
+/** US-6.6 : aligné sur liste canonique (15 + Inconnu). */
+const SOURCES_NOMS_ATTENDUS: SourceNom[] = [
   'Linkedin',
-  'Inconnu',
   'HelloWork',
+  'APEC',
+  'Cadre Emploi',
   'Welcome to the Jungle',
   'Job That Make Sense',
-  'Cadre Emploi',
+  'Indeed',
+  'France Travail',
+  'LesJeudis',
+  'Michael Page',
+  'Robert Walters',
+  'Hays',
+  'Monster',
+  'Glassdoor',
+  'Makesense',
+  'Inconnu',
 ];
 
 const HELLOWORK_EXPEDITEUR_NORMALISE = 'notification@emails.hellowork.com';
@@ -61,13 +83,13 @@ const WTTJ_EXPEDITEUR_NORMALISE = 'alerts@welcometothejungle.com';
 const JTMS_EXPEDITEUR_NORMALISE = 'jobs@makesense.org';
 const CADREEMPLOI_EXPEDITEUR_NORMALISE = 'offres@alertes.cadremploi.fr';
 
-function pluginActifParDefaut(plugin: PluginSource): boolean {
+function sourceActiveParDefaut(sourceNom: SourceNom): boolean {
   return (
-    plugin === 'Linkedin' ||
-    plugin === 'HelloWork' ||
-    plugin === 'Welcome to the Jungle' ||
-    plugin === 'Job That Make Sense' ||
-    plugin === 'Cadre Emploi'
+    sourceNom === 'Linkedin' ||
+    sourceNom === 'HelloWork' ||
+    sourceNom === 'Welcome to the Jungle' ||
+    sourceNom === 'Job That Make Sense' ||
+    sourceNom === 'Cadre Emploi'
   );
 }
 
@@ -85,7 +107,7 @@ function normaliserEmailExpediteur(emailExpediteur: string): string {
   return extraireAdresseEmail(emailExpediteur).toLowerCase();
 }
 
-function pluginParExpediteur(emailExpediteur: string): PluginSource {
+export function sourceNomParExpediteur(emailExpediteur: string): SourceNom {
   const key = normaliserEmailExpediteur(emailExpediteur);
   if (key === HELLOWORK_EXPEDITEUR_NORMALISE) return 'HelloWork';
   if (key === WTTJ_EXPEDITEUR_NORMALISE) return 'Welcome to the Jungle';
@@ -99,8 +121,8 @@ export function preparerMigrationSources(schema: SchemaSourceEmail): { ok: true 
   if (!schema.emailExpéditeur || schema.emailExpéditeur.type !== 'text') {
     return { ok: false, message: 'Le champ emailExpéditeur doit être un texte.' };
   }
-  if (!schema.plugin || schema.plugin.type !== 'singleSelect') {
-    return { ok: false, message: 'Le champ plugin doit être un single select.' };
+  if (!schema.source || schema.source.type !== 'singleSelect') {
+    return { ok: false, message: 'Le champ source doit être un single select.' };
   }
   if (!schema.type || schema.type.type !== 'singleSelect') {
     return { ok: false, message: 'Le champ type doit être une sélection unique.' };
@@ -119,13 +141,13 @@ export function preparerMigrationSources(schema: SchemaSourceEmail): { ok: true 
   if (!schema.activerAnalyseIA || schema.activerAnalyseIA.type !== 'checkbox') {
     return { ok: false, message: 'Le champ activerAnalyseIA doit être une case à cocher.' };
   }
-  const options = [...schema.plugin.options];
-  const attendu = [...PLUGINS_ATTENDUS];
+  const options = [...schema.source.options];
+  const attendu = [...SOURCES_NOMS_ATTENDUS];
   if (options.length !== attendu.length || options.some((v, i) => v !== attendu[i])) {
     return {
       ok: false,
       message:
-        'Le champ plugin doit contenir exactement Linkedin, Inconnu, HelloWork, Welcome to the Jungle, Job That Make Sense et Cadre Emploi.',
+        `Le champ source doit contenir exactement : ${SOURCES_NOMS_ATTENDUS.join(', ')}.`,
     };
   }
   return { ok: true };
@@ -144,13 +166,13 @@ export function auditerSourcesDepuisEmails(options: {
     const key = normaliserEmailExpediteur(from);
     if (sourcesConnues.has(key)) continue;
     if (!key) continue;
-    const plugin = pluginParExpediteur(key);
+    const sourceNom = sourceNomParExpediteur(key);
     const source: SourceEmail = {
       emailExpéditeur: key,
-      plugin,
+      source: sourceNom,
       type: 'email',
-      activerCreation: pluginActifParDefaut(plugin),
-      activerEnrichissement: pluginActifParDefaut(plugin),
+      activerCreation: sourceActiveParDefaut(sourceNom),
+      activerEnrichissement: sourceActiveParDefaut(sourceNom),
       activerAnalyseIA: true,
     };
     creees.push(source);
@@ -163,7 +185,7 @@ export function auditerSourcesDepuisEmails(options: {
 export interface OptionsTraitementSources {
   emails: EmailAAnalyser[];
   sourcesExistantes: SourceEmail[];
-  parseursDisponibles: PluginSource[];
+  parseursDisponibles: SourceNom[];
   onProgress?: (message: string) => void;
   traiterEmail?: (email: EmailAAnalyser, source: SourceEmail) => Promise<{ ok: boolean }>;
   deplacerVersTraite?: (email: EmailAAnalyser, source: SourceEmail) => Promise<void>;
@@ -174,8 +196,8 @@ export interface ResultatTraitementSources {
   creees: SourceEmail[];
   corrections: Array<{
     emailExpéditeur: string;
-    ancienPlugin: PluginSource;
-    nouveauPlugin: PluginSource;
+    ancienSourceNom: SourceNom;
+    nouveauSourceNom: SourceNom;
     ancienActif?: boolean;
     nouveauActif?: boolean;
   }>;
@@ -195,58 +217,51 @@ export async function traiterEmailsSelonStatutSource(
   const creees: SourceEmail[] = [];
   const corrections: Array<{
     emailExpéditeur: string;
-    ancienPlugin: PluginSource;
-    nouveauPlugin: PluginSource;
+    ancienSourceNom: SourceNom;
+    nouveauSourceNom: SourceNom;
     ancienActif?: boolean;
     nouveauActif?: boolean;
   }> = [];
   let traitementsExecutés = 0;
   let deplacementsEffectués = 0;
 
+  if (options.emails.length > 0) {
+    options.onProgress?.(`0/${options.emails.length}`);
+  }
   for (let i = 0; i < options.emails.length; i++) {
     const email = options.emails[i];
     options.onProgress?.(`${i + 1}/${options.emails.length}`);
     const key = normaliserEmailExpediteur(email.from);
     if (!key) continue;
-    let source = sourcesMap.get(key);
-
+    const source = sourcesMap.get(key);
+    // CA2 US-6.2 : ne traiter que les emails dont l'expéditeur est déjà une source en base.
     if (!source) {
-      const plugin = pluginParExpediteur(key);
-      source = {
-        emailExpéditeur: key,
-        plugin,
-        type: 'email',
-        activerCreation: pluginActifParDefaut(plugin),
-        activerEnrichissement: pluginActifParDefaut(plugin),
-        activerAnalyseIA: true,
-      };
-      sourcesMap.set(key, source);
-      creees.push(source);
+      continue;
     }
 
-    const pluginAttendu = pluginParExpediteur(key);
-    if (pluginAttendu !== 'Inconnu' && source.plugin !== pluginAttendu) {
-      const ancienPlugin = source.plugin;
-      source.plugin = pluginAttendu;
+    const sourceNomAttendu = sourceNomParExpediteur(key);
+    if (sourceNomAttendu !== 'Inconnu' && source.source !== sourceNomAttendu) {
+      const ancienSourceNom = source.source;
+      source.source = sourceNomAttendu;
       corrections.push({
         emailExpéditeur: source.emailExpéditeur,
-        ancienPlugin,
-        nouveauPlugin: pluginAttendu,
+        ancienSourceNom,
+        nouveauSourceNom: sourceNomAttendu,
       });
     }
 
-    const parseurDisponible = parseurs.has(source.plugin);
-    if (source.plugin !== 'Inconnu' && !parseurDisponible) {
-      const ancienPlugin = source.plugin;
-      source.plugin = 'Inconnu';
+    const parseurDisponible = parseurs.has(source.source);
+    if (source.source !== 'Inconnu' && !parseurDisponible) {
+      const ancienSourceNom = source.source;
+      source.source = 'Inconnu';
       corrections.push({
         emailExpéditeur: source.emailExpéditeur,
-        ancienPlugin,
-        nouveauPlugin: 'Inconnu',
+        ancienSourceNom,
+        nouveauSourceNom: 'Inconnu',
       });
     }
 
-    if (source.plugin === 'Inconnu') {
+    if (source.source === 'Inconnu') {
       const dejaCaptures = capturesParExpediteur.get(key) ?? 0;
       if (dejaCaptures < 3) {
         await options.capturerHtmlExemple?.(source.emailExpéditeur, email.html);

@@ -1,10 +1,11 @@
 /**
  * Évaluation des paramétrages complets (US-1.6).
- * Complet = connexion email OK et Airtable OK.
- * S'appuie sur lireCompte et lireAirTable (pas de duplication de lecture).
+ * Complet = connexion email OK, Airtable OK et API IA (Mistral) OK.
+ * S'appuie sur lireCompte, lireAirTable et lireMistral (pas de duplication de lecture).
  */
 import { lireCompte } from './compte-io.js';
 import { lireAirTable } from './parametres-airtable.js';
+import { lireMistral } from './parametres-mistral.js';
 
 export interface ResultatParametragesComplets {
   complet: boolean;
@@ -12,7 +13,7 @@ export interface ResultatParametragesComplets {
 }
 
 /**
- * Vérifie si les paramétrages sont complets (compte email + Airtable).
+ * Vérifie si les paramétrages sont complets (compte email + Airtable + API IA).
  * Retourne { complet, manque } pour affichage / redirection côté front.
  */
 export function evaluerParametragesComplets(dataDir: string): ResultatParametragesComplets {
@@ -31,10 +32,23 @@ export function evaluerParametragesComplets(dataDir: string): ResultatParametrag
     airtable &&
       (airtable.apiKey ?? '').trim() &&
       (airtable.base ?? '').trim() &&
-      (airtable.sources ?? '').trim() &&
       (airtable.offres ?? '').trim()
   );
   if (!airtableOk) manque.push('Airtable');
+
+  const mistral = lireMistral(dataDir);
+  const apiIaOk = Boolean(mistral?.hasApiKey);
+  if (!apiIaOk) manque.push('API IA');
+
+  if (manque.length > 0) {
+    console.warn(
+      '[parametrages-complets] Config considérée incomplète:',
+      { dataDir, manque, compteOk, airtableOk, apiIaOk },
+      airtable && !(airtable.apiKey ?? '').trim()
+        ? '(Airtable présent mais apiKey vide — vérifier PARAMETRES_ENCRYPTION_KEY si la clé est chiffrée)'
+        : ''
+    );
+  }
 
   return {
     complet: manque.length === 0,

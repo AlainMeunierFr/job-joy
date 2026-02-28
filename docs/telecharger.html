@@ -32,7 +32,7 @@
         <li><strong>ClaudeCode</strong> : pour analyser et scorer les offres avec l'IA.</li>
         <li><strong>Job-Joy</strong> : l'application qui orchestre la relève, l'enrichissement et l'analyse.</li>
       </ul>
-      <p class="introParametrageConfigHint">Ci-dessous : Configuration Airtable, Paramétrage du compte email, Configuration ClaudeCode.</p>
+      <p class="introParametrageConfigHint">Ci-dessous : API AirTable, Compte email, API Claude Code, Prompt de l'IA.</p>
     </div>
     <div class="introParametrageHow" data-section="how" aria-labelledby="titre-intro-how">
       <h3 id="titre-intro-how" class="introParametrageSectionTitle">Comment (flux)</h3>
@@ -73,14 +73,14 @@
     <div class="introParametrageWhy introParametragePlugins" data-section="plugins" aria-labelledby="titre-intro-plugins">
       <h3 id="titre-intro-plugins" class="introParametrageSectionTitle">Les plugins disponibles</h3>
       <p class="IntroPlugIn">Pour les phases <strong>Création</strong> et <strong>Enrichissement</strong> un code informatique spécifique est créé pour chaque site d'offre d'emploi. Voici la liste actuellement gérée :</p>
-      <div id="liste-plugins-container"><!-- INJECT_LISTE_PLUGIN --></div>
+      <div id="liste-sources-container"><!-- INJECT_LISTE_SOURCES --></div>
       <p class="ConclusionPlugIn">Si vous souhaitez gérer d'autres sources, formulez votre demande en ouvrant un <a href="https://airtable.com/appnnCmflxgrqf3H3/pagCSK6ZPjlXLz8fS/form">ticket</a>.</p>
     </div>
   </main>
   <script>
     (function () {
       var container = document.getElementById('liste-plugins-container');
-      if (!container || container.innerHTML.indexOf('INJECT_LISTE_PLUGIN') === -1) return;
+      if (!container || container.innerHTML.indexOf('INJECT_LISTE_SOURCES') === -1) return;
       fetch('plugins-list.json').then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (data) {
         var thead = '<thead><tr><th scope="col">Email</th><th scope="col">Plugin</th><th scope="col">Création</th><th scope="col">Enrichissement</th></tr></thead>';
         var rows = data.map(function (l) {

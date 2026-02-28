@@ -4,23 +4,32 @@
  * US-1.7 : tableau de synthèse des offres (colonnes fixes + statuts Airtable).
  */
 import { STATUTS_OFFRES_AVEC_AUTRE } from '../utils/statuts-offres-airtable.js';
-export type PageActive = 'tableau-de-bord' | 'parametres' | 'a-propos' | 'audit';
+export type PageActive = 'tableau-de-bord' | 'offres' | 'parametres' | 'documentation' | 'a-propos' | 'audit';
 
 export type HeaderOptions = {
   /** Si false, masque le lien "Tableau de bord" (paramétrage incomplet). */
   configComplète?: boolean;
   /** Si true, affiche le lien "Audit du code" (mode dev uniquement). */
   showAuditLink?: boolean;
+  /** Si true, affiche le lien "Offres" (US-7.9 : uniquement si au moins une offre en base). */
+  showOffresLink?: boolean;
 };
 
 export function getHeaderHtml(active: PageActive, options?: HeaderOptions): string {
   const tableauActive = active === 'tableau-de-bord';
+  const offresActive = active === 'offres';
   const parametresActive = active === 'parametres';
+  const documentationActive = active === 'documentation';
   const aProposActive = active === 'a-propos';
   const auditActive = active === 'audit';
   const showTableauDeBord = options?.configComplète !== false;
   const lienTableauDeBord = showTableauDeBord
-    ? `<li><a href="/tableau-de-bord" class="appNavLink${tableauActive ? ' appNavLinkActive' : ''}">Tableau de bord</a></li>`
+    ? `<li><a href="/tableau-de-bord" class="appNavLink${tableauActive ? ' appNavLinkActive' : ''}" e2eid="e2eid-nav-tableau-de-bord">Tableau de bord</a></li>`
+    : '';
+  /** US-7.9 : lien Offres visible sur toutes les pages (Tableau de bord, Paramètres, Documentation, À propos, Offres, Audit) dès qu'il y a au moins une offre en base. */
+  const showOffresLink = Boolean(options?.showOffresLink);
+  const lienOffres = showOffresLink
+    ? `<li><a href="/offres" class="appNavLink${offresActive ? ' appNavLinkActive' : ''}" e2eid="e2eid-nav-offres">Offres</a></li>`
     : '';
   const lienAudit = options?.showAuditLink
     ? `<li><a href="/audit" class="appNavLink${auditActive ? ' appNavLinkActive' : ''}">Audit du code</a></li>`
@@ -30,7 +39,9 @@ export function getHeaderHtml(active: PageActive, options?: HeaderOptions): stri
   <nav class="appNav" aria-label="Navigation principale">
     <ul class="appNavList">
       ${lienTableauDeBord}
-      <li><a href="/parametres" class="appNavLink${parametresActive ? ' appNavLinkActive' : ''}">Paramètres</a></li>
+      ${lienOffres}
+      <li><a href="/parametres" class="appNavLink${parametresActive ? ' appNavLinkActive' : ''}" e2eid="e2eid-nav-parametres">Paramètres</a></li>
+      <li><a href="/documentation" class="appNavLink${documentationActive ? ' appNavLinkActive' : ''}">Documentation</a></li>
       <li><a href="/a-propos" class="appNavLink${aProposActive ? ' appNavLinkActive' : ''}">À propos</a></li>
       ${lienAudit}
     </ul>
@@ -55,6 +66,9 @@ export function getLayoutHtml(
 </head>
 <body class="appLayout">
 ${getHeaderHtml(active, options)}
+  <div class="pageTitleBar visuallyHidden" role="presentation">
+    <h1 class="pageTitleBarTitle">${escapeHtml(title)}</h1>
+  </div>
   <main class="appMain">
 ${mainContent}
   </main>
@@ -87,8 +101,28 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/** US-6.6 CA5 : fragment HTML pour la cellule Source du tableau de synthèse. Si urlOfficielle est fournie et non vide, enveloppe le nom dans un lien target="_blank". */
+export function buildSourceCapsuleHtml(
+  sourceNom: string,
+  sourceSlug: string,
+  urlOfficielle?: string
+): string {
+  const escapedNom = escapeHtml(sourceNom);
+  const escapedSlug = escapeHtml(sourceSlug);
+  const spanContent =
+    '<span class="syntheseSourceCapsule syntheseSourceCapsule--' + escapedSlug + '">' + escapedNom + '</span>';
+  const url = (urlOfficielle ?? '').trim();
+  if (url !== '') {
+    const escapedUrl = escapeHtml(url);
+    return '<a href="' + escapedUrl + '" target="_blank" rel="noopener noreferrer">' + spanContent + '</a>';
+  }
+  return spanContent;
+}
+
 type TableauDeBordOptions = {
   airtableBaseUrl?: string;
+  /** US-7.9 : afficher le lien Offres dans le menu (si au moins une offre en base). */
+  showOffresLink?: boolean;
   /** Si false, masque le lien Tableau de bord dans le header (par défaut true sur cette page). */
   configComplète?: boolean;
   /** Si true, affiche le lien "Audit du code" dans le header (mode dev). */
@@ -101,24 +135,24 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   const boutonOuvrirAirtableDisabled = airtableBaseUrl ? '' : ' disabled';
   return `
   <div class="pageTableauDeBord">
-    <h1>Tableau de bord</h1>
-
     <section class="syntheseOffres" aria-labelledby="titre-synthese-offres" data-layout="synthese-offres">
-      <h2 id="titre-synthese-offres">
-        Synthèse des offres
-        <span
-          class="syntheseOffresInfoBulle"
-          aria-label="Aide sur les phases (plugin)"
-          title="Phase 1 : Extraction de l'URL des offres dans les emails&#10;Phase 2 : Ouverture des offres pour en récupérer le texte complet&#10;Phase 3 : Analyse et calcul d'un score par l'IA"
-        >ⓘ</span>
-      </h2>
-      <table class="syntheseOffresTable" aria-label="Synthèse des offres par expéditeur et statut">
-        <thead id="synthese-offres-head"></thead>
-        <tbody id="synthese-offres-body"></tbody>
-      </table>
+      <h2 id="titre-synthese-offres">Synthèse des offres</h2>
+      <div class="syntheseOffresTableWrap">
+        <table class="syntheseOffresTable" aria-label="Synthèse des offres par expéditeur et statut">
+          <thead id="synthese-offres-head"></thead>
+          <tbody id="synthese-offres-body"></tbody>
+        </table>
+      </div>
       <div class="syntheseOffresActions syntheseOffresActionsOneLine">
         <button type="button" class="btnSecondary boutonRafraichirSynthese" e2eid="e2eid-bouton-rafraichir-synthese-offres">Mise à jour</button>
         <button type="button" class="boutonOuvrirAirtable" e2eid="e2eid-bouton-ouvrir-airtable" data-airtable-url="${airtableUrlAttr}"${boutonOuvrirAirtableDisabled}>Ouvrir Airtable</button>
+        <label class="syntheseOffresToggleLignesVides" e2eid="e2eid-masquer-lignes-vides">
+          <span class="syntheseOffresToggleSwitchWrap">
+            <input type="checkbox" class="syntheseOffresToggleSwitchInput" checked aria-label="Masquer les lignes vides">
+            <span class="syntheseOffresToggleSwitch" aria-hidden="true"></span>
+          </span>
+          <span class="syntheseOffresToggleLabel">Masquer les lignes vides</span>
+        </label>
       </div>
       <div id="synthese-offres-message" class="syntheseOffresMessage" role="alert" aria-live="polite" e2eid="e2eid-message-mise-a-jour-synthese"></div>
     </section>
@@ -159,6 +193,15 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       </div>
     </section>
 
+    <section class="histogrammeScoresOffres" aria-labelledby="titre-histogramme-scores" data-layout="histogramme-scores-offres">
+      <h2 id="titre-histogramme-scores">Statistiques des scores</h2>
+      <p class="histogrammeScoresOffresIntro">Offres avec un score total ≠ 0 ou statut « Expiré ». Une colonne par plage de score.</p>
+      <div class="histogrammeScoresOffresChartWrap" id="histogramme-scores-chart-wrap">
+        <canvas id="histogramme-scores-chart" aria-label="Histogramme des scores des offres"></canvas>
+      </div>
+      <button type="button" class="boutonCalculerHistogrammeScores btnSecondary" e2eid="e2eid-bouton-calculer-histogramme-scores">Calculer</button>
+    </section>
+
     <section class="consommationApi" aria-labelledby="titre-consommation-api" data-layout="consommation-api">
       <h2 id="titre-consommation-api">Consommation API</h2>
       <div class="consommationApiRow">
@@ -189,6 +232,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   var syntheseOffresBody = null;
   var btnRefreshSynthese = null;
   var syntheseOffresMessage = null;
+  var toggleMasquerLignesVidesInput = null;
   var DEFAULT_STATUTS_ORDER = ${JSON.stringify([...STATUTS_OFFRES_AVEC_AUTRE])};
   var STATUTS_ORDER = DEFAULT_STATUTS_ORDER.slice();
 
@@ -205,22 +249,27 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     var status = Array.isArray(statutsOrder) && statutsOrder.length > 0 ? statutsOrder : DEFAULT_STATUTS_ORDER;
     STATUTS_ORDER = status.slice();
     var fixed = ''
-      + '<th scope="col" title="Adresse email de l\\'expéditeur des messages relevés">email expéditeur</th>'
-      + '<th scope="col" title="Source ou plateforme (LinkedIn, HelloWork, etc.)">plugin</th>'
-      + '<th scope="col" title="Phase 1 : Extraction de l\\'URL des offres dans les emails">création</th>'
-      + '<th scope="col" title="Phase 2 : Ouverture des offres pour en récupérer le texte complet">enrichissement</th>'
-      + '<th scope="col" title="Phase 3 : Analyse et calcul d\\'un score par l\\'IA">analyse</th>'
-      + '<th scope="col" class="syntheseOffresColAImporter" title="Nombre d\\'emails en attente d\\'extraction (phase 1)">A importer</th>';
+      + '<th scope="col" class="syntheseOffresThSource" title="Source (plateforme)"><span class="syntheseOffresThLabel">Source</span></th>'
+      + '<th scope="col" class="syntheseOffresThRotate" title="Phase 1 : Créer par email"><span class="syntheseOffresThLabel">Créer par email</span></th>'
+      + '<th scope="col" class="syntheseOffresThRotate" title="Phase 1 : Créer par liste html"><span class="syntheseOffresThLabel">Créer par liste html</span></th>'
+      + '<th scope="col" class="syntheseOffresThRotate" title="Phase 2 : Enrichissement"><span class="syntheseOffresThLabel">Enrichir</span></th>'
+      + '<th scope="col" class="syntheseOffresThRotate" title="Phase 3 : Analyser par l\\'IA"><span class="syntheseOffresThLabel">Analyser</span></th>'
+      + '<th scope="col" class="syntheseOffresThRotate syntheseOffresColAImporter" title="Emails en attente d\\'extraction"><span class="syntheseOffresThLabel">Emails à importer</span></th>'
+      + '<th scope="col" class="syntheseOffresThRotate syntheseOffresColFichierImporter" title="Fichiers HTML en attente"><span class="syntheseOffresThLabel">Fichiers à importer</span></th>';
     var dyn = STATUTS_ORDER.map(function(statut) {
-      return '<th scope="col" class="syntheseOffresStatutCol" title="Nombre d\\'offres au statut « ' + escapeHtmlSynthese(statut) + ' »"><span>' + escapeHtmlSynthese(statut) + '</span></th>';
+      var extraClass = (statut === 'À analyser') ? ' syntheseOffresColAAnalyser' : '';
+      return '<th scope="col" class="syntheseOffresThRotate syntheseOffresStatutCol' + extraClass + '" title="Nombre d\\'offres au statut « ' + escapeHtmlSynthese(statut) + ' »"><span class="syntheseOffresThLabel">' + escapeHtmlSynthese(statut) + '</span></th>';
     }).join('');
-    var colTotaux = '<th scope="col" class="syntheseOffresColTotaux" e2eid="e2eid-synthese-offres-col-totaux" title="Total des offres pour cette ligne">Totaux</th>';
+    var colTotaux = '<th scope="col" class="syntheseOffresThHorizontal syntheseOffresColTotaux" e2eid="e2eid-synthese-offres-col-totaux" title="Total des offres pour cette ligne"><span class="syntheseOffresThLabel">Totaux</span></th>';
     syntheseOffresHead.innerHTML = '<tr>' + fixed + dyn + colTotaux + '</tr>';
   }
 
   var lastSyntheseLignes = null;
   var lastSyntheseStatutsOrder = null;
   var lastSyntheseTotaux = null;
+
+  /** Affiche la quantité ou une chaîne vide si 0 (pour rendre visibles les phases avec travail restant). */
+  function qteOuVide(val) { return (val != null && Number(val) !== 0) ? String(val) : ''; }
 
   function renderTableauSyntheseOffres(lignes, statutsOrder, totaux) {
     if (!syntheseOffresBody) return;
@@ -234,6 +283,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       lastSyntheseLignes = null;
       lastSyntheseStatutsOrder = null;
       lastSyntheseTotaux = null;
+      if (syntheseOffresSection) syntheseOffresSection.hidden = false;
       return;
     }
     if (lignes.length === 0) {
@@ -241,6 +291,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       lastSyntheseLignes = null;
       lastSyntheseStatutsOrder = null;
       lastSyntheseTotaux = null;
+      if (syntheseOffresSection) syntheseOffresSection.hidden = false;
       return;
     }
     lastSyntheseLignes = lignes;
@@ -256,96 +307,92 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     var workerEnrichissementEnCours = !!(typeof window !== 'undefined' && window.__workerEnrichissementEnCours);
     var workerAnalyseIAEnCours = !!(typeof window !== 'undefined' && window.__workerAnalyseIAEnCours);
     var rowsHtml = lignes.map(function(ligne, i) {
-      var actifCreation = !!(ligne && ligne.activerCreation === true);
+      var sourceNom = (ligne && (ligne.sourceEtape2 || ligne.sourceEtape1 || ligne.emailExpéditeur)) ? (ligne.sourceEtape2 || ligne.sourceEtape1 || ligne.emailExpéditeur) : 'Inconnu';
+      var actifCreationEmail = ligne && ligne.creationEmailActivé === true;
+      var actifCreationListeHtml = ligne && ligne.creationListeHtmlActivé === true;
       var actifEnrichissement = !!(ligne && ligne.activerEnrichissement === true);
       var actifAnalyseIA = !!(ligne && ligne.activerAnalyseIA === true);
-      var phase1Impl = !!(ligne && ligne.phase1Implemented === true);
-      if (ligne && ligne.phase1Implemented == null) {
-        phase1Impl = !!(ligne && ligne.pluginEtape1 && ligne.pluginEtape1 !== 'Inconnu');
-      }
+      var phase1EmailImpl = !!(ligne && ligne.phase1EmailImplemented === true);
+      var phase1ListeHtmlImpl = !!(ligne && ligne.phase1ListeHtmlImplemented === true);
       var phase2Impl = !!(ligne && ligne.phase2Implemented === true);
-      if (ligne && ligne.phase2Implemented == null) {
-        phase2Impl = !!(ligne && ligne.pluginEtape2 && ligne.pluginEtape2 !== 'Inconnu');
-      }
       var phase3Impl = !!(ligne && ligne.phase3Implemented === true);
+      if (ligne && ligne.phase2Implemented == null) phase2Impl = !!(ligne && ligne.sourceEtape2 && ligne.sourceEtape2 !== 'Inconnu');
       if (ligne && ligne.phase3Implemented == null) phase3Impl = phase2Impl;
-      var aImporterLigne = (ligne && typeof ligne.aImporter === 'number') ? ligne.aImporter : 0;
+      var emailAImporter = (ligne && typeof ligne.emailÀImporter === 'number') ? ligne.emailÀImporter : 0;
+      var fichierAImporter = (ligne && typeof ligne.fichierÀImporter === 'number') ? ligne.fichierÀImporter : 0;
       var aCompleterLigne = (ligne && ligne.statuts && ligne.statuts['A compléter'] != null) ? ligne.statuts['A compléter'] : 0;
       var aAnalyserLigne = (ligne && ligne.statuts && ligne.statuts['À analyser'] != null) ? ligne.statuts['À analyser'] : 0;
-      var phase1Html;
-      if (!phase1Impl) {
-        phase1Html = '<span class="phaseEtat phaseEtat--ko" title="Phase 1 non implémentée">❌</span>';
-      } else if (!actifCreation) {
-        phase1Html = '<span class="phaseEtat phaseEtat--inactive" title="Phase 1 implémentée, source désactivée">😴</span>';
-      } else if (workerCreationEnCours && aImporterLigne > 0) {
-        phase1Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 1 activée – worker en cours">🏃</span>';
-      } else if (workerCreationEnCours) {
-        phase1Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 1 activée">✅</span>';
-      } else {
-        phase1Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 1 activée">✅</span>';
+      function phaseIconHtml(impl, actif, workerEnCours, enCoursCount, phaseKey) {
+        if (!impl) return '<span class="phaseEtat phaseEtat--ko" title="Non implémenté">❌</span>';
+        if (!actif) return '<button type="button" class="phaseEtat phaseEtat--inactive syntheseTogglePhase" data-source="' + escapeHtmlSynthese(sourceNom) + '" data-phase="' + escapeHtmlSynthese(phaseKey) + '" data-activé="false" aria-pressed="false" title="Cliquer pour activer"><span class="phaseEtatToggle" aria-hidden="true"></span></button>';
+        if (workerEnCours && enCoursCount > 0) return '<span class="phaseEtat phaseEtat--ok" title="Activé – worker en cours">🏃</span>';
+        return '<button type="button" class="phaseEtat phaseEtat--ok syntheseTogglePhase" data-source="' + escapeHtmlSynthese(sourceNom) + '" data-phase="' + escapeHtmlSynthese(phaseKey) + '" data-activé="true" aria-pressed="true" title="Cliquer pour désactiver"><span class="phaseEtatToggle phaseEtatToggle--on" aria-hidden="true"></span></button>';
       }
-      var phase2Html;
-      if (!phase2Impl) {
-        phase2Html = '<span class="phaseEtat phaseEtat--ko" title="Phase 2 non implémentée">❌</span>';
-      } else if (!actifEnrichissement) {
-        phase2Html = '<span class="phaseEtat phaseEtat--inactive" title="Phase 2 implémentée, source désactivée">😴</span>';
-      } else if (workerEnrichissementEnCours && aCompleterLigne > 0) {
-        phase2Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 2 activée – worker en cours">🏃</span>';
-      } else if (workerEnrichissementEnCours) {
-        phase2Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 2 activée">✅</span>';
-      } else {
-        phase2Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 2 activée">✅</span>';
-      }
-      var phase3Html;
-      if (!phase3Impl) {
-        phase3Html = '<span class="phaseEtat phaseEtat--ko" title="Phase 3 non implémentée">❌</span>';
-      } else if (!actifAnalyseIA) {
-        phase3Html = '<span class="phaseEtat phaseEtat--inactive" title="Phase 3 implémentée, source désactivée">😴</span>';
-      } else if (workerAnalyseIAEnCours && aAnalyserLigne > 0) {
-        phase3Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 3 activée – worker en cours">🏃</span>';
-      } else if (workerAnalyseIAEnCours) {
-        phase3Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 3 activée">✅</span>';
-      } else {
-        phase3Html = '<span class="phaseEtat phaseEtat--ok" title="Phase 3 activée">✅</span>';
-      }
-      var pluginLabel = (ligne && (ligne.pluginEtape2 || ligne.pluginEtape1)) ? (ligne.pluginEtape2 || ligne.pluginEtape1) : 'Inconnu';
-      var pluginLabelLower = String(pluginLabel).trim().toLowerCase();
-      var pluginSlug = pluginLabelLower.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+$/, '') || 'inconnu';
-      if (pluginLabelLower.includes('welcome') && pluginLabelLower.includes('jungle')) pluginSlug = 'wttj';
-      else if (pluginLabelLower.includes('job') && pluginLabelLower.includes('make') && pluginLabelLower.includes('sense')) pluginSlug = 'jtms';
-      else if (pluginSlug === 'linkedin') pluginSlug = 'linkedin';
-      else if (pluginSlug === 'job-that-make-sense' || pluginSlug === 'job-that-makes-sense' || pluginSlug === 'jobthatmakesense') pluginSlug = 'jtms';
-      else if (pluginSlug === 'welcome-to-the-jungle' || pluginSlug === 'welcometothejungle') pluginSlug = 'wttj';
-      else if (pluginSlug === 'hellowork') pluginSlug = 'hellowork';
-      else if (pluginSlug === 'cadre-emploi' || pluginSlug === 'cadreemploi') pluginSlug = 'cadreemploi';
-      var pluginCapsule = '<span class="synthesePluginCapsule synthesePluginCapsule--' + escapeHtmlSynthese(pluginSlug) + '">' + escapeHtmlSynthese(pluginLabel) + '</span>';
-      var cellAImporter = '<td class="syntheseOffresCellAImporter">' + escapeHtmlSynthese(String(aImporterLigne)) + '</td>';
+      var phase1EmailHtml = phaseIconHtml(phase1EmailImpl, actifCreationEmail, workerCreationEnCours, emailAImporter, 'creationEmail');
+      var phase1ListeHtmlHtml = phaseIconHtml(phase1ListeHtmlImpl, actifCreationListeHtml, false, 0, 'creationListeHtml');
+      var phase2Html = phaseIconHtml(phase2Impl, actifEnrichissement, workerEnrichissementEnCours, aCompleterLigne, 'enrichissement');
+      var phase3Html = phaseIconHtml(phase3Impl, actifAnalyseIA, workerAnalyseIAEnCours, aAnalyserLigne, 'analyse');
+      var sourceLabelLower = String(sourceNom).trim().toLowerCase();
+      var sourceSlug = sourceLabelLower.replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+$/, '') || 'inconnu';
+      if (sourceLabelLower.includes('welcome') && sourceLabelLower.includes('jungle')) sourceSlug = 'wttj';
+      else if (sourceLabelLower.includes('job') && sourceLabelLower.includes('make') && sourceLabelLower.includes('sense')) sourceSlug = 'jtms';
+      else if (sourceSlug === 'linkedin') sourceSlug = 'linkedin';
+      else if (sourceSlug === 'job-that-make-sense' || sourceSlug === 'job-that-makes-sense' || sourceSlug === 'jobthatmakesense') sourceSlug = 'jtms';
+      else if (sourceSlug === 'welcome-to-the-jungle' || sourceSlug === 'welcometothejungle') sourceSlug = 'wttj';
+      else if (sourceSlug === 'hellowork') sourceSlug = 'hellowork';
+      else if (sourceSlug === 'cadre-emploi' || sourceSlug === 'cadreemploi') sourceSlug = 'cadreemploi';
+      var urlOfficielle = (ligne && ligne.urlOfficielle && String(ligne.urlOfficielle).trim()) ? String(ligne.urlOfficielle).trim() : '';
+      var spanCapsule = '<span class="syntheseSourceCapsule syntheseSourceCapsule--' + escapeHtmlSynthese(sourceSlug) + '">' + escapeHtmlSynthese(sourceNom) + '</span>';
+      var sourceCapsule = urlOfficielle ? ('<a href="' + escapeHtmlSynthese(urlOfficielle) + '" target="_blank" rel="noopener noreferrer">' + spanCapsule + '</a>') : spanCapsule;
+      var cellEmailAImporter = '<td class="syntheseOffresCellAImporter">' + escapeHtmlSynthese(qteOuVide(emailAImporter)) + '</td>';
+      var cellFichierAImporter = '<td class="syntheseOffresCellFichierImporter">' + escapeHtmlSynthese(qteOuVide(fichierAImporter)) + '</td>';
       var statutsCells = STATUTS_ORDER.map(function(statut) {
         var n = (ligne && ligne.statuts && ligne.statuts[statut] != null) ? ligne.statuts[statut] : 0;
-        return '<td>' + escapeHtmlSynthese(String(n)) + '</td>';
+        var cellClass = (statut === 'À analyser') ? ' class="syntheseOffresCellAAnalyser"' : '';
+        return '<td' + cellClass + '>' + escapeHtmlSynthese(qteOuVide(n)) + '</td>';
       }).join('');
       var totalLigne = (totalParLigne[i] != null) ? totalParLigne[i] : 0;
-      var cellTotaux = '<td class="syntheseOffresCellTotaux">' + escapeHtmlSynthese(String(totalLigne)) + '</td>';
-      return '<tr>'
-        + '<td>' + escapeHtmlSynthese((ligne && ligne.emailExpéditeur) || '') + '</td>'
-        + '<td>' + pluginCapsule + '</td>'
-        + '<td>' + phase1Html + '</td>'
+      var cellTotaux = '<td class="syntheseOffresCellTotaux">' + escapeHtmlSynthese(qteOuVide(totalLigne)) + '</td>';
+      return '<tr data-total-ligne="' + escapeHtmlSynthese(String(totalLigne)) + '">'
+        + '<td>' + sourceCapsule + '</td>'
+        + '<td>' + phase1EmailHtml + '</td>'
+        + '<td>' + phase1ListeHtmlHtml + '</td>'
         + '<td>' + phase2Html + '</td>'
         + '<td>' + phase3Html + '</td>'
-        + cellAImporter
+        + cellEmailAImporter
+        + cellFichierAImporter
         + statutsCells
         + cellTotaux
         + '</tr>';
     }).join('');
+    var totalEmailAImporter = lignes.reduce(function(s, l) { return s + ((l && typeof l.emailÀImporter === 'number') ? l.emailÀImporter : 0); }, 0);
+    var totalFichierAImporter = lignes.reduce(function(s, l) { return s + ((l && typeof l.fichierÀImporter === 'number') ? l.fichierÀImporter : 0); }, 0);
     var ligneTotauxHtml = '<tr class="syntheseOffresLigneTotaux" e2eid="e2eid-synthese-offres-ligne-totaux">'
-      + '<td>Totaux</td><td></td><td></td><td></td><td></td><td class="syntheseOffresCellAImporter">' + escapeHtmlSynthese(String(totalAImporter)) + '</td>';
+      + '<td>Totaux</td><td></td><td></td><td></td><td></td><td class="syntheseOffresCellAImporter">' + escapeHtmlSynthese(qteOuVide(totalEmailAImporter)) + '</td><td class="syntheseOffresCellFichierImporter">' + escapeHtmlSynthese(qteOuVide(totalFichierAImporter)) + '</td>';
     STATUTS_ORDER.forEach(function(statut) {
       var n = (totauxColonnes[statut] != null) ? totauxColonnes[statut] : 0;
-      ligneTotauxHtml += '<td>' + escapeHtmlSynthese(String(n)) + '</td>';
+      var cellClass = (statut === 'À analyser') ? ' class="syntheseOffresCellAAnalyser"' : '';
+      ligneTotauxHtml += '<td' + cellClass + '>' + escapeHtmlSynthese(qteOuVide(n)) + '</td>';
     });
-    ligneTotauxHtml += '<td class="syntheseOffresCellTotaux" e2eid="e2eid-synthese-offres-cellule-totaux-generaux">' + escapeHtmlSynthese(String(totalGeneral)) + '</td></tr>';
+    ligneTotauxHtml += '<td class="syntheseOffresCellTotaux" e2eid="e2eid-synthese-offres-cellule-totaux-generaux">' + escapeHtmlSynthese(qteOuVide(totalGeneral)) + '</td></tr>';
     syntheseOffresBody.innerHTML = rowsHtml + ligneTotauxHtml;
-    if (syntheseOffresSection && lignes.length > 0) syntheseOffresSection.hidden = false;
+    applyMasquerLignesVides();
+    if (syntheseOffresSection) syntheseOffresSection.hidden = false;
+  }
+
+  var masquerLignesVides = true;
+
+  function applyMasquerLignesVides() {
+    if (!syntheseOffresBody || !toggleMasquerLignesVidesInput) return;
+    masquerLignesVides = toggleMasquerLignesVidesInput.checked;
+    var rows = syntheseOffresBody.querySelectorAll('tr:not(.syntheseOffresLigneTotaux)');
+    for (var r = 0; r < rows.length; r++) {
+      var tr = rows[r];
+      var totalStr = tr.getAttribute('data-total-ligne');
+      var total = (totalStr !== null && totalStr !== '') ? parseInt(totalStr, 10) : 0;
+      if (isNaN(total)) total = 0;
+      tr.classList.toggle('syntheseOffresLigneMasquee', masquerLignesVides && total === 0);
+    }
   }
 
   var STATUT_ANNONCE = 'A compléter';
@@ -357,7 +404,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     var idxAnnonce = STATUTS_ORDER.indexOf(STATUT_ANNONCE);
     var idxAnalyser = STATUTS_ORDER.indexOf(STATUT_ANALYSER);
     if (idxAnnonce === -1 || idxAnalyser === -1) return;
-    var firstStatutCol = 6;
+    var firstStatutCol = 7;
     var lignesByEmail = {};
     for (var i = 0; i < lignes.length; i++) {
       var email = (lignes[i] && lignes[i].emailExpéditeur) ? String(lignes[i].emailExpéditeur).trim().toLowerCase() : '';
@@ -372,8 +419,8 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
       if (!ligne || !ligne.statuts) continue;
       var nAnnonce = (ligne.statuts[STATUT_ANNONCE] != null) ? ligne.statuts[STATUT_ANNONCE] : 0;
       var nAnalyser = (ligne.statuts[STATUT_ANALYSER] != null) ? ligne.statuts[STATUT_ANALYSER] : 0;
-      row.cells[firstStatutCol + idxAnnonce].textContent = String(nAnnonce);
-      row.cells[firstStatutCol + idxAnalyser].textContent = String(nAnalyser);
+      row.cells[firstStatutCol + idxAnnonce].textContent = qteOuVide(nAnnonce);
+      row.cells[firstStatutCol + idxAnalyser].textContent = qteOuVide(nAnalyser);
     }
   }
 
@@ -381,7 +428,8 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     fetch('/api/tableau-synthese-offres', { cache: 'no-store' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        if (data && data.avertissement) setSyntheseMessage(data.avertissement, 'warning');
+        if (data && data.erreur) setSyntheseMessage(data.erreur, true);
+        else if (data && data.avertissement) setSyntheseMessage(data.avertissement, 'warning');
         else setSyntheseMessage('', false);
         var statutsOrdre = data && Array.isArray(data.statutsOrdre) && data.statutsOrdre.length > 0
           ? data.statutsOrdre
@@ -391,7 +439,10 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
           : null;
         renderTableauSyntheseOffres(data && data.lignes, statutsOrdre, totaux);
       })
-      .catch(function() {});
+      .catch(function(err) {
+        setSyntheseMessage('Impossible de charger le tableau.', true);
+        console.error('Tableau synthèse offres', err);
+      });
   }
 
   /** type: false = clear, true = error (red), 'warning' = warning (orange) */
@@ -402,25 +453,50 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     syntheseOffresMessage.classList.toggle('syntheseOffresMessage--warning', type === 'warning');
   }
 
+  /** Charge les données du tableau (GET) et les affiche. Partie commune au chargement initial et après refresh. */
+  function applyTableauData(data) {
+    if (data && data.erreur) setSyntheseMessage(data.erreur, true);
+    else if (data && data.avertissement) setSyntheseMessage(data.avertissement, 'warning');
+    else setSyntheseMessage('', false);
+    var statutsOrdre = data && Array.isArray(data.statutsOrdre) && data.statutsOrdre.length > 0
+      ? data.statutsOrdre
+      : DEFAULT_STATUTS_ORDER;
+    var totaux = (data && (data.totalParLigne != null || data.totauxColonnes != null || data.totalGeneral != null))
+      ? { totauxColonnes: data.totauxColonnes || {}, totalParLigne: Array.isArray(data.totalParLigne) ? data.totalParLigne : [], totalGeneral: typeof data.totalGeneral === 'number' ? data.totalGeneral : 0 }
+      : null;
+    renderTableauSyntheseOffres(data && data.lignes, statutsOrdre, totaux);
+    return { hadError: !!(data && data.erreur) };
+  }
+
   /** Audit puis chargement du tableau (colonne "A importer" à jour). Réutilisé au chargement et sur clic "Mise à jour". */
   function loadTableauAvecAudit() {
-    return fetch('/api/tableau-synthese-offres/refresh', { method: 'POST' })
-      .then(function(r) { return r.json(); })
-      .then(function(body) {
-        if (body && body.ok === false && body.message) setSyntheseMessage(body.message, true);
-        return fetch('/api/tableau-synthese-offres', { cache: 'no-store' });
+    if (syntheseOffresSection) syntheseOffresSection.hidden = false;
+    var getData = function() {
+      return fetch('/api/tableau-synthese-offres', { cache: 'no-store' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          return applyTableauData(data);
+        });
+    };
+    return getData()
+      .then(function(initialResult) {
+        return fetch('/api/tableau-synthese-offres/refresh', { method: 'POST' })
+          .then(function(r) { return r.json(); })
+          .then(function(body) {
+            if (body && body.ok === false && body.message) setSyntheseMessage(body.message, true);
+            return getData();
+          })
+          .catch(function(refreshErr) {
+            console.warn('Refresh synthèse (POST) ignoré, données déjà affichées', refreshErr);
+            return initialResult;
+          });
       })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data && data.avertissement) setSyntheseMessage(data.avertissement, 'warning');
-        else setSyntheseMessage('', false);
-        var statutsOrdre = data && Array.isArray(data.statutsOrdre) && data.statutsOrdre.length > 0
-          ? data.statutsOrdre
-          : DEFAULT_STATUTS_ORDER;
-        var totaux = (data && (data.totalParLigne != null || data.totauxColonnes != null || data.totalGeneral != null))
-          ? { totauxColonnes: data.totauxColonnes || {}, totalParLigne: Array.isArray(data.totalParLigne) ? data.totalParLigne : [], totalGeneral: typeof data.totalGeneral === 'number' ? data.totalGeneral : 0 }
-          : null;
-        renderTableauSyntheseOffres(data && data.lignes, statutsOrdre, totaux);
+      .catch(function(err) {
+        renderTableauSyntheseOffres([], DEFAULT_STATUTS_ORDER, null);
+        if (syntheseOffresSection) syntheseOffresSection.hidden = false;
+        setSyntheseMessage('Impossible de charger le tableau.', true);
+        console.error('Chargement tableau synthèse offres', err);
+        throw err;
       });
   }
 
@@ -429,7 +505,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     setSyntheseMessage('Mise à jour en cours…');
     if (btnRefreshSynthese) btnRefreshSynthese.disabled = true;
     loadTableauAvecAudit()
-      .then(function() { setSyntheseMessage('', false); })
+      .then(function(result) { if (!(result && result.hadError)) setSyntheseMessage('', false); })
       .catch(function(err) {
         setSyntheseMessage('Erreur lors de la mise à jour.', true);
         console.error('Mise à jour synthèse offres', err);
@@ -444,6 +520,7 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     fetch('/api/tableau-synthese-offres', { cache: 'no-store' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
+        if (data && data.erreur) setSyntheseMessage(data.erreur, true);
         var lignes = data && data.lignes;
         if (!lignes || !Array.isArray(lignes)) return;
         if (data.statutsOrdre && Array.isArray(data.statutsOrdre) && data.statutsOrdre.length > 0) {
@@ -469,18 +546,58 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
   };
 
   function initSynthese() {
-    syntheseOffresSection = document.querySelector('.syntheseOffres');
-    syntheseOffresHead = document.getElementById('synthese-offres-head');
-    syntheseOffresBody = document.getElementById('synthese-offres-body');
-    btnRefreshSynthese = document.querySelector('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]');
-    syntheseOffresMessage = document.querySelector('[e2eid="e2eid-message-mise-a-jour-synthese"]');
-    renderTableauSyntheseHead(DEFAULT_STATUTS_ORDER);
-    loadTableauAvecAudit().catch(function(err) {
-      setSyntheseMessage('Erreur lors du chargement.', true);
-      console.error('Chargement synthèse offres', err);
-    });
+    try {
+      syntheseOffresSection = document.querySelector('.syntheseOffres');
+      syntheseOffresHead = document.getElementById('synthese-offres-head');
+      syntheseOffresBody = document.getElementById('synthese-offres-body');
+      btnRefreshSynthese = document.querySelector('[e2eid="e2eid-bouton-rafraichir-synthese-offres"]');
+      syntheseOffresMessage = document.querySelector('[e2eid="e2eid-message-mise-a-jour-synthese"]');
+      var toggleWrap = document.querySelector('[e2eid="e2eid-masquer-lignes-vides"]');
+      toggleMasquerLignesVidesInput = toggleWrap ? toggleWrap.querySelector('input.syntheseOffresToggleSwitchInput') : null;
+      if (toggleMasquerLignesVidesInput) {
+        toggleMasquerLignesVidesInput.addEventListener('change', applyMasquerLignesVides);
+      }
+      renderTableauSyntheseHead(DEFAULT_STATUTS_ORDER);
+      if (syntheseOffresSection) syntheseOffresSection.hidden = false;
+      loadTableauAvecAudit().catch(function(err) {
+        renderTableauSyntheseOffres([], DEFAULT_STATUTS_ORDER, null);
+        if (syntheseOffresSection) syntheseOffresSection.hidden = false;
+        setSyntheseMessage('Erreur lors du chargement.', true);
+        console.error('Chargement synthèse offres', err);
+      });
+    } catch (err) {
+      console.error('initSynthese (chargement initial)', err);
+      if (syntheseOffresSection) syntheseOffresSection.hidden = false;
+      renderTableauSyntheseOffres([], DEFAULT_STATUTS_ORDER, null);
+    }
     if (btnRefreshSynthese) {
       btnRefreshSynthese.addEventListener('click', onMiseAJourSyntheseClick);
+    }
+    if (syntheseOffresBody) {
+      syntheseOffresBody.addEventListener('click', function(e) {
+        var btn = e.target && e.target.closest && e.target.closest('button.syntheseTogglePhase');
+        if (!btn) return;
+        e.preventDefault();
+        var source = btn.getAttribute('data-source');
+        var phase = btn.getAttribute('data-phase');
+        var activéStr = btn.getAttribute('data-activé');
+        var activé = activéStr === 'true';
+        if (!source || !phase) return;
+        fetch('/api/sources/activation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: source, phase: phase, activé: !activé }),
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(body) {
+            if (body && body.ok === true) refreshTableauSyntheseOffres();
+            else if (body && body.message) setSyntheseMessage(body.message, true);
+          })
+          .catch(function(err) {
+            setSyntheseMessage('Erreur lors de la modification.', true);
+            console.error('Toggle activation', err);
+          });
+      });
     }
   }
   if (document.readyState === 'loading') {
@@ -623,19 +740,20 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
             window.__refreshTableauSyntheseOffresStatutsOnly();
             syntheseRefreshWhenWorkerRunning = setInterval(function() {
               window.__refreshTableauSyntheseOffresStatutsOnly();
-            }, 5000);
+            }, 2000);
           }
           var pCreation = creation.currentProgress;
           if (pCreation && pCreation.total > 0) {
-            var percentCreation = Math.round(((pCreation.index + 1) / pCreation.total) * 100);
-            setWorkerProgressPhase1(percentCreation, (pCreation.index + 1) + '/' + pCreation.total + ' — création…', false);
+            var current = Math.min(pCreation.index + 1, pCreation.total);
+            var percentCreation = Math.round((current / pCreation.total) * 100);
+            setWorkerProgressPhase1(percentCreation, current + '/' + pCreation.total + ' — création…', false);
           } else {
             setWorkerProgressPhase1(0, (creation.running ? 'Création en cours…' : ''), false);
           }
           var p = enrich.currentProgress || data.currentProgress;
           if (p && p.total > 0) {
             var percent = Math.round(((p.index + 1) / p.total) * 100);
-            var msg = (p.index + 1) + '/' + p.total + ' — ' + (p.plugin || '?') + ' — Id: ' + (p.recordId || '');
+            var msg = (p.index + 1) + '/' + p.total + ' — ' + (p.sourceNom || '?') + ' — Id: ' + (p.recordId || '');
             setWorkerProgress(percent, msg, false);
           } else {
             setWorkerProgress(0, enrich.running ? 'Enrichissement en cours…' : '', false);
@@ -950,6 +1068,102 @@ function getTableauDeBordContent(options?: TableauDeBordOptions): string {
     });
   }
 })();
+
+(function() {
+  var btnHistogramme = document.querySelector('[e2eid="e2eid-bouton-calculer-histogramme-scores"]');
+  var canvasHistogramme = document.getElementById('histogramme-scores-chart');
+  var wrapHistogramme = document.getElementById('histogramme-scores-chart-wrap');
+  function barColorForBucketIndex(i) {
+    if (i >= 0 && i <= 4) return 'rgb(110, 119, 129)';
+    if (i === 5) return 'rgb(217, 115, 13)';
+    return 'rgb(26, 127, 55)';
+  }
+  function drawHistogrammeScores(data) {
+    if (!canvasHistogramme) return;
+    var ctx = canvasHistogramme.getContext('2d');
+    if (!ctx) return;
+    var w = (wrapHistogramme && wrapHistogramme.clientWidth) ? wrapHistogramme.clientWidth : canvasHistogramme.offsetWidth || 280;
+    var h = (wrapHistogramme && wrapHistogramme.clientHeight) ? wrapHistogramme.clientHeight : 240;
+    if (w <= 0 || h <= 0) { w = 280; h = 240; }
+    canvasHistogramme.width = w;
+    canvasHistogramme.height = h;
+    ctx.clearRect(0, 0, w, h);
+    if (!data || !data.ok || !Array.isArray(data.buckets) || data.buckets.length === 0) {
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = '#57606a';
+      ctx.textAlign = 'center';
+      ctx.fillText('Cliquez sur Calculer pour afficher l\\'histogramme.', w / 2, h / 2);
+      return;
+    }
+    var buckets = data.buckets;
+    var maxCount = Math.max(1, Math.max.apply(null, buckets.map(function(b) { return b.count || 0; })));
+    var paddingLeft = 36;
+    var paddingRight = 12;
+    var paddingTop = 20;
+    var paddingBottom = 36;
+    var chartW = w - paddingLeft - paddingRight;
+    var chartH = h - paddingTop - paddingBottom;
+    var n = buckets.length;
+    var barGap = Math.max(2, Math.floor(chartW / (n * 8)));
+    var barWidth = Math.max(4, (chartW - (n - 1) * barGap) / n);
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = '#1a1a1a';
+    ctx.strokeStyle = '#cccccc';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (var i = 0; i < n; i++) {
+      var count = buckets[i].count || 0;
+      var label = buckets[i].label || '';
+      var x = paddingLeft + i * (barWidth + barGap);
+      var barH = maxCount > 0 ? (count / maxCount) * chartH : 0;
+      var y = paddingTop + chartH - barH;
+      ctx.fillStyle = barColorForBucketIndex(i);
+      ctx.fillRect(x, y, barWidth, barH);
+      ctx.strokeStyle = '#8c8c8c';
+      ctx.strokeRect(x, y, barWidth, barH);
+      ctx.fillStyle = '#1a1a1a';
+      var labelShort = label.length > 8 ? label.replace(/\s*-\s*/, '-').slice(0, 8) : label;
+      ctx.fillText(labelShort, x + barWidth / 2, h - paddingBottom + 6);
+    }
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#57606a';
+    var step = maxCount <= 5 ? 1 : (maxCount <= 20 ? 5 : Math.ceil(maxCount / 5));
+    for (var v = 0; v <= maxCount; v += step) {
+      var yy = paddingTop + chartH - (v / maxCount) * chartH;
+      ctx.fillText(String(v), paddingLeft - 4, yy);
+    }
+    ctx.strokeStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.moveTo(paddingLeft, paddingTop);
+    ctx.lineTo(paddingLeft, paddingTop + chartH);
+    ctx.lineTo(paddingLeft + chartW, paddingTop + chartH);
+    ctx.stroke();
+  }
+  if (btnHistogramme && canvasHistogramme) {
+    drawHistogrammeScores(null);
+    if (wrapHistogramme && typeof window !== 'undefined' && window.ResizeObserver) {
+      try {
+        new window.ResizeObserver(function() { drawHistogrammeScores(window.__lastHistogrammeScoresData || null); }).observe(wrapHistogramme);
+      } catch (e) {}
+    }
+    btnHistogramme.addEventListener('click', function() {
+      btnHistogramme.disabled = true;
+      fetch('/api/histogramme-scores-offres', { cache: 'no-store' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (typeof window !== 'undefined') window.__lastHistogrammeScoresData = data;
+          drawHistogrammeScores(data);
+        })
+        .catch(function() {
+          drawHistogrammeScores({ ok: false, message: 'Erreur' });
+        })
+        .finally(function() {
+          btnHistogramme.disabled = false;
+        });
+    });
+  }
+})();
 </script>
   </div>`;
 }
@@ -958,5 +1172,6 @@ export function getPageTableauDeBord(options?: TableauDeBordOptions): string {
   return getLayoutHtml('tableau-de-bord', 'Tableau de bord', getTableauDeBordContent(options), {
     configComplète: options?.configComplète ?? true,
     showAuditLink: options?.showAuditLink,
+    showOffresLink: options?.showOffresLink,
   });
 }

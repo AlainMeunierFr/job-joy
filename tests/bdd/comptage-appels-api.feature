@@ -9,12 +9,12 @@ Fonctionnalité: Comptage des appels API
     Étant donné que la configuration Airtable est opérationnelle
     Et que le tableau de bord est affiché
 
-  # --- CA1 : Wrapper autour des appels API (Claude et Airtable) ---
-  Scénario: Un appel API Claude enregistré produit une entrée dans le fichier de log du jour
+  # --- CA1 : Wrapper autour des appels API (Mistral et Airtable) ---
+  Scénario: Un appel API Mistral enregistré produit une entrée dans le fichier de log du jour
     Étant donné qu'aucun log d'appels API n'existe pour la date "2026-02-23"
-    Quand un appel API "Claude" est enregistré avec succès pour la date "2026-02-23"
+    Quand un appel API "Mistral" est enregistré avec succès pour la date "2026-02-23"
     Alors un fichier de log existe dans "data/log-appels-api/" pour la date "2026-02-23"
-    Et ce fichier contient au moins un enregistrement avec l'API "Claude"
+    Et ce fichier contient au moins un enregistrement avec l'API "Mistral"
 
   Scénario: Un appel API Airtable enregistré produit une entrée dans le fichier de log du jour
     Étant donné qu'aucun log d'appels API n'existe pour la date "2026-02-23"
@@ -24,9 +24,9 @@ Fonctionnalité: Comptage des appels API
 
   # --- CA2 : Contenu du log (format JSON, champs requis, pas de donnée sensible en échec) ---
   Scénario: Chaque enregistrement de log contient l'API appelée, la date-heure et le statut succès
-    Étant donné qu'un appel API "Claude" a été enregistré avec succès pour la date "2026-02-23"
+    Étant donné qu'un appel API "Mistral" a été enregistré avec succès pour la date "2026-02-23"
     Quand je lis le fichier de log pour la date "2026-02-23"
-    Alors au moins un enregistrement du fichier contient le champ identifiant l'API (ex. "Claude")
+    Alors au moins un enregistrement du fichier contient le champ identifiant l'API (ex. "Mistral")
     Et cet enregistrement contient un champ date-heure (ex. format ISO 8601)
     Et cet enregistrement indique le succès (ex. succes: true ou champ équivalent)
 
@@ -60,26 +60,26 @@ Fonctionnalité: Comptage des appels API
   Scénario: La page Tableau de bord affiche un container "Consommation API"
     Alors la page comporte un container ou une section intitulée "Consommation API"
 
-  Scénario: Le container Consommation API contient un tableau avec une colonne par API (Claude, Airtable)
+  Scénario: Le container Consommation API contient un tableau avec une colonne par API (Mistral, Airtable)
     Alors le container Consommation API comporte un tableau
-    Et le tableau comporte au moins une colonne "Claude"
+    Et le tableau comporte au moins une colonne "Mistral"
     Et le tableau comporte au moins une colonne "Airtable"
 
   Scénario: Le container Consommation API comporte un bouton "Calculer"
     Alors le container Consommation API comporte un bouton "Calculer"
 
   Scénario: Le tableau affiche une ligne par jour et le nombre d'appels par API après clic sur Calculer
-    Étant donné que des logs d'appels existent dans "data/log-appels-api/" pour la date "2026-02-21" avec 2 appels Claude et 3 appels Airtable
+    Étant donné que des logs d'appels existent dans "data/log-appels-api/" pour la date "2026-02-21" avec 2 appels Mistral et 3 appels Airtable
     Quand je clique sur le bouton "Calculer" du container Consommation API
     Alors le tableau Consommation API affiche une ligne pour la date "2026-02-21"
-    Et la cellule pour la date "2026-02-21" et l'API "Claude" affiche "2"
+    Et la cellule pour la date "2026-02-21" et l'API "Mistral" affiche "2"
     Et la cellule pour la date "2026-02-21" et l'API "Airtable" affiche "3"
 
   Scénario: Le tableau n'est mis à jour qu'au clic sur le bouton Calculer
-    Étant donné que des logs d'appels existent dans "data/log-appels-api/" pour la date "2026-02-20" avec 1 appel Claude
+    Étant donné que des logs d'appels existent dans "data/log-appels-api/" pour la date "2026-02-20" avec 1 appel Mistral
     Et que le tableau de bord est affiché sans avoir encore cliqué sur "Calculer"
     Quand j'observe le tableau Consommation API
     Alors le tableau peut être vide ou ne pas afficher les données du 2026-02-20
     Quand je clique sur le bouton "Calculer" du container Consommation API
     Alors le tableau Consommation API affiche une ligne pour la date "2026-02-20"
-    Et la cellule pour la date "2026-02-20" et l'API "Claude" affiche "1"
+    Et la cellule pour la date "2026-02-20" et l'API "Mistral" affiche "1"

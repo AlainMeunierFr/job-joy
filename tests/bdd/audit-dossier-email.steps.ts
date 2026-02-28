@@ -168,14 +168,15 @@ Then('le tableau de synthèse affiche les lignes suivantes', async ({ page: _pag
   const expected = parseRowsDocString(docString);
   const actual = (lastAuditStatus?.result?.synthese ?? []).map((r) => ({
     emailExpéditeur: (r.emailExpéditeur || '').toLowerCase(),
-    plugin: r.plugin || '',
+    source: (r as { source?: string }).source ?? (r as { plugin?: string }).plugin ?? '',
     actif: r.actif || '',
     nbEmails: Number(r.nbEmails ?? 0),
   }));
   for (const row of expected) {
     const found = actual.find((a) => a.emailExpéditeur === row.emailExpéditeur);
     expect(found).toBeDefined();
-    expect(normaliserPlugin(found?.plugin ?? '')).toBe(normaliserPlugin(row.plugin));
+    const rowSource = (row as { source?: string }).source ?? (row as { plugin?: string }).plugin ?? '';
+    expect(normaliserPlugin(found?.source ?? '')).toBe(normaliserPlugin(rowSource));
     expect(normaliserActif(found?.actif ?? '')).toBe(normaliserActif(row.actif));
     expect(found?.nbEmails).toBe(row.nbEmails);
   }

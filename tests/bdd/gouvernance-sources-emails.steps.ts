@@ -26,9 +26,9 @@ let expectedPresenceSource = '';
 
 function statutVersModeleActuel(statut: string, nomSource: string): SourceEmail {
   const normalise = (statut || '').trim().toLowerCase();
-  const plugin: SourceEmail['plugin'] = nomSource.includes('linkedin') ? 'Linkedin' : 'Inconnu';
+  const source: SourceEmail['source'] = nomSource.includes('linkedin') ? 'Linkedin' : 'Inconnu';
   const actif = normalise === 'actif';
-  const base: SourceEmail = { emailExpéditeur: nomSource, plugin, type: 'email', activerCreation: actif, activerEnrichissement: actif, activerAnalyseIA: actif };
+  const base: SourceEmail = { emailExpéditeur: nomSource, source, type: 'email', activerCreation: actif, activerEnrichissement: actif, activerAnalyseIA: actif };
   if (normalise === 'actif') return base;
   if (normalise === 'inactif') return { ...base, activerCreation: false, activerEnrichissement: false, activerAnalyseIA: false };
   return { ...base, activerCreation: false, activerEnrichissement: false, activerAnalyseIA: false };
@@ -59,7 +59,7 @@ Then('la table Sources comporte le champ {string} \\(sélection : email, liste h
   expect(champ).toBe('type');
   const ok = preparerMigrationSources({
     emailExpéditeur: { type: 'text' },
-    plugin: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
+    source: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
     type: { type: 'singleSelect', options: ['email', 'liste html', 'liste csv'] },
     activerCreation: { type: 'checkbox' },
     activerEnrichissement: { type: 'checkbox' },
@@ -72,7 +72,7 @@ Then('la table Sources comporte {string}, {string}, {string} \\(cases à cocher)
   expect([c1, c2, c3].sort()).toEqual(['Activer l\'analyse par IA', 'Activer la création', 'Activer l\'enrichissement']);
   const ok = preparerMigrationSources({
     emailExpéditeur: { type: 'text' },
-    plugin: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
+    source: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
     type: { type: 'singleSelect', options: ['email', 'liste html', 'liste csv'] },
     activerCreation: { type: 'checkbox' },
     activerEnrichissement: { type: 'checkbox' },
@@ -95,7 +95,7 @@ Then(
     }
     const ok = preparerMigrationSources({
       emailExpéditeur: { type: 'text' },
-      plugin: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
+      source: { type: 'singleSelect', options: ['Linkedin', 'Inconnu', 'HelloWork', 'Welcome to the Jungle', 'Job That Make Sense', 'Cadre Emploi'] },
       type: { type: 'singleSelect', options: ['email', 'liste html', 'liste csv'] },
       activerCreation: { type: 'checkbox' },
       activerEnrichissement: { type: 'checkbox' },
@@ -162,7 +162,7 @@ Then(
     const match = created.find((s) => s.emailExpéditeur.includes(sourceNom));
     expect(match).toBeDefined();
     if ((statut || '').toLowerCase() === 'inconnu') {
-      expect(match?.plugin).toBe('Inconnu');
+      expect(match?.source).toBe('Inconnu');
     }
   }
 );
@@ -198,7 +198,7 @@ When('le traitement des emails est lancé', async () => {
   });
   for (const c of lastTraitement.corrections) {
     const idx = sources.findIndex((s) => s.emailExpéditeur === c.emailExpéditeur);
-    if (idx >= 0) sources[idx].plugin = c.nouveauPlugin;
+    if (idx >= 0) sources[idx].source = c.nouveauSourceNom;
   }
 });
 
@@ -238,7 +238,7 @@ Then('le statut de cette source est {string}', async ({ page: _page }, statut: s
   if ((statut || '').toLowerCase() === 'inconnu') {
     const created = lastTraitement?.creees[0];
     expect(created).toBeDefined();
-    expect(created?.plugin).toBe('Inconnu');
+    expect(created?.source).toBe('Inconnu');
     expect(created?.activerCreation).toBe(false);
     expect(created?.activerEnrichissement).toBe(false);
     expect(created?.activerAnalyseIA).toBe(false);

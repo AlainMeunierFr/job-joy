@@ -1,31 +1,29 @@
 /**
- * Driver Airtable pour la relève des offres (US-1.4).
- * Lit les sources (table Sources) et crée des lignes dans la table Offres.
- * Upsert : une recherche Airtable par offre (clé = Id offre, sinon URL). Si absent → INSERT, si présent → PATCH (enrichissement).
+ * Driver Airtable pour la relève : crée des lignes dans la table Offres uniquement.
+ *
+ * Règle :
+ * - Paramétrage du comportement des workers (sources, actifs, etc.) : JSON (data/sources.json).
+ * - Écrire et chercher dans les offres : chaîne de caractères dans la colonne Airtable Offres (champ « source »), pas de lien vers une table.
  */
 import type { RelèveOffresDriver } from './relève-offres-linkedin.js';
 import type { SourceLinkedInResult } from '../types/offres-releve.js';
-import type { OffreInsert, ResultatCreerOffres } from '../types/offres-releve.js';
-import type { SourceEmail, TypeSource } from './gouvernance-sources-emails.js';
-import type { PluginSource } from './gouvernance-sources-emails.js';
+import type { OffreInsert, ResultatCreerOffres, MethodeCreationOffre } from '../types/offres-releve.js';
+import type { SourceEmail } from './gouvernance-sources-emails.js';
 import { normaliserBaseId } from './airtable-url.js';
-import { PLUGINS_SOURCES_AIRTABLE } from './plugins-sources-airtable.js';
-import { ensureSingleSelectOption } from './airtable-ensure-enums.js';
 
 export type { ResultatCreerOffres };
 
 const API_BASE = 'https://api.airtable.com/v0';
 
-/** Noms des champs Airtable table Sources (US-3.1). */
-const AIRTABLE_FIELD_ACTIVER_CREATION = 'Activer la création';
-const AIRTABLE_FIELD_ACTIVER_ENRICHISSEMENT = "Activer l'enrichissement";
-const AIRTABLE_FIELD_ACTIVER_ANALYSE_IA = "Activer l'analyse par IA";
+/** US-7.2 CA5 : colonne Offres « Méthode de création ». Valeurs : email, liste html, manuelle. La colonne doit exister dans la base Airtable (sinon 422). */
+const AIRTABLE_FIELD_METHODE_CREATION = 'Méthode de création';
 
 export interface AirtableReleveDriverOptions {
   apiKey: string;
   baseId: string;
-  sourcesId: string;
   offresId: string;
+  /** Ignoré (sources = sources.json). Conservé pour compatibilité d’appel. */
+  sourcesId?: string;
 }
 
 export interface SourceAirtable extends SourceEmail {
@@ -39,25 +37,8 @@ function headers(apiKey: string): Record<string, string> {
   };
 }
 
-/** Fallback : ajoute la valeur plugin manquante dans Sources.plugin puis retourne true. */
-async function ensurePluginChoice(
-  baseId: string,
-  sourcesId: string,
-  apiKey: string,
-  required: string
-): Promise<boolean> {
-  return ensureSingleSelectOption(
-    baseId,
-    sourcesId,
-    'plugin',
-    required,
-    PLUGINS_SOURCES_AIRTABLE,
-    apiKey
-  );
-}
-
 /**
- * Crée un driver qui utilise l'API Airtable pour getSourceLinkedIn et creerOffres.
+ * Driver Airtable pour creerOffres uniquement. Sources = data/sources.json (utiliser createCompositeReleveDriver).
  */
 export function createAirtableReleveDriver(
   options: AirtableReleveDriverOptions
@@ -69,55 +50,23 @@ export function createAirtableReleveDriver(
     patch: Partial<
       Pick<
         SourceEmail,
-        'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'
+        'source' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'
       >
     >
   ): Promise<void>;
 } {
   const baseId = normaliserBaseId(options.baseId.trim());
-  const { apiKey, sourcesId, offresId } = options;
-
-  function toPlugin(fields: Record<string, unknown>): PluginSource {
-    const plugin = typeof fields.plugin === 'string' ? fields.plugin.trim() : '';
-    if ((PLUGINS_SOURCES_AIRTABLE as readonly string[]).includes(plugin)) return plugin as PluginSource;
-    return 'Inconnu';
-  }
+  const { apiKey, offresId } = options;
 
   return {
     async getSourceLinkedIn(): Promise<SourceLinkedInResult> {
-      const formula = encodeURIComponent('{plugin} = "Linkedin"');
-      const url = `${API_BASE}/${baseId}/${sourcesId}?filterByFormula=${formula}&maxRecords=1`;
-      const res = await fetch(url, { method: 'GET', headers: headers(apiKey) });
-      if (!res.ok) {
-        throw new Error(`Airtable Sources: ${res.status} ${res.statusText}`);
-      }
-      const json = (await res.json()) as { records?: Array<{ id: string; fields?: Record<string, unknown> }> };
-      const records = json.records ?? [];
-      const rec = records[0];
-      if (!rec) {
-        return { found: false };
-      }
-      const fields = rec.fields ?? {};
-      const activerCreation = Boolean(
-        fields[AIRTABLE_FIELD_ACTIVER_CREATION] ?? fields.actif
-      );
-      const emailExpéditeur = typeof fields.emailExpéditeur === 'string' ? fields.emailExpéditeur.trim() : '';
-      return {
-        found: true,
-        activerCreation,
-        emailExpéditeur,
-        sourceId: rec.id,
-      };
+      return { found: false };
     },
 
-    async creerOffres(offres: OffreInsert[], sourceId: string): Promise<ResultatCreerOffres> {
-      const trimmed = String(sourceId).trim();
-      const idValide = /^rec[A-Za-z0-9]+$/.test(trimmed);
-      if (!trimmed || !idValide) {
-        throw new Error(
-          `creerOffres: sourceId invalide (attendu: ID d'enregistrement Airtable type recXXX). Reçu: ${JSON.stringify(sourceId)}. ` +
-          `Vérifie que les sources viennent bien de listerSources() (table Sources, plugin Linkedin / email expéditeur).`
-        );
+    async creerOffres(offres: OffreInsert[], sourceId: string, methodeCreation: MethodeCreationOffre = 'email'): Promise<ResultatCreerOffres> {
+      const sourceNom = String(sourceId).trim();
+      if (!sourceNom) {
+        throw new Error('creerOffres: nom de source requis.');
       }
       if (offres.length === 0) {
         return { nbCreees: 0, nbDejaPresentes: 0 };
@@ -156,6 +105,7 @@ export function createAirtableReleveDriver(
       let nbCreees = 0;
       let nbDejaPresentes = toUpdate.length;
       const batchSize = 10;
+      /** Champs envoyés à Airtable. Inclut « Méthode de création » : la colonne doit exister dans Airtable (sinon 422). */
       function toFields(o: OffreInsert): Record<string, unknown> {
         return {
           ...(o.idOffre && { 'Id offre': o.idOffre }),
@@ -163,7 +113,8 @@ export function createAirtableReleveDriver(
           DateAjout: o.dateAjout,
           ...(o.dateOffre && { DateOffre: o.dateOffre }),
           Statut: o.statut,
-          'email expéditeur': [trimmed],
+          source: sourceNom,
+          [AIRTABLE_FIELD_METHODE_CREATION]: methodeCreation,
           ...(o.poste && { Poste: o.poste }),
           ...(o.entreprise && { Entreprise: o.entreprise }),
           ...((o.ville ?? o.lieu) && { Ville: o.ville ?? o.lieu }),
@@ -184,7 +135,6 @@ export function createAirtableReleveDriver(
       function isInvalidSingleSelect(body: string): boolean {
         return body.includes('INVALID_MULTIPLE_CHOICE_OPTIONS');
       }
-      const champLienSource = 'email expéditeur';
       for (let i = 0; i < toCreate.length; i += batchSize) {
         const batch = toCreate.slice(i, i + batchSize).map((o) => ({ fields: toFields(o) }));
         const res = await fetch(tableUrl, { method: 'POST', headers: h, body: JSON.stringify({ records: batch }) });
@@ -194,7 +144,7 @@ export function createAirtableReleveDriver(
         }
         const body = await res.text();
         if (res.status === 422 && isInvalidSingleSelect(body)) {
-          const withoutStatut = batch.map((r) => ({ fields: (() => { const { Statut: _s, ...f } = r.fields; return f; })() }));
+          const withoutStatut = batch.map((r) => ({ fields: (() => { const { Statut: _s, ...f } = r.fields as Record<string, unknown>; return f; })() }));
           const retry = await fetch(tableUrl, { method: 'POST', headers: h, body: JSON.stringify({ records: withoutStatut }) });
           if (!retry.ok) throw new Error(`Airtable Offres: ${retry.status} ${await retry.text()}`);
           nbCreees += batch.length;
@@ -203,8 +153,8 @@ export function createAirtableReleveDriver(
         if (res.status === 403 && body.includes('INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND')) {
           throw new Error(`Airtable Offres: 403 modèle introuvable ou droits insuffisants (base=${baseId}, tableOffres=${offresId}). Détail: ${body}`);
         }
-        if (res.status === 422 && body.includes('INVALID_VALUE_FOR_COLUMN') && (body.includes('Source') || body.includes(champLienSource))) {
-          throw new Error(`Airtable Offres: champ "${champLienSource}" invalide. Vérifie le lien vers Sources. Détail: ${body}`);
+        if (res.status === 422 && body.includes('INVALID_VALUE_FOR_COLUMN') && body.includes('source')) {
+          throw new Error(`Airtable Offres: valeur "source" invalide (attendu: nom canonique depuis data/sources.json). Détail: ${body}`);
         }
         throw new Error(`Airtable Offres: ${res.status} ${body}`);
       }
@@ -223,189 +173,15 @@ export function createAirtableReleveDriver(
     },
 
     async listerSources(): Promise<SourceAirtable[]> {
-      const records: Array<{ id: string; fields?: Record<string, unknown> }> = [];
-      let offset = '';
-      const maxAttempts = 4;
-      const delaysMs = [0, 2000, 4000, 6000];
-      const fetchWithRetryOn403 = async (url: string): Promise<Response> => {
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          if (attempt > 0) await new Promise((r) => setTimeout(r, delaysMs[attempt]));
-          const res = await fetch(url, { method: 'GET', headers: headers(apiKey) });
-          if (res.status !== 403) return res;
-        }
-        return await fetch(url, { method: 'GET', headers: headers(apiKey) });
-      };
-      do {
-        const url = `${API_BASE}/${baseId}/${sourcesId}?pageSize=100${offset ? `&offset=${encodeURIComponent(offset)}` : ''}`;
-        const res = await fetchWithRetryOn403(url);
-        if (!res.ok) {
-          const body = await res.text();
-          const detail = body ? ` — ${body.slice(0, 500)}` : '';
-          if (res.status === 403) {
-            throw new Error(
-              `Airtable Sources: 403 Forbidden${detail}. Vérifie : (1) token valide (data/parametres.json ou .env) ; (2) scope data.records:read sur la base ; (3) baseId=${baseId} et table Sources=${sourcesId} corrects. Airtable : Paramètres > Développeur > Personal access token > ajouter cette base.`
-            );
-          }
-          throw new Error(`Airtable Sources: ${res.status} ${res.statusText}${detail}`);
-        }
-        const json = (await res.json()) as {
-          records?: Array<{ id: string; fields?: Record<string, unknown> }>;
-          offset?: string;
-        };
-        records.push(...(json.records ?? []));
-        offset = json.offset ?? '';
-      } while (offset);
-
-      const toTypeSource = (v: unknown): TypeSource => {
-        if (v === 'email' || v === 'liste html' || v === 'liste csv') return v;
-        return 'email';
-      };
-      return records.map((rec) => {
-        const fields = rec.fields ?? {};
-        const emailExpéditeurRaw = typeof fields.emailExpéditeur === 'string' ? fields.emailExpéditeur : '';
-        const emailExpéditeur = emailExpéditeurRaw.trim().toLowerCase();
-        return {
-          sourceId: rec.id,
-          emailExpéditeur,
-          plugin: toPlugin(fields),
-          type: toTypeSource(fields.type),
-          activerCreation: Boolean(
-            fields[AIRTABLE_FIELD_ACTIVER_CREATION] ?? fields.actif
-          ),
-          activerEnrichissement: Boolean(fields[AIRTABLE_FIELD_ACTIVER_ENRICHISSEMENT]),
-          activerAnalyseIA: Boolean(fields[AIRTABLE_FIELD_ACTIVER_ANALYSE_IA]),
-        };
-      });
+      return [];
     },
 
-    async creerSource(source: SourceEmail): Promise<SourceAirtable> {
-      const url = `${API_BASE}/${baseId}/${sourcesId}`;
-      const payload = {
-        records: [
-          {
-            fields: {
-              emailExpéditeur: source.emailExpéditeur.trim().toLowerCase(),
-              plugin: source.plugin,
-              type: source.type ?? 'email',
-              [AIRTABLE_FIELD_ACTIVER_CREATION]: source.activerCreation,
-              [AIRTABLE_FIELD_ACTIVER_ENRICHISSEMENT]: source.activerEnrichissement,
-              [AIRTABLE_FIELD_ACTIVER_ANALYSE_IA]: source.activerAnalyseIA,
-            },
-          },
-        ],
-      };
-      const h = headers(apiKey);
-      let res = await fetch(url, {
-        method: 'POST',
-        headers: h,
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.text();
-        const invalidChoice = res.status === 422 && body.includes('INVALID_MULTIPLE_CHOICE_OPTIONS');
-        if (invalidChoice && source.plugin) {
-          // 1) Tentative sans meta API: typecast=true peut créer l'option singleSelect.
-          res = await fetch(url, {
-            method: 'POST',
-            headers: h,
-            body: JSON.stringify({ ...payload, typecast: true }),
-          });
-          if (!res.ok) {
-            // 2) Fallback meta API: patch explicite des choices du champ plugin.
-            const patched = await ensurePluginChoice(baseId, sourcesId, apiKey, source.plugin);
-            if (patched) {
-              res = await fetch(url, {
-                method: 'POST',
-                headers: h,
-                body: JSON.stringify(payload),
-              });
-            } else {
-              throw new Error(
-                `Airtable Sources: option "${source.plugin}" absente dans l'énum "plugin" et auto-ajout impossible (typecast+meta indisponibles).`
-              );
-            }
-          }
-        } else {
-          throw new Error(`Airtable Sources: ${res.status} ${body}`);
-        }
-      }
-      if (!res.ok) {
-        const body = await res.text();
-        throw new Error(`Airtable Sources: ${res.status} ${body}`);
-      }
-      const json = (await res.json()) as { records?: Array<{ id: string; fields?: Record<string, unknown> }> };
-      const rec = json.records?.[0];
-      if (!rec) throw new Error('Airtable Sources: création source sans enregistrement');
-      return {
-        sourceId: rec.id,
-        emailExpéditeur: source.emailExpéditeur.trim().toLowerCase(),
-        plugin: source.plugin,
-        type: source.type ?? 'email',
-        activerCreation: source.activerCreation,
-        activerEnrichissement: source.activerEnrichissement,
-        activerAnalyseIA: source.activerAnalyseIA,
-      };
+    async creerSource(): Promise<SourceAirtable> {
+      throw new Error('Sources : utiliser data/sources.json (createCompositeReleveDriver).');
     },
 
-    async mettreAJourSource(
-      sourceId: string,
-      patch: Partial<
-        Pick<
-          SourceEmail,
-          'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'
-        >
-      >
-    ): Promise<void> {
-      const fields: Record<string, unknown> = {};
-      if (patch.plugin) fields.plugin = patch.plugin;
-      if (patch.type) fields.type = patch.type;
-      if (typeof patch.activerCreation === 'boolean')
-        fields[AIRTABLE_FIELD_ACTIVER_CREATION] = patch.activerCreation;
-      if (typeof patch.activerEnrichissement === 'boolean')
-        fields[AIRTABLE_FIELD_ACTIVER_ENRICHISSEMENT] = patch.activerEnrichissement;
-      if (typeof patch.activerAnalyseIA === 'boolean')
-        fields[AIRTABLE_FIELD_ACTIVER_ANALYSE_IA] = patch.activerAnalyseIA;
-      const url = `${API_BASE}/${baseId}/${sourcesId}`;
-      const h = headers(apiKey);
-      const payload = { records: [{ id: sourceId, fields }] };
-      let res = await fetch(url, {
-        method: 'PATCH',
-        headers: h,
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = await res.text();
-        const invalidChoice = res.status === 422 && body.includes('INVALID_MULTIPLE_CHOICE_OPTIONS');
-        if (invalidChoice && typeof patch.plugin === 'string' && patch.plugin.trim()) {
-          // 1) Tentative sans meta API via typecast=true.
-          res = await fetch(url, {
-            method: 'PATCH',
-            headers: h,
-            body: JSON.stringify({ ...payload, typecast: true }),
-          });
-          if (!res.ok) {
-            // 2) Fallback meta API.
-            const patched = await ensurePluginChoice(baseId, sourcesId, apiKey, patch.plugin);
-            if (patched) {
-              res = await fetch(url, {
-                method: 'PATCH',
-                headers: h,
-                body: JSON.stringify(payload),
-              });
-            } else {
-              throw new Error(
-                `Airtable Sources: option "${patch.plugin}" absente dans l'énum "plugin" et auto-ajout impossible (typecast+meta indisponibles).`
-              );
-            }
-          }
-        } else {
-          throw new Error(`Airtable Sources: ${res.status} ${body}`);
-        }
-      }
-      if (!res.ok) {
-        const body = await res.text();
-        throw new Error(`Airtable Sources: ${res.status} ${body}`);
-      }
+    async mettreAJourSource(): Promise<void> {
+      return Promise.resolve();
     },
   };
 }

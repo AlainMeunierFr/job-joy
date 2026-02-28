@@ -52,6 +52,13 @@ body.appLayout {
   background: var(--color-primary-hover);
 }
 
+/* --- Titre de page H1 : masqué visuellement (double emploi avec le lien actif du menu), conservé pour sémantique / accessibilité --- */
+.pageTitleBarTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
 .appMain {
   max-width: 100rem;
   margin: 0 auto;
@@ -61,48 +68,45 @@ body.appLayout {
 }
 
 /* --- Page tableau de bord --- */
-.pageTableauDeBord h1 {
-  margin: 0 0 var(--space-lg);
-  font-size: 1.5rem;
-  font-weight: 700;
-}
 
-/* --- US-3.5 Maquette 3 blocs : ligne 1 Synthèse pleine largeur, ligne 2 Traitements (2/3) | Consommation API (1/3) --- */
+/* --- US-3.5 + US Statistiques : ligne 1 Synthèse pleine largeur, ligne 2 Traitements (1/3) | Statistiques scores (1/3) | Consommation API (1/3) --- */
 .pageTableauDeBord {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: auto auto 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto 1fr;
   gap: var(--space-lg);
-  align-items: start;
-}
-
-.pageTableauDeBord > h1 {
-  grid-row: 1;
-  grid-column: 1 / -1;
+  align-items: stretch;
 }
 
 .pageTableauDeBord > [data-layout="synthese-offres"],
 .pageTableauDeBord > .syntheseOffres {
-  grid-row: 2;
+  grid-row: 1;
   grid-column: 1 / -1;
   margin-top: 0;
 }
 
 .pageTableauDeBord > [data-layout="traitements"],
 .pageTableauDeBord > .traitementsBloc {
-  grid-row: 3;
+  grid-row: 2;
   grid-column: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.pageTableauDeBord > [data-layout="histogramme-scores-offres"],
+.pageTableauDeBord > .histogrammeScoresOffres {
+  grid-row: 2;
+  grid-column: 2;
   min-width: 0;
   margin-top: 0;
 }
 
 .pageTableauDeBord > [data-layout="consommation-api"],
 .pageTableauDeBord > .consommationApi {
-  grid-row: 3;
-  grid-column: 2;
+  grid-row: 2;
+  grid-column: 3;
   min-width: 0;
   margin-top: 0;
-  align-self: start;
 }
 
 /* Bloc Traitements : empilement vertical, titre + boutons + lignes de phase (3 colonnes à bords invisibles) */
@@ -162,8 +166,8 @@ body.appLayout {
 .pageTableauDeBord .traitementsLignePhase .thermometreWorkerEnrichissement,
 .pageTableauDeBord .traitementsLignePhase .thermometreWorkerAnalyseIA {
   margin: 0;
-  height: 0.5rem;
-  min-height: 6px;
+  height: 0.35rem;
+  min-height: 4px;
   background: var(--color-border);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -186,11 +190,11 @@ body.appLayout {
   text-overflow: ellipsis;
 }
 
-/* US-3.5 responsive : empiler Traitements et Consommation API sur une colonne */
+/* US-3.5 responsive : empiler Traitements, Statistiques scores et Consommation API sur une colonne */
 @media (max-width: 767px) {
   .pageTableauDeBord {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto;
   }
 
   .pageTableauDeBord > [data-layout="traitements"],
@@ -199,9 +203,15 @@ body.appLayout {
     grid-column: 1;
   }
 
+  .pageTableauDeBord > [data-layout="histogramme-scores-offres"],
+  .pageTableauDeBord > .histogrammeScoresOffres {
+    grid-row: 4;
+    grid-column: 1;
+  }
+
   .pageTableauDeBord > [data-layout="consommation-api"],
   .pageTableauDeBord > .consommationApi {
-    grid-row: 4;
+    grid-row: 5;
     grid-column: 1;
   }
 
@@ -248,7 +258,8 @@ body.appLayout {
 .pageTableauDeBord .boutonRafraichirSynthese,
 .pageTableauDeBord .boutonWorkerEnrichissement,
 .pageTableauDeBord .boutonOuvrirAirtable,
-.pageTableauDeBord .boutonCalculerConsommationApi {
+.pageTableauDeBord .boutonCalculerConsommationApi,
+.pageTableauDeBord .boutonCalculerHistogrammeScores {
   margin-top: var(--space-md);
 }
 
@@ -256,7 +267,8 @@ body.appLayout {
 .pageTableauDeBord .boutonLancerTraitement,
 .pageTableauDeBord .boutonWorkerEnrichissement,
 .pageTableauDeBord .boutonOuvrirAirtable,
-.pageTableauDeBord .boutonCalculerConsommationApi {
+.pageTableauDeBord .boutonCalculerConsommationApi,
+.pageTableauDeBord .boutonCalculerHistogrammeScores {
   margin-right: var(--space-sm);
 }
 
@@ -298,6 +310,54 @@ body.appLayout {
   border-bottom: none;
 }
 
+/* --- US Statistiques des scores : histogramme des scores des offres (centre tableau de bord) --- */
+.pageTableauDeBord .histogrammeScoresOffres,
+.pageTableauDeBord [data-layout="histogramme-scores-offres"] {
+  margin-top: 0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pageTableauDeBord .histogrammeScoresOffres h2,
+.pageTableauDeBord [data-layout="histogramme-scores-offres"] h2 {
+  margin: 0 0 var(--space-sm);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pageTableauDeBord .histogrammeScoresOffresIntro {
+  margin: 0 0 var(--space-md);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.pageTableauDeBord .histogrammeScoresOffresChartWrap {
+  flex: 1;
+  min-height: 10rem;
+  margin-bottom: var(--space-sm);
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+
+.pageTableauDeBord .histogrammeScoresOffresChartWrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 10rem;
+}
+
+.pageTableauDeBord .boutonCalculerHistogrammeScores {
+  margin-top: 0;
+}
+
 /* --- Consommation API (US-2.5) : tableau à gauche, histogramme à droite --- */
 .pageTableauDeBord .consommationApi,
 .pageTableauDeBord [data-layout="consommation-api"] {
@@ -306,6 +366,9 @@ body.appLayout {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .pageTableauDeBord .consommationApi h2,
@@ -393,13 +456,15 @@ body.appLayout {
   border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-md);
   padding: var(--space-md);
-  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .pageTableauDeBord .syntheseOffres h2,
 .pageTableauDeBord .syntheseOffres #titre-synthese-offres {
   margin: 0 0 var(--space-md);
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--color-text);
   display: flex;
@@ -407,56 +472,125 @@ body.appLayout {
   gap: var(--space-xs);
 }
 
-.pageTableauDeBord .syntheseOffresInfoBulle {
-  display: inline-flex;
-  align-items: center;
+/* Wrapper pour centrer le tableau sans forcer sa largeur ; défilement si trop large */
+.pageTableauDeBord .syntheseOffresTableWrap {
+  width: 100%;
+  overflow-x: auto;
+  display: flex;
   justify-content: center;
-  width: 1.2rem;
-  height: 1.2rem;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  font-size: 0.75rem;
-  line-height: 1;
-  color: var(--color-text-muted);
-  cursor: help;
 }
 
 .pageTableauDeBord .syntheseOffresTable {
-  width: 100%;
+  width: auto;
   min-width: 34rem;
   border-collapse: collapse;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
 }
 
 .pageTableauDeBord .syntheseOffresTable th,
 .pageTableauDeBord .syntheseOffresTable td {
   padding: var(--space-xs) var(--space-sm);
-  text-align: left;
+  text-align: center;
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Chiffres (Emails/Fichiers à importer, statuts, Totaux) : alignés à gauche */
+.pageTableauDeBord .syntheseOffresTable th:nth-child(n+6),
+.pageTableauDeBord .syntheseOffresTable td:nth-child(n+6) {
+  text-align: left;
 }
 
 .pageTableauDeBord .syntheseOffresTable thead th {
   color: var(--color-text);
   font-weight: 600;
-  background: var(--color-bg);
+  background: transparent;
   white-space: normal;
   line-height: 1.1;
   vertical-align: bottom;
 }
 
-.pageTableauDeBord .syntheseOffresTable th.syntheseOffresStatutCol {
-  min-width: 4rem;
+/* Titres de colonnes à 45° vers le haut : largeur uniforme, texte en diagonale (zone assez haute pour "Créer par liste html") */
+.pageTableauDeBord .syntheseOffresTable thead th.syntheseOffresThRotate {
+  position: relative;
+  width: 2.8rem;
+  min-width: 2.8rem;
+  max-width: 2.8rem;
+  height: 7.5rem;
+  min-height: 7.5rem;
+  padding: var(--space-xs) 0.25rem;
+  vertical-align: bottom;
+  overflow: visible;
 }
 
-.pageTableauDeBord .syntheseOffresTable th.syntheseOffresStatutCol > span {
-  display: inline-block;
-  max-width: 4.5rem;
+/* Première colonne Source : largeur fixe 150px */
+.pageTableauDeBord .syntheseOffresTable thead th.syntheseOffresThSource {
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  height: auto;
+  position: static;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.pageTableauDeBord .syntheseOffresTable td:first-child {
+  width: 150px;
+  max-width: 150px;
   word-break: break-word;
+}
+
+.pageTableauDeBord .syntheseOffresTable thead th.syntheseOffresThSource .syntheseOffresThLabel,
+.pageTableauDeBord .syntheseOffresTable thead th.syntheseOffresThHorizontal .syntheseOffresThLabel {
+  position: static;
+  display: inline;
+  transform: none;
+  white-space: nowrap;
+}
+
+.pageTableauDeBord .syntheseOffresTable thead th.syntheseOffresThHorizontal {
+  width: auto;
+  min-width: 2.8rem;
+  max-width: none;
+  height: auto;
+  position: static;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.pageTableauDeBord .syntheseOffresTable thead th .syntheseOffresThLabel {
+  display: inline-block;
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  white-space: nowrap;
+  transform: rotate(-45deg);
+  transform-origin: bottom left;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.pageTableauDeBord .syntheseOffresTable th.syntheseOffresStatutCol {
+  min-width: 2.8rem;
+}
+
+.pageTableauDeBord .syntheseOffresTable th.syntheseOffresStatutCol > .syntheseOffresThLabel {
+  max-width: none;
+  word-break: normal;
 }
 
 .pageTableauDeBord .syntheseOffresTable .phaseEtat {
   font-size: 0.95rem;
   line-height: 1;
+}
+
+/* Icônes phase : aspect simple sans fond de bouton (comme avant) */
+.pageTableauDeBord .syntheseOffresTable button.phaseEtat {
+  background: none;
+  border: none;
+  padding: 0.15em;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.pageTableauDeBord .syntheseOffresTable button.phaseEtat:hover {
+  background: var(--color-bg-hover);
 }
 
 .pageTableauDeBord .syntheseOffresTable .phaseEtat--ok {
@@ -471,8 +605,41 @@ body.appLayout {
   opacity: 0.85;
 }
 
-/* Capsule plugin (style type Airtable) */
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule {
+/* Toggle visuel (remplace emoji 😴/✅) : piste + pastille */
+.pageTableauDeBord .syntheseOffresTable .phaseEtatToggle {
+  display: inline-block;
+  width: 2.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: var(--color-border);
+  position: relative;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.pageTableauDeBord .syntheseOffresTable .phaseEtatToggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+.pageTableauDeBord .syntheseOffresTable .phaseEtatToggle--on {
+  background: var(--color-primary);
+}
+.pageTableauDeBord .syntheseOffresTable .phaseEtatToggle--on::after {
+  transform: translateX(1rem);
+}
+.pageTableauDeBord .syntheseOffresTable button.phaseEtat:hover .phaseEtatToggle:not(.phaseEtatToggle--on) {
+  background: var(--color-text-muted, #888);
+}
+
+/* Capsule source (style liste des sources) */
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule {
   display: inline-block;
   padding: 0.15em 0.5em;
   border-radius: 999px;
@@ -480,34 +647,38 @@ body.appLayout {
   font-weight: 500;
   white-space: nowrap;
 }
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--cadreemploi {
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--cadreemploi {
   background: #fce4ec;
   color: #880e4f;
 }
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--linkedin {
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--linkedin {
   background: #bbdefb;
   color: #0d47a1;
 }
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--hellowork {
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--apec {
+  background: #b3e5fc;
+  color: #01579b;
+}
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--hellowork {
   background: #c8e6c9;
   color: #1b5e20;
 }
 /* WTTJ : fond clair → texte noir (priorité sur héritage) */
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--wttj,
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--welcome-to-the-jungle,
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--welcometothejungle {
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--wttj,
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--welcome-to-the-jungle,
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--welcometothejungle {
   background: #ffe0b2;
   color: #1a1a1a !important;
 }
 /* JTMS : fond vert d'eau clair → texte noir */
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--jtms,
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--job-that-make-sense,
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--job-that-makes-sense,
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--jobthatmakesense {
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--jtms,
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--job-that-make-sense,
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--job-that-makes-sense,
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--jobthatmakesense {
   background: #b2dfdb !important;
   color: #1a1a1a !important;
 }
-.pageTableauDeBord .syntheseOffresTable .synthesePluginCapsule--inconnu {
+.pageTableauDeBord .syntheseOffresTable .syntheseSourceCapsule--inconnu {
   background: #eeeeee;
   color: #424242;
 }
@@ -518,6 +689,14 @@ body.appLayout {
   text-align: right;
 }
 
+/* Traits verticaux entre colonnes (tbody uniquement : s’arrêtent à la ligne sous le titre) */
+.pageTableauDeBord .syntheseOffresTable tbody td:nth-child(5) {
+  border-right: 1px solid var(--color-border);
+}
+.pageTableauDeBord .syntheseOffresTable tbody td.syntheseOffresCellAAnalyser {
+  border-right: 1px solid var(--color-border);
+}
+
 .pageTableauDeBord .syntheseOffresTable tbody tr:hover td {
   background: var(--color-bg);
 }
@@ -526,16 +705,19 @@ body.appLayout {
   border-bottom: none;
 }
 
-/* Colonne Totaux (US-1.13) : en-tête + cellules identifiables */
+/* Colonne Totaux (US-1.13) : largeur fixe, en-tête + cellules identifiables */
 .pageTableauDeBord .syntheseOffresTable th.syntheseOffresColTotaux,
 .pageTableauDeBord .syntheseOffresTable td.syntheseOffresCellTotaux {
+  width: 4.5rem;
+  min-width: 4.5rem;
+  max-width: 4.5rem;
   background: var(--color-bg);
   border-left: 2px solid var(--color-primary);
   font-weight: 700;
 }
 
 .pageTableauDeBord .syntheseOffresTable thead th.syntheseOffresColTotaux {
-  background: var(--color-bg);
+  background: transparent;
 }
 
 /* Ligne Totaux (US-1.13) : dernière ligne du tbody */
@@ -562,6 +744,98 @@ body.appLayout {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-sm);
+}
+
+/* Toggle "Masquer les lignes vides" : aligné verticalement avec les boutons (même padding vertical) */
+.pageTableauDeBord .syntheseOffresActionsOneLine .syntheseOffresToggleLignesVides {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  padding: var(--space-sm) 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+.pageTableauDeBord .syntheseOffresToggleLignesVides {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.pageTableauDeBord .syntheseOffresToggleSwitchWrap {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.pageTableauDeBord .syntheseOffresToggleSwitchInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pageTableauDeBord .syntheseOffresToggleSwitch {
+  position: relative;
+  display: block;
+  width: 2.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: var(--color-border);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.pageTableauDeBord .syntheseOffresToggleSwitch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.pageTableauDeBord .syntheseOffresToggleSwitchInput:checked + .syntheseOffresToggleSwitch {
+  background: var(--color-primary);
+}
+
+.pageTableauDeBord .syntheseOffresToggleSwitchInput:checked + .syntheseOffresToggleSwitch::after {
+  transform: translateX(1rem);
+}
+
+.pageTableauDeBord .syntheseOffresToggleSwitchInput:focus-visible + .syntheseOffresToggleSwitch {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pageTableauDeBord .syntheseOffresToggleSwitchWrap:has(.syntheseOffresToggleSwitchInput:not(:checked)):hover .syntheseOffresToggleSwitch {
+  background: var(--color-text-muted, #888);
+}
+
+.pageTableauDeBord .syntheseOffresToggleLabel {
+  white-space: nowrap;
+}
+
+/* Lignes masquées (total à 0) quand l'option est activée */
+.pageTableauDeBord .syntheseOffresTable tr.syntheseOffresLigneMasquee {
+  display: none;
 }
 
 .pageTableauDeBord .syntheseOffresMessage {
@@ -729,12 +1003,17 @@ body.appLayout {
 .appMain .pageAPropos {
   margin: 0;
 }
-
-.pageAPropos .pageParametresTitle {
-  margin: 0 0 var(--space-lg);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-text);
+/* H1 éventuel dans le contenu (ex. APropos.html) : masqué, double emploi avec le lien actif du menu */
+.appMain .pageAPropos h1:first-of-type {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .pageAPropos .pageAProposVersion,
@@ -745,7 +1024,7 @@ body.appLayout {
 }
 
 .pageAPropos .pageAProposSommaire {
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-section);
   padding: var(--space-md);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -756,6 +1035,61 @@ body.appLayout {
   margin: 0 0 var(--space-xs);
   font-weight: 600;
   font-size: 0.9375rem;
+}
+
+/* --- Page Documentation (sommaire + article MD) --- */
+.pageDocumentation {
+  max-width: 52rem;
+}
+.pageDocumentation .pageDocumentationNav {
+  margin-bottom: var(--space-section);
+}
+.pageDocumentation .pageDocumentationSommaireTitle {
+  margin: 0 0 var(--space-sm);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.pageDocumentation .pageDocumentationList {
+  margin: 0;
+  padding-left: var(--space-lg);
+  list-style: disc;
+}
+.pageDocumentation .pageDocumentationLink {
+  color: var(--color-link, #0969da);
+}
+.pageDocumentation .pageDocumentationLink:hover {
+  text-decoration: underline;
+}
+.pageDocumentation .pageDocumentationLinkActive {
+  font-weight: 600;
+}
+.pageDocumentation .pageDocumentationHint {
+  color: var(--color-text-muted, #57606a);
+  font-size: 0.9375rem;
+}
+.pageDocumentation .pageDocumentationArticle {
+  margin-top: var(--space-md);
+}
+.pageDocumentation .pageDocumentationArticle h2 {
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-size: 1.25rem;
+}
+.pageDocumentation .pageDocumentationArticle h3 {
+  margin: var(--space-md) 0 var(--space-xs);
+  font-size: 1.0625rem;
+}
+.pageDocumentation .pageDocumentationArticle p {
+  margin: 0 0 var(--space-sm);
+}
+.pageDocumentation .pageDocumentationArticle ul,
+.pageDocumentation .pageDocumentationArticle ol {
+  margin: 0 0 var(--space-sm);
+  padding-left: var(--space-lg);
+}
+.pageDocumentation .pageDocumentationArticle img {
+  max-width: 100%;
+  height: auto;
 }
 
 .pageAPropos .pageAProposSommaire ul {
@@ -778,8 +1112,8 @@ body.appLayout {
 }
 
 .pageAPropos .pageAProposSection {
-  margin-top: var(--space-xl);
-  margin-bottom: var(--space-xl);
+  margin-top: var(--space-section);
+  margin-bottom: var(--space-section);
 }
 
 .pageAPropos .pageAProposSection:first-of-type {
@@ -832,12 +1166,12 @@ body.appLayout {
   color: var(--color-on-primary);
 }
 
-/* Blocs À propos : même présentation que Paramètres (carte + titre + contenu), sans accordéon, sans trait sous le titre */
+/* Blocs À propos : même présentation que Paramètres (carte + titre + contenu), espacement aligné design system */
 .pageAPropos .blocAPropos {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  margin-top: var(--space-xl);
+  margin-top: var(--space-section);
 }
 
 .pageAPropos .blocAPropos:first-of-type {
@@ -876,7 +1210,7 @@ body.appLayout {
 /* --- US-4.5 Introduction au process de paramétrage --- */
 .appMain .introParametrage,
 .appMain details.introParametrage[data-layout="intro-parametrage"] {
-  margin: 0 0 var(--space-xl);
+  margin: 0 0 var(--space-section);
 }
 
 .introParametrage .introParametrageTitle {
@@ -1021,21 +1355,21 @@ body.appLayout {
   display: block;
 }
 
-.introParametrage .introParametrageListePlugins {
+.introParametrage .introParametrageListeSources {
   width: 100%;
   margin: var(--space-sm) 0;
   border-collapse: collapse;
   font-size: 0.9375rem;
 }
 
-.introParametrage .introParametrageListePlugins th,
-.introParametrage .introParametrageListePlugins td {
+.introParametrage .introParametrageListeSources th,
+.introParametrage .introParametrageListeSources td {
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--color-border);
   text-align: left;
 }
 
-.introParametrage .introParametrageListePlugins th {
+.introParametrage .introParametrageListeSources th {
   background: var(--color-bg);
   font-weight: 600;
 }
@@ -1046,21 +1380,13 @@ body.appLayout {
   margin: 0;
 }
 
-.pageParametres .pageParametresTitle,
-.appMain .pageParametres .pageParametresTitle {
-  margin: 0 0 var(--space-lg);
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
 .pageParametres .blocParametrage,
 .appMain .pageParametres .blocParametrage {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  margin-top: var(--space-xl);
-  margin-bottom: var(--space-xl);
+  margin-top: var(--space-section);
+  margin-bottom: var(--space-section);
 }
 
 .pageParametres .blocParametrage:first-of-type {
@@ -1381,7 +1707,10 @@ body.parametrageCompteEmail,
 .pageTableauDeBord .boutonRafraichirSynthese,
 .pageTableauDeBord .boutonWorkerEnrichissement,
 .pageTableauDeBord .boutonOuvrirAirtable,
-.pageTableauDeBord .boutonCalculerConsommationApi {
+.pageTableauDeBord .boutonCalculerConsommationApi,
+.pageTableauDeBord .boutonCalculerHistogrammeScores,
+.pageOffres .btnSecondary,
+.appMain .pageOffres .btnSecondary {
   display: inline-block;
   padding: var(--space-sm) var(--space-lg);
   font-family: var(--font-sans);
@@ -1400,7 +1729,10 @@ body.parametrageCompteEmail,
 .pageTableauDeBord .boutonRafraichirSynthese:hover,
 .pageTableauDeBord .boutonWorkerEnrichissement:hover,
 .pageTableauDeBord .boutonOuvrirAirtable:hover,
-.pageTableauDeBord .boutonCalculerConsommationApi:hover {
+.pageTableauDeBord .boutonCalculerConsommationApi:hover,
+.pageTableauDeBord .boutonCalculerHistogrammeScores:hover,
+.pageOffres .btnSecondary:hover,
+.appMain .pageOffres .btnSecondary:hover {
   background: var(--color-bg-hover);
   border-color: var(--color-primary);
 }
@@ -1410,9 +1742,185 @@ body.parametrageCompteEmail,
 .pageTableauDeBord .boutonRafraichirSynthese:focus,
 .pageTableauDeBord .boutonWorkerEnrichissement:focus,
 .pageTableauDeBord .boutonOuvrirAirtable:focus,
-.pageTableauDeBord .boutonCalculerConsommationApi:focus {
+.pageTableauDeBord .boutonCalculerConsommationApi:focus,
+.pageTableauDeBord .boutonCalculerHistogrammeScores:focus,
+.pageOffres .btnSecondary:focus,
+.appMain .pageOffres .btnSecondary:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.3);
+}
+
+/* US-7.9 : page Offres — barre de vues horizontale au-dessus du grid, grid pleine largeur/hauteur, police réduite */
+.appMain:has(.pageOffres) {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  padding: var(--space-md);
+  min-height: calc(100vh - 4rem);
+}
+.appMain:has(.pageOffres) .pageOffres {
+  flex: 1;
+  min-height: 0;
+}
+.pageOffres {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  font-size: 0.8125rem;
+}
+
+/* Gestionnaire de vues : barre horizontale au-dessus du tableau. */
+.pageOffresSidebar {
+  flex-shrink: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+}
+.pageOffresSidebarTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  padding-right: var(--space-sm);
+  border-bottom: none;
+  border-right: 1px solid var(--color-border);
+  margin-right: var(--space-xs);
+}
+.pageOffresVuesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+}
+.pageOffresVueItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  transition: background 0.15s, border-color 0.15s;
+}
+.pageOffresVueItem:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+.pageOffresVueLink {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-xs) 0;
+  font-family: var(--font-sans);
+  font-size: inherit;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pageOffresVueLink:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+.pageOffresVueLink:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.3);
+}
+.pageOffresVueActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.pageOffresVueAction {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--color-text-muted, #57606a);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.pageOffresVueAction:hover {
+  color: var(--color-primary);
+  background: var(--color-bg-hover);
+}
+.pageOffresVueAction:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.3);
+}
+.pageOffresBoutonCreerVue {
+  width: auto;
+  margin: 0;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.pageOffresGridWrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* Grid RevoGrid ou fallback : occupe toute la largeur et la hauteur restante. */
+.pageOffresGrid {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.pageOffresGrid revo-grid {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+/* Compte lignes X/Total sous le grid (non natif RevoGrid). */
+.pageOffresGridFooter {
+  margin: var(--space-xs) 0 0;
+  padding: var(--space-xs) 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #57606a);
+  flex-shrink: 0;
+}
+.pageOffresTableFallback {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: inherit;
+}
+.pageOffresTableFallback th,
+.pageOffresTableFallback td {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+.pageOffresTableFallback th {
+  font-weight: 600;
+  background: var(--color-bg-subtle);
 }
 
 .pageTableauDeBord .boutonWorkerEnrichissement[data-running="1"] {
@@ -1844,6 +2352,19 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
   border-radius: var(--radius-sm);
 }
 
+/* Feedback enregistrement API IA (à côté du bouton Enregistrer) */
+.appMain .feedbackEnregistrementIa,
+#feedback-enregistrement-ia.feedbackEnregistrementIa {
+  font-size: 0.9375rem;
+  margin-left: var(--space-sm);
+}
+#feedback-enregistrement-ia[data-type="succes"] {
+  color: var(--color-success, #0d7d0d);
+}
+#feedback-enregistrement-ia[data-type="erreur"] {
+  color: var(--color-error);
+}
+
 /* --- Configuration Airtable (US-1.3) — même page Paramètres --- */
 .appMain .configurationAirtable[data-layout="configuration-airtable"]:not(.blocParametrage),
 .parametrageCompteEmail .configurationAirtable[data-layout="configuration-airtable"]:not(.blocParametrage) {
@@ -2151,6 +2672,106 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
   box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
 }
 
+/* Section API IA (Mistral) : même mise en page zone test que blocParametrage-ia / zoneTestClaudecode */
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .fieldGroup.fieldGroup-metadonnees-offre,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .fieldGroup.fieldGroup-metadonnees-offre,
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .fieldGroup,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .fieldGroup {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .metadonneesOffreTestRow,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .metadonneesOffreTestRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md) var(--space-lg);
+  margin-top: var(--space-sm);
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .metadonneesOffreTestField,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .metadonneesOffreTestField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .metadonneesOffreTestField label,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .metadonneesOffreTestField label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .metadonneesOffreTestField input,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .metadonneesOffreTestField input {
+  width: 100%;
+  min-height: var(--input-min-height);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .fieldGroup textarea.zoneTexteOffreTest,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .fieldGroup textarea.zoneTexteOffreTest {
+  width: 100%;
+  max-width: 100%;
+  min-height: 8rem;
+  box-sizing: border-box;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .fieldGroup textarea.zoneTexteOffreTest:focus,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .fieldGroup textarea.zoneTexteOffreTest:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px rgba(44, 82, 130, 0.2);
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .actions.actions-recuperer-offre,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .actions.actions-recuperer-offre,
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .actions.actions-tester-api,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .actions.actions-tester-api {
+  margin-top: var(--space-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .actions.actions-tester-api button,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .actions.actions-tester-api button {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: none;
+  min-height: var(--touch-min);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .actions.actions-tester-api button:hover,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .actions.actions-tester-api button:hover {
+  background: var(--color-primary-hover);
+}
+
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre,
 .appMain .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-recuperer-offre,
 .pageParametres .blocParametrage-claudecode .zoneTestClaudecode .actions.actions-tester-api,
@@ -2286,6 +2907,32 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
+}
+
+.pageParametres .blocParametrage-api-ia .zoneTestApiIa .resultatTestClaudecodeTexte,
+.appMain .pageParametres .blocParametrage-api-ia .zoneTestApiIa .resultatTestClaudecodeTexte,
+#zone-resultat-test-ia .resultatTestClaudecodeTexte {
+  margin: 0;
+  padding: var(--space-md);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+#zone-resultat-test-ia {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .pageParametres .blocParametrage-claudecode .zoneResultatTestClaudecode .resultatTestClaudecodeValidation,
@@ -3089,21 +3736,12 @@ body.parametrageCompteEmail .feedbackEnregistrement--erreur,
     padding: var(--space-xl) var(--space-lg);
   }
 
-  .pageParametres .pageParametresTitle,
-  body.parametrageCompteEmail h1,
-  .appMain .parametrageCompteEmail h1 {
-    font-size: 1.75rem;
-  }
-
-  .pageTableauDeBord h1 {
-    font-size: 1.75rem;
-  }
-
   .pageTableauDeBord .boutonLancerTraitement,
   .pageTableauDeBord .boutonRafraichirSynthese,
   .pageTableauDeBord .boutonWorkerEnrichissement,
   .pageTableauDeBord .boutonOuvrirAirtable,
-  .pageTableauDeBord .boutonCalculerConsommationApi {
+  .pageTableauDeBord .boutonCalculerConsommationApi,
+  .pageTableauDeBord .boutonCalculerHistogrammeScores {
     display: inline-block;
   }
 }

@@ -1,10 +1,10 @@
 /**
  * Code générique pour ajouter des options à un champ single select (API Meta).
- * Reprend la logique qui fonctionnait pour Sources.plugin ; utilisé aussi pour Offres.Statut.
+ * Reprend la logique qui fonctionnait pour Sources.source ; utilisé aussi pour Offres.Statut.
  * Pour Statut : on envoie les couleurs par défaut du code (aucune lecture API des couleurs).
  */
 import { STATUTS_OFFRES_AIRTABLE_WITH_COLORS, STATUTS_OFFRES_AIRTABLE } from './statuts-offres-airtable.js';
-import { PLUGINS_SOURCES_AIRTABLE } from './plugins-sources-airtable.js';
+import { SOURCES_NOMS_AIRTABLE } from './plugins-sources-airtable.js';
 
 /** Choix : libellé seul ou libellé + couleur (utilisée à la création de l'option). */
 export type SingleSelectChoiceInput = string | { name: string; color?: string };
@@ -65,9 +65,36 @@ function findTable(schema: TableSchema[], tableIdOrName: string): TableSchema | 
   );
 }
 
+/** Noms des champs pour lister les offres (tableau de synthèse), alignés sur le schéma réel. */
+export type OffresListFieldNames = { sourceFieldName: string; statutFieldName: string };
+
+/**
+ * Récupère les noms réels des champs source et statut de la table Offres depuis l'API Meta.
+ * Fallback : noms du code d'initialisation (airtable-driver-reel) : source, Statut.
+ */
+export async function getOffresListFieldNames(
+  baseId: string,
+  offresId: string,
+  apiKey: string
+): Promise<OffresListFieldNames> {
+  try {
+    const schema = await getBaseSchema(baseId, apiKey);
+    const table = findTable(schema, offresId);
+    if (!table?.fields?.length) return { sourceFieldName: 'source', statutFieldName: 'Statut' };
+    const sourceField = table.fields.find((f) => (f.name ?? '').trim().toLowerCase() === 'source');
+    const statutField = table.fields.find((f) => (f.name ?? '').trim().toLowerCase() === 'statut');
+    return {
+      sourceFieldName: sourceField?.name?.trim() ?? 'source',
+      statutFieldName: statutField?.name?.trim() ?? 'Statut',
+    };
+  } catch {
+    return { sourceFieldName: 'source', statutFieldName: 'Statut' };
+  }
+}
+
 /**
  * Ajoute les options manquantes à un champ single select (API Meta PATCH).
- * Logique identique à l’ancien ensurePluginChoice pour Sources.plugin, rendue générique.
+ * Logique identique à l’ancien ensureSingleSelect pour Sources.source, rendue générique.
  */
 export async function ensureSingleSelectChoices(
   baseId: string,
@@ -187,98 +214,15 @@ export async function ensureScoreTotalIsNumber(
 }
 
 /**
- * Synchro des énumérations : Sources.plugin et Offres.Statut.
- * Même code générique pour les deux.
+ * Synchro de l'énumération Offres.Statut (US-7.2 : plus de table Sources).
  */
 export async function ensureAirtableEnums(
   apiKey: string,
   baseId: string,
-  sourcesId: string,
   offresId: string
-): Promise<{ plugin: boolean; statut: boolean }> {
-  const plugin = await ensureSingleSelectChoices(baseId, sourcesId, 'plugin', PLUGINS_SOURCES_AIRTABLE, apiKey);
+): Promise<{ statut: boolean }> {
   const statut = await ensureSingleSelectChoices(baseId, offresId, 'Statut', STATUTS_OFFRES_AIRTABLE_WITH_COLORS, apiKey);
-  return { plugin, statut };
+  return { statut };
 }
 
-/**
- * Ajoute dans la table Offres un champ lookup « plugin » (affiche le plugin de la source liée).
- */
-export async function ensureLookupsOffresFromSources(
-  baseId: string,
-  sourcesId: string,
-  offresId: string,
-  apiKey: string
-): Promise<void> {
-  const schema = await getBaseSchema(baseId, apiKey);
-  if (schema.length === 0) {
-    console.warn('[Airtable] ensureLookups: schéma base vide (API Meta indisponible ?).');
-    return;
-  }
-  const tableOffres = findTable(schema, offresId);
-  const tableSources = findTable(schema, sourcesId);
-  if (!tableOffres?.id || !tableSources?.id) {
-    console.warn('[Airtable] ensureLookups: table Offres ou Sources introuvable dans le schéma.');
-    return;
-  }
-
-  // Champ lien Offres → Sources : par nom "email expéditeur" ou par type + linkedTableId
-  const linkField = tableOffres.fields?.find((f) => {
-    if (f.type !== 'multipleRecordLinks') return false;
-    const nameMatch = (f.name ?? '').trim().toLowerCase() === 'email expéditeur';
-    const linkedId = (f.options as { linkedTableId?: string } | undefined)?.linkedTableId;
-    return nameMatch || linkedId === tableSources.id;
-  });
-  const recordLinkFieldId = linkField?.id;
-  if (!recordLinkFieldId) {
-    console.warn(
-      '[Airtable] ensureLookups: aucun champ lien Offres → Sources trouvé (attendu: "email expéditeur" ou lien vers Sources).'
-    );
-    return;
-  }
-
-  const pluginField = tableSources.fields?.find(
-    (x) => (x.name ?? '').trim().toLowerCase() === 'plugin'
-  );
-  if (!pluginField?.id) {
-    console.warn('[Airtable] ensureLookups: champ plugin introuvable dans Sources.');
-    return;
-  }
-  const sourceFieldIds: { name: string; fieldId: string }[] = [{ name: 'plugin', fieldId: pluginField.id }];
-
-  const existingNames = new Set(
-    (tableOffres.fields ?? []).map((f) => (f.name ?? '').trim().toLowerCase())
-  );
-
-  for (const { name, fieldId: fieldIdInLinkedTable } of sourceFieldIds) {
-    const lookupName = name;
-    if (existingNames.has(lookupName.toLowerCase())) continue;
-    try {
-      const createUrl = `${API_BASE}/meta/bases/${baseId}/tables/${tableOffres.id}/fields`;
-      const res = await fetch(createUrl, {
-        method: 'POST',
-        headers: headers(apiKey),
-        body: JSON.stringify({
-          name: lookupName,
-          type: 'lookup',
-          options: {
-            recordLinkFieldId,
-            fieldIdInLinkedTable,
-          },
-        }),
-      });
-      if (res.ok) {
-        existingNames.add(lookupName.toLowerCase());
-      } else {
-        const body = await res.text();
-        console.warn(
-          `[Airtable] ensureLookups: création "${lookupName}" refusée (${res.status}): ${body || res.statusText}`
-        );
-      }
-    } catch (err) {
-      console.warn('[Airtable] ensureLookups: erreur lors de la création lookup', err);
-    }
-  }
-}
-
-export { STATUTS_OFFRES_AIRTABLE, STATUTS_OFFRES_AIRTABLE_WITH_COLORS, PLUGINS_SOURCES_AIRTABLE };
+export { STATUTS_OFFRES_AIRTABLE, STATUTS_OFFRES_AIRTABLE_WITH_COLORS, SOURCES_NOMS_AIRTABLE };

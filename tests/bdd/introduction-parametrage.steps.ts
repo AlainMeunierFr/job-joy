@@ -21,7 +21,7 @@ Then(
 );
 
 Then(
-  /ce bloc introductif est affiché en premier sur la page, avant tout bloc de configuration \(Airtable, compte email, ClaudeCode, etc\.\)/,
+  /ce bloc introductif est affiché en premier sur la page, avant tout bloc de configuration \(Airtable, compte email, API IA, etc\.\)/,
   async ({ page }) => {
     const intro = page.locator(INTRO_SELECTOR);
     await expect(intro).toBeVisible();

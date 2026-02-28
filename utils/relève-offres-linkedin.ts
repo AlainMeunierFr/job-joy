@@ -4,16 +4,16 @@
  */
 import type { SourceLinkedInResult } from '../types/offres-releve.js';
 import type { OffreInsert } from '../types/offres-releve.js';
-import type { ResultatCreerOffres } from '../types/offres-releve.js';
+import type { ResultatCreerOffres, MethodeCreationOffre } from '../types/offres-releve.js';
 import type { ResultatReleve } from '../types/offres-releve.js';
 import { extractOffresFromHtml } from './extraction-offres-email.js';
 
 export const STATUT_A_COMPLETER = 'A compléter';
 
-/** Port : récupérer la source LinkedIn et créer des lignes Offres (upsert : créées + mises à jour). */
+/** Port : récupérer la source LinkedIn et créer des lignes Offres (upsert : créées + mises à jour). US-7.2 CA5 : methodeCreation alimente la colonne « Méthode de création ». */
 export interface RelèveOffresDriver {
   getSourceLinkedIn(): Promise<SourceLinkedInResult>;
-  creerOffres(offres: OffreInsert[], sourceId: string): Promise<ResultatCreerOffres>;
+  creerOffres(offres: OffreInsert[], sourceId: string, methodeCreation?: MethodeCreationOffre): Promise<ResultatCreerOffres>;
 }
 
 /** Port : lire les emails du dossier dont l'expéditeur contient la valeur donnée. Optionnellement déplace les messages lus vers un dossier d'archivage. */
@@ -58,7 +58,7 @@ export async function executerReleveOffresLinkedIn(
       ok: false,
       raison: 'source_absente',
       message:
-        "La source LinkedIn est absente ou indisponible dans la table Sources. L'utilisateur doit être informé.",
+        "La source LinkedIn est absente ou indisponible dans les sources (data/sources.json). L'utilisateur doit être informé.",
     };
   }
   if (!source.activerCreation) {
@@ -136,7 +136,8 @@ export async function executerReleveOffresLinkedIn(
   }
 
   try {
-    const result = await driver.creerOffres(allOffres, source.sourceId);
+    const sourceNom = source.sourceNom ?? source.sourceId;
+    const result = await driver.creerOffres(allOffres, sourceNom, 'email');
     return {
       ok: true,
       nbEmailsLinkedin,

@@ -20,7 +20,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
   it('crée les sources absentes en Inconnu et ne traite/deplace pas ces emails', async () => {
     const creations: Array<{
       emailExpéditeur: string;
-      plugin: string;
+      source: string;
       activerCreation: boolean;
       activerEnrichissement: boolean;
       activerAnalyseIA: boolean;
@@ -34,7 +34,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
       creerSource: jest.fn().mockImplementation(async (source) => {
         creations.push({
           emailExpéditeur: source.emailExpéditeur,
-          plugin: source.plugin,
+          source: source.source,
           activerCreation: source.activerCreation,
           activerEnrichissement: source.activerEnrichissement,
           activerAnalyseIA: source.activerAnalyseIA,
@@ -66,7 +66,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     expect(creations).toEqual([
       {
         emailExpéditeur: 'noreply@nouvelle-source.test',
-        plugin: 'Inconnu',
+        source: 'Inconnu',
         activerCreation: false,
         activerEnrichissement: false,
         activerAnalyseIA: true,
@@ -86,7 +86,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recLinkedin',
           emailExpéditeur: 'jobs@linkedin.com',
-          plugin: 'Linkedin',
+          source: 'Linkedin',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -144,7 +144,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recUnknown',
           emailExpéditeur: 'alertes@unknown-source.test',
-          plugin: 'Inconnu',
+          source: 'Inconnu',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -187,7 +187,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recLinkedin',
           emailExpéditeur: 'jobs@linkedin.com',
-          plugin: 'Linkedin',
+          source: 'Linkedin',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -224,7 +224,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
   it('source absente linkedin (from avec nom): crée Linkedin/actif par défaut', async () => {
     const creations: Array<{
       emailExpéditeur: string;
-      plugin: string;
+      source: string;
       activerCreation: boolean;
       activerEnrichissement: boolean;
       activerAnalyseIA: boolean;
@@ -236,7 +236,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
       creerSource: jest.fn().mockImplementation(async (source) => {
         creations.push({
           emailExpéditeur: source.emailExpéditeur,
-          plugin: source.plugin,
+          source: source.source,
           activerCreation: source.activerCreation,
           activerEnrichissement: source.activerEnrichissement,
           activerAnalyseIA: source.activerAnalyseIA,
@@ -268,7 +268,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
     expect(creations).toEqual([
       {
         emailExpéditeur: 'jobs-listings@linkedin.com',
-        plugin: 'Linkedin',
+        source: 'Linkedin',
         activerCreation: true,
         activerEnrichissement: true,
         activerAnalyseIA: true,
@@ -286,7 +286,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recHelloWork',
           emailExpéditeur: 'notification@emails.hellowork.com',
-          plugin: 'HelloWork',
+          source: 'HelloWork',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -363,7 +363,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recHelloWork',
           emailExpéditeur: 'notification@emails.hellowork.com',
-          plugin: 'HelloWork',
+          source: 'HelloWork',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -412,7 +412,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recWttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          plugin: 'Welcome to the Jungle',
+          source: 'Welcome to the Jungle',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -473,7 +473,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recWttj',
           emailExpéditeur: 'alerts@welcometothejungle.com',
-          plugin: 'Welcome to the Jungle',
+          source: 'Welcome to the Jungle',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -529,7 +529,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recJtms',
           emailExpéditeur: 'jobs@makesense.org',
-          plugin: 'Job That Make Sense',
+          source: 'Job That Make Sense',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,
@@ -580,7 +580,7 @@ describe('runTraitement - intégration gouvernance US-1.6', () => {
         {
           sourceId: 'recCadreemploi',
           emailExpéditeur: 'offres@alertes.cadremploi.fr',
-          plugin: 'Cadre Emploi',
+          source: 'Cadre Emploi',
           type: 'email',
           activerCreation: true,
           activerEnrichissement: true,

@@ -24,7 +24,7 @@ Fonctionnalité: Tableau de synthèse des offres
     | jobs@linkedin.com                 | Linkedin     | Linkedin     | 2                   | 1         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
     | notification@emails.hellowork.com | HelloWork    | HelloWork    | 1                   | 0         | 0      | 0         | 0      | 0      | 0      | 0      | 0     |
     Quand le tableau de synthèse des offres est chargé
-    Alors le tableau affiche les colonnes fixes dans l'ordre : email expéditeur, plugin, création, enrichissement, analyse
+    Alors le tableau affiche les colonnes fixes dans l'ordre : Adresse, plugin, création, enrichissement, analyse
     Et le tableau affiche une colonne par statut d'offre dans l'ordre de l'énum Airtable
     Et le tableau affiche les lignes suivantes
     | emailExpéditeur                    | plugin étape 1 | plugin étape 2 | création | enrichissement | analyse | Annonce à récupérer | À analyser | À traiter | Candidaté | Refusé | Traité | Ignoré | Expiré | Autre |

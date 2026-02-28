@@ -30,12 +30,13 @@ describe('page Paramètres - bloc Avant propos', () => {
     delete process.env.PARAMETRES_ENCRYPTION_KEY;
   });
 
-  it('affiche le bloc Avant propos en premier avant Configuration Airtable', async () => {
+  it('affiche le bloc Avant propos en premier (avant Compte email)', async () => {
     const html = await getParametresContent(dataDir);
     expect(html).toContain('data-layout="intro-parametrage"');
     const idxIntro = html.indexOf('data-layout="intro-parametrage"');
-    const idxAirtable = html.indexOf('data-layout="configuration-airtable"');
-    expect(idxIntro).toBeLessThan(idxAirtable);
+    const idxConnexion = html.indexOf('blocParametrage-connexion');
+    expect(idxConnexion).toBeGreaterThan(-1);
+    expect(idxIntro).toBeLessThan(idxConnexion);
   });
 
   it('le bloc est un details avec summary "Avant propos"', async () => {
@@ -67,7 +68,7 @@ describe('page Paramètres - bloc Avant propos', () => {
     };
     p.airtable = { base: 'https://airtable.com/appX/tblY', apiKey: 'patXXX' };
     ecrireParametres(dataDir, p);
-    const html = await getParametresContent(dataDir, { claudecodeHasApiKey: true });
+    const html = await getParametresContent(dataDir, { mistralHasApiKey: true });
     const idx = html.indexOf('data-layout="intro-parametrage"');
     const slice = html.slice(html.lastIndexOf('<details', idx), idx + 350);
     expect(slice).not.toMatch(/<details[^>]*open/);

@@ -1,16 +1,15 @@
 /**
- * Worker Analyse IA : offres « À analyser » → appel Claude → Résumé + statut « À traiter ».
+ * Worker Analyse IA : offres « À analyser » → appel Mistral → Résumé + statut « À traiter ».
  * En erreur API : Résumé = "⚠️ " + code, statut « À traiter ».
  */
 import { join } from 'node:path';
-import { lireAirTable } from '../utils/parametres-airtable.js';
 import { lireParametres } from '../utils/parametres-io.js';
-import { lireClaudeCode } from '../utils/parametres-claudecode.js';
-import { createAirtableEnrichissementDriver } from '../utils/airtable-enrichissement-driver.js';
-import { getBaseSchema } from '../utils/airtable-ensure-enums.js';
-import { normaliserBaseId } from '../utils/airtable-url.js';
+import { lireSourcesV2 } from '../utils/sources-v2.js';
+import { lireMistral } from '../utils/parametres-mistral.js';
+import { createEnrichissementOffresSqliteDriver } from '../utils/enrichissement-offres-sqlite.js';
+import { initOffresRepository } from '../utils/repository-offres-sqlite.js';
 import { construirePromptComplet, construireMessageUserAnalyse } from '../utils/prompt-ia.js';
-import { appelerClaudeCode } from '../utils/appeler-claudecode.js';
+import { appelerMistral } from '../utils/appeler-mistral.js';
 import { enregistrerAppel } from '../utils/log-appels-api.js';
 import { INTENTION_ANALYSE_IA_LOT } from '../utils/intentions-appels-api.js';
 import { parseJsonReponseIA } from '../utils/parse-json-reponse-ia.js';
@@ -28,10 +27,11 @@ async function updateOffreOuRésuméErreur(
 ): Promise<boolean> {
   try {
     await driver.updateOffre(recordId, champs);
+    console.error(`[Analyse IA] PATCH OK ${recordId}`);
     return true;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[Analyse IA] updateOffre ${recordId} échoué:`, msg);
+    console.error(`[Analyse IA] updateOffre ${recordId} ÉCHOUÉ:`, msg);
     messages.push(`${recordId}: ${msg}`);
     const resumeErreur = `⚠️ Erreur Airtable: ${msg.slice(0, 400)}`;
     try {
@@ -41,18 +41,6 @@ async function updateOffreOuRésuméErreur(
     }
     return false;
   }
-}
-
-async function resolveSourcesId(
-  apiKey: string,
-  baseId: string,
-  configSources: string | undefined
-): Promise<string | undefined> {
-  const trimmed = configSources?.trim();
-  if (trimmed) return trimmed;
-  const schema = await getBaseSchema(baseId, apiKey);
-  const sourcesTable = schema.find((t) => (t.name ?? '').trim().toLowerCase() === 'sources');
-  return sourcesTable?.id;
 }
 
 export type ResultatAnalyseIABackground =
@@ -65,22 +53,14 @@ export type EtatAnalyseIABackground =
 
 export async function getAnalyseIABackgroundState(dataDir: string): Promise<EtatAnalyseIABackground> {
   const dir = dataDir || join(process.cwd(), 'data');
-  const airtable = lireAirTable(dir);
-  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.offres?.trim()) {
-    return { ok: false, message: 'Configuration Airtable incomplète (apiKey, base, offres).' };
+  const mistral = lireMistral(dir);
+  if (!mistral?.apiKey?.trim()) {
+    return { ok: false, message: 'Clé API Mistral non configurée.' };
   }
-  const claudecode = lireClaudeCode(dir);
-  if (!claudecode?.apiKey?.trim()) {
-    return { ok: false, message: 'Clé API ClaudeCode non configurée.' };
-  }
-  const baseId = normaliserBaseId(airtable.base);
-  const sourcesId = await resolveSourcesId(airtable.apiKey.trim(), baseId, airtable.sources);
-  const driver = createAirtableEnrichissementDriver({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    offresId: airtable.offres,
-    sourcesId,
-  });
+  const repository = initOffresRepository(join(dir, 'offres.sqlite'));
+  const entries = await lireSourcesV2(dir);
+  const sourceNomsActifs = new Set(entries.filter((e) => e.analyse.activé).map((e) => e.source));
+  const driver = createEnrichissementOffresSqliteDriver({ repository, sourceNomsActifs });
   if (!driver.getOffresAAnalyser) {
     return { ok: false, message: 'Driver sans getOffresAAnalyser.' };
   }
@@ -99,26 +79,19 @@ export async function runAnalyseIABackground(
   options?: OptionsRunAnalyseIABackground
 ): Promise<ResultatAnalyseIABackground> {
   const dir = dataDir || join(process.cwd(), 'data');
-  const airtable = lireAirTable(dir);
-  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.offres?.trim()) {
-    return { ok: false, message: 'Configuration Airtable incomplète (apiKey, base, offres).' };
+  const mistral = lireMistral(dir);
+  if (!mistral?.apiKey?.trim()) {
+    return { ok: false, message: 'Clé API Mistral non configurée.' };
   }
-  const claudecode = lireClaudeCode(dir);
-  if (!claudecode?.apiKey?.trim()) {
-    return { ok: false, message: 'Clé API ClaudeCode non configurée.' };
-  }
-  const baseId = normaliserBaseId(airtable.base);
-  const sourcesId = await resolveSourcesId(airtable.apiKey.trim(), baseId, airtable.sources);
-  const driver = createAirtableEnrichissementDriver({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    offresId: airtable.offres,
-    sourcesId,
-  });
+  const repository = initOffresRepository(join(dir, 'offres.sqlite'));
+  const entries = await lireSourcesV2(dir);
+  const sourceNomsActifs = new Set(entries.filter((e) => e.analyse.activé).map((e) => e.source));
+  const driver = createEnrichissementOffresSqliteDriver({ repository, sourceNomsActifs });
   if (!driver.getOffresAAnalyser) {
     return { ok: false, message: 'Driver sans getOffresAAnalyser.' };
   }
   const candidates = await driver.getOffresAAnalyser();
+  console.error(`[Analyse IA] ${candidates.length} offre(s) à analyser (sources avec analyse.activé)`);
   if (candidates.length === 0) {
     return { ok: true, nbCandidates: 0, nbAnalysees: 0, nbEchecs: 0, messages: [] };
   }
@@ -145,9 +118,9 @@ export async function runAnalyseIABackground(
       },
       texteOffre
     );
-    const result = await appelerClaudeCode(dir, promptSystem, messageUser);
+    const result = await appelerMistral(dir, promptSystem, messageUser);
     enregistrerAppel(dir, {
-      api: 'Claude',
+      api: 'Mistral',
       succes: result.ok,
       codeErreur: result.ok ? undefined : result.code,
       intention: INTENTION_ANALYSE_IA_LOT,
@@ -186,6 +159,9 @@ export async function runAnalyseIABackground(
       await updateOffreOuRésuméErreur(driver, offre.id, { Résumé: resume, Statut: STATUT_A_TRAITER }, messages);
     }
   }
+  console.error(
+    `[Analyse IA] Terminé: ${nbAnalysees} mise(s) à jour, ${nbEchecs} échec(s) / ${candidates.length} candidat(s)`
+  );
   return {
     ok: true,
     nbCandidates: candidates.length,

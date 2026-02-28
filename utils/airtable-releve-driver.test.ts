@@ -7,83 +7,16 @@ import { createAirtableReleveDriver } from './airtable-releve-driver.js';
 describe('createAirtableReleveDriver', () => {
   const apiKey = 'patTest';
   const baseId = 'appBase';
-  const sourcesId = 'tblSources';
   const offresId = 'tblOffres';
+  const sourcesId = 'tblSources';
 
-  it('getSourceLinkedIn retourne found: false quand la table Sources ne contient pas LinkedIn', async () => {
-    const globalFetch = globalThis.fetch;
-    globalThis.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ records: [] }),
-    });
-    try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
-      const r = await driver.getSourceLinkedIn();
-      expect(r.found).toBe(false);
-    } finally {
-      globalThis.fetch = globalFetch;
-    }
+  it('getSourceLinkedIn retourne toujours found: false (sources = data/sources.json, utiliser createCompositeReleveDriver)', async () => {
+    const driver = createAirtableReleveDriver({ apiKey, baseId, offresId });
+    const r = await driver.getSourceLinkedIn();
+    expect(r.found).toBe(false);
   });
 
-  it('getSourceLinkedIn retourne found: true avec activerCreation et emailExpéditeur quand un enregistrement plugin=Linkedin existe', async () => {
-    const globalFetch = globalThis.fetch;
-    globalThis.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        records: [
-          {
-            id: 'recLinkedIn',
-            fields: {
-              plugin: 'Linkedin',
-              emailExpéditeur: 'jobs-noreply@linkedin.com',
-              'Activer la création': true,
-            },
-          },
-        ],
-      }),
-    });
-    try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
-      const r = await driver.getSourceLinkedIn();
-      expect(r.found).toBe(true);
-      if (r.found) {
-        expect(r.sourceId).toBe('recLinkedIn');
-        expect(r.activerCreation).toBe(true);
-        expect(r.emailExpéditeur).toBe('jobs-noreply@linkedin.com');
-      }
-    } finally {
-      globalThis.fetch = globalFetch;
-    }
-  });
-
-  it('getSourceLinkedIn retourne activerCreation: false quand la case est décochée', async () => {
-    const globalFetch = globalThis.fetch;
-    globalThis.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        records: [
-          {
-            id: 'recX',
-            fields: {
-              plugin: 'Linkedin',
-              emailExpéditeur: 'j@l.com',
-              'Activer la création': false,
-            },
-          },
-        ],
-      }),
-    });
-    try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
-      const r = await driver.getSourceLinkedIn();
-      expect(r.found).toBe(true);
-      if (r.found) expect(r.activerCreation).toBe(false);
-    } finally {
-      globalThis.fetch = globalFetch;
-    }
-  });
-
-  it('creerOffres envoie un POST avec URL, email expéditeur (lien Sources) et champs extraits du mail quand présents', async () => {
+  it('creerOffres envoie un POST avec URL, source (nom), Méthode de création et champs extraits', async () => {
     let capturedUrl = '';
     let capturedBody: unknown = null;
     const globalFetch = globalThis.fetch;
@@ -97,7 +30,7 @@ describe('createAirtableReleveDriver', () => {
       return Promise.resolve({ ok: true, json: async () => ({ records: [{ id: 'recNew' }] }) });
     });
     try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
+      const driver = createAirtableReleveDriver({ apiKey, baseId, offresId });
       const result = await driver.creerOffres(
         [
           {
@@ -112,7 +45,8 @@ describe('createAirtableReleveDriver', () => {
             salaire: '60k-70k',
           },
         ],
-        'recLinkedIn'
+        'Linkedin',
+        'email'
       );
       expect(result).toEqual({ nbCreees: 1, nbDejaPresentes: 0 });
       expect(capturedUrl).toContain(baseId);
@@ -125,7 +59,8 @@ describe('createAirtableReleveDriver', () => {
         URL: 'https://www.linkedin.com/jobs/view/123/',
         DateAjout: '2025-01-15T10:00:00.000Z',
         Statut: 'A compléter',
-        'email expéditeur': ['recLinkedIn'],
+        source: 'Linkedin',
+        'Méthode de création': 'email',
         Poste: 'Dev',
         Entreprise: 'Acme',
         Ville: 'Paris',
@@ -146,7 +81,7 @@ describe('createAirtableReleveDriver', () => {
       return Promise.resolve({ ok: true, json: async () => ({ records: [{ id: 'recNew' }] }) });
     });
     try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
+      const driver = createAirtableReleveDriver({ apiKey, baseId, offresId });
       await driver.creerOffres(
         [
           {
@@ -190,7 +125,7 @@ describe('createAirtableReleveDriver', () => {
         return Promise.resolve({ ok: true, json: async () => ({ records: [{ id: 'recNew' }] }) });
       });
     try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
+      const driver = createAirtableReleveDriver({ apiKey, baseId, offresId });
       await driver.creerOffres(
         [
           {
@@ -228,7 +163,7 @@ describe('createAirtableReleveDriver', () => {
       return Promise.resolve({ ok: true });
     });
     try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
+      const driver = createAirtableReleveDriver({ apiKey, baseId, offresId });
       await driver.creerOffres(
         [
           {
@@ -256,180 +191,30 @@ describe('createAirtableReleveDriver', () => {
     }
   });
 
-  it('listerSources lit emailExpéditeur lowercase + plugin + type + 3 checkboxes', async () => {
-    const globalFetch = globalThis.fetch;
-    globalThis.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        records: [
-          {
-            id: 'rec1',
-            fields: {
-              emailExpéditeur: 'Jobs@LinkedIn.com',
-              plugin: 'Linkedin',
-              type: 'email',
-              'Activer la création': true,
-              "Activer l'enrichissement": true,
-              "Activer l'analyse par IA": true,
-            },
-          },
-        ],
-      }),
-    });
-    try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
-      const sources = await driver.listerSources();
-      expect(sources).toEqual([
-        {
-          sourceId: 'rec1',
-          emailExpéditeur: 'jobs@linkedin.com',
-          plugin: 'Linkedin',
-          type: 'email',
-          activerCreation: true,
-          activerEnrichissement: true,
-          activerAnalyseIA: true,
-        },
-      ]);
-    } finally {
-      globalThis.fetch = globalFetch;
-    }
+  it('listerSources retourne [] (sources = data/sources.json)', async () => {
+    const driver = createAirtableReleveDriver({ apiKey, baseId, offresId });
+    const sources = await driver.listerSources();
+    expect(sources).toEqual([]);
   });
 
-  it('creerSource écrit emailExpéditeur/plugin/type/3 checkboxes', async () => {
-    let capturedBody: unknown = null;
-    const globalFetch = globalThis.fetch;
-    globalThis.fetch = jest.fn().mockImplementation((_url: string, opts?: RequestInit) => {
-      capturedBody = opts?.body ? JSON.parse(opts.body as string) : null;
-      return Promise.resolve({ ok: true, json: async () => ({ records: [{ id: 'recNew' }] }) });
-    });
-    try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
-      await driver.creerSource({
+  it('creerSource lance une erreur (sources = data/sources.json)', async () => {
+    const driver = createAirtableReleveDriver({ apiKey, baseId, offresId });
+    await expect(
+      driver.creerSource({
         emailExpéditeur: 'Alertes@Unknown.test',
-        plugin: 'Inconnu',
+        source: 'Inconnu',
         type: 'email',
         activerCreation: false,
         activerEnrichissement: false,
         activerAnalyseIA: true,
-      });
-      const body = capturedBody as { records: Array<{ fields: Record<string, unknown> }> };
-      expect(body.records[0].fields).toMatchObject({
-        emailExpéditeur: 'alertes@unknown.test',
-        plugin: 'Inconnu',
-        type: 'email',
-        'Activer la création': false,
-        "Activer l'enrichissement": false,
-        "Activer l'analyse par IA": true,
-      });
-    } finally {
-      globalThis.fetch = globalFetch;
-    }
+      })
+    ).rejects.toThrow(/data\/sources\.json|createCompositeReleveDriver/);
   });
 
-  it('mettreAJourSource patch plugin/type/3 checkboxes', async () => {
-    let capturedBody: unknown = null;
-    const globalFetch = globalThis.fetch;
-    globalThis.fetch = jest.fn().mockImplementation((_url: string, opts?: RequestInit) => {
-      capturedBody = opts?.body ? JSON.parse(opts.body as string) : null;
-      return Promise.resolve({ ok: true, text: async () => '' });
-    });
-    try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
-      await driver.mettreAJourSource('rec1', {
-        plugin: 'Inconnu',
-        activerEnrichissement: false,
-      });
-      const body = capturedBody as { records: Array<{ id: string; fields: Record<string, unknown> }> };
-      expect(body.records[0].id).toBe('rec1');
-      expect(body.records[0].fields).toMatchObject({
-        plugin: 'Inconnu',
-        "Activer l'enrichissement": false,
-      });
-    } finally {
-      globalThis.fetch = globalFetch;
-    }
-  });
-
-  it('creerSource auto-ajoute option plugin manquante puis retente', async () => {
-    const calls: Array<{ url: string; method: string; body: unknown }> = [];
-    const globalFetch = globalThis.fetch;
-    globalThis.fetch = jest
-      .fn()
-      // 1) POST Sources -> 422 invalid single select option
-      .mockImplementationOnce((url: string, opts?: RequestInit) => {
-        calls.push({ url, method: opts?.method ?? 'GET', body: opts?.body ? JSON.parse(opts.body as string) : null });
-        return Promise.resolve({
-          ok: false,
-          status: 422,
-          text: async () =>
-            '{"error":{"type":"INVALID_MULTIPLE_CHOICE_OPTIONS","message":"Insufficient permissions to create new select option"}}',
-        });
-      })
-      // 2) POST Sources typecast=true -> still KO (force fallback meta)
-      .mockImplementationOnce((url: string, opts?: RequestInit) => {
-        calls.push({ url, method: opts?.method ?? 'GET', body: opts?.body ? JSON.parse(opts.body as string) : null });
-        return Promise.resolve({
-          ok: false,
-          status: 422,
-          text: async () =>
-            '{"error":{"type":"INVALID_MULTIPLE_CHOICE_OPTIONS","message":"Still not allowed with typecast"}}',
-        });
-      })
-      // 3) GET meta schema
-      .mockImplementationOnce((url: string, opts?: RequestInit) => {
-        calls.push({ url, method: opts?.method ?? 'GET', body: null });
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({
-            tables: [
-              {
-                id: sourcesId,
-                name: 'Sources',
-                fields: [
-                  {
-                    id: 'fldPlugin',
-                    name: 'plugin',
-                    type: 'singleSelect',
-                    options: { choices: [{ name: 'Linkedin' }, { name: 'Inconnu' }] },
-                  },
-                ],
-              },
-            ],
-          }),
-        });
-      })
-      // 4) PATCH meta field plugin choices
-      .mockImplementationOnce((url: string, opts?: RequestInit) => {
-        calls.push({ url, method: opts?.method ?? 'GET', body: opts?.body ? JSON.parse(opts.body as string) : null });
-        return Promise.resolve({ ok: true, text: async () => '' });
-      })
-      // 5) POST Sources retry -> ok
-      .mockImplementationOnce((url: string, opts?: RequestInit) => {
-        calls.push({ url, method: opts?.method ?? 'GET', body: opts?.body ? JSON.parse(opts.body as string) : null });
-        return Promise.resolve({ ok: true, json: async () => ({ records: [{ id: 'recNew' }] }) });
-      });
-
-    try {
-      const driver = createAirtableReleveDriver({ apiKey, baseId, sourcesId, offresId });
-      await driver.creerSource({
-        emailExpéditeur: 'alerts@welcometothejungle.com',
-        plugin: 'Welcome to the Jungle',
-        type: 'email',
-        activerCreation: true,
-        activerEnrichissement: true,
-        activerAnalyseIA: true,
-      });
-      expect(calls).toHaveLength(5);
-      const typecastCall = calls[1];
-      const typecastBody = typecastCall.body as { typecast?: boolean };
-      expect(typecastBody.typecast).toBe(true);
-      const patchCall = calls[3];
-      expect(patchCall.method).toBe('PATCH');
-      const patchBody = patchCall.body as { options?: { choices?: Array<{ name: string }> } };
-      const choices = patchBody.options?.choices?.map((c) => c.name) ?? [];
-      expect(choices).toContain('Welcome to the Jungle');
-    } finally {
-      globalThis.fetch = globalFetch;
-    }
+  it('mettreAJourSource ne fait pas d’appel API (no-op)', async () => {
+    const driver = createAirtableReleveDriver({ apiKey, baseId, offresId });
+    await expect(
+      driver.mettreAJourSource('rec1', { source: 'Inconnu', activerEnrichissement: false })
+    ).resolves.toBeUndefined();
   });
 });

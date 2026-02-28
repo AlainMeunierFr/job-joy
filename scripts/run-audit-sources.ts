@@ -2,15 +2,19 @@ import { join } from 'node:path';
 import { lireCompte } from '../utils/compte-io.js';
 import { getMotDePasseImapDecrypt } from '../utils/parametres-io.js';
 import { lireAirTable } from '../utils/parametres-airtable.js';
-import { createAirtableReleveDriver } from '../utils/airtable-releve-driver.js';
 import { createLecteurEmailsImap } from '../utils/lecteur-emails-imap.js';
 import { createLecteurEmailsGraph } from '../utils/lecteur-emails-graph.js';
 import { createLecteurEmailsMock } from '../utils/lecteur-emails-mock.js';
-import { normaliserBaseId } from '../utils/airtable-url.js';
 import { getValidAccessToken } from '../utils/auth-microsoft.js';
-import type { PluginSource, SourceEmail } from '../utils/gouvernance-sources-emails.js';
-import { createSourcePluginsRegistry } from '../utils/source-plugins.js';
-import { getDefaultActivationForPlugin } from '../utils/default-activation-source.js';
+import type { SourceNom, SourceEmail } from '../utils/gouvernance-sources-emails.js';
+import { sourceNomParExpediteur } from '../utils/gouvernance-sources-emails.js';
+import {
+  creerSourcesManquantesPourListeHtml,
+  normaliserCheminListeHtml,
+  sourceNomPourSlugListeHtml,
+} from '../utils/audit-sources-liste-html.js';
+import { listerDossiersSourceListeHtml, getListeHtmlSourceDir } from '../utils/liste-html-paths.js';
+import { createSourcesLegacyAdapterFromV2 } from './sources-v2-legacy-adapter.js';
 
 export type ResultatAuditSources =
   | {
@@ -20,7 +24,7 @@ export type ResultatAuditSources =
       nbSourcesExistantes: number;
       synthese: Array<{
         emailExpéditeur: string;
-        plugin: PluginSource;
+        source: SourceNom;
         actif: 'Oui' | 'Non';
         nbEmails: number;
       }>;
@@ -42,7 +46,7 @@ interface DriverReleveGouvernance {
     patch: Partial<
       Pick<
         SourceEmail,
-        'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'
+        'source' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'
       >
     >
   ) => Promise<void>;
@@ -62,7 +66,7 @@ export interface OptionsRunAuditSources {
     compte?: ReturnType<typeof lireCompte>;
     airtable?: ReturnType<typeof lireAirTable>;
     motDePasse?: string;
-    driverReleve?: ReturnType<typeof createAirtableReleveDriver>;
+    driverReleve?: DriverReleveGouvernance;
     lecteurEmails?: ReturnType<typeof createLecteurEmailsMock>;
   };
 }
@@ -98,16 +102,6 @@ function normaliserEmailExpediteur(from: string): string {
   return extraireAdresseEmail(from).toLowerCase();
 }
 
-function pluginParExpediteur(emailExpediteur: string): PluginSource {
-  const key = emailExpediteur.toLowerCase().trim();
-  if (key === 'notification@emails.hellowork.com') return 'HelloWork';
-  if (key === 'alerts@welcometothejungle.com') return 'Welcome to the Jungle';
-  if (key === 'jobs@makesense.org') return 'Job That Make Sense';
-  if (key === 'offres@alertes.cadremploi.fr') return 'Cadre Emploi';
-  if (key.includes('linkedin.com')) return 'Linkedin';
-  return 'Inconnu';
-}
-
 export async function runAuditSources(
   dataDir: string,
   options: OptionsRunAuditSources = {}
@@ -120,8 +114,8 @@ export async function runAuditSources(
     return { ok: false, message: 'Aucun compte email configuré. Enregistre les paramètres (formulaire ou data/parametres.json).' };
   }
   const airtable = options.deps?.airtable ?? lireAirTable(dir);
-  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.sources?.trim() || !airtable?.offres?.trim()) {
-    return { ok: false, message: 'Configuration Airtable incomplète (apiKey, base, sources, offres).' };
+  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim()) {
+    return { ok: false, message: 'Configuration Airtable incomplète (apiKey, base). Les sources sont lues depuis data/sources.json (US-7.2).' };
   }
   const provider = compte.provider ?? 'imap';
   const useMicrosoft = provider === 'microsoft';
@@ -134,13 +128,7 @@ export async function runAuditSources(
     return { ok: false, message: 'Mot de passe IMAP absent. Enregistre-le via l’application (stocké chiffré avec PARAMETRES_ENCRYPTION_KEY).' };
   }
 
-  const baseId = normaliserBaseId(airtable.base);
-  const driverReleve = options.deps?.driverReleve ?? createAirtableReleveDriver({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    sourcesId: airtable.sources,
-    offresId: airtable.offres,
-  });
+  const driverReleve = options.deps?.driverReleve ?? createSourcesLegacyAdapterFromV2(dir);
 
   const useMock = process.env.BDD_MOCK_CONNECTEUR === '1';
   const lecteurEmails = options.deps?.lecteurEmails ?? (
@@ -170,17 +158,28 @@ export async function runAuditSources(
 
   onProgress?.(`Emails scannés : ${lecture.emails.length}`);
   const sourcesExistantes = await driverReleve.listerSources();
-  // Auto-corrige uniquement le plugin des sources existantes (ex. Inconnu → Linkedin si plugin reconnu).
-  // On ne touche jamais à actif sur une source existante : seule la création peut définir actif (par défaut).
+  // Auto-corrige la source des lignes existantes (ex. Inconnu → Linkedin pour email ; liste html/apec → APEC).
   if (driverReleve.mettreAJourSource) {
     for (const source of sourcesExistantes) {
       const key = normaliserEmailExpediteur(source.emailExpéditeur);
-      const pluginAttendu = pluginParExpediteur(key);
-      if (pluginAttendu === 'Inconnu') continue;
-      const doitCorrigerPlugin = source.plugin !== pluginAttendu;
-      if (!doitCorrigerPlugin) continue;
-      await driverReleve.mettreAJourSource(source.sourceId, { plugin: pluginAttendu });
-      source.plugin = pluginAttendu;
+      const estListeHtml = !key.includes('@');
+      let sourceNomAttendu: SourceNom;
+      let patch: { source: SourceNom; activerCreation?: boolean } | { source: SourceNom };
+      if (estListeHtml) {
+        const slug = key.includes('liste html/') ? key.replace(/^.*liste html\//, '').trim() || key : key;
+        sourceNomAttendu = sourceNomPourSlugListeHtml(slug);
+        patch = { source: sourceNomAttendu, activerCreation: true };
+      } else {
+        sourceNomAttendu = sourceNomParExpediteur(key);
+        if (sourceNomAttendu === 'Inconnu') continue;
+        patch = { source: sourceNomAttendu };
+      }
+      const doitCorrigerSource = source.source !== sourceNomAttendu;
+      const doitActiverCreation = estListeHtml && !source.activerCreation;
+      if (!doitCorrigerSource && !doitActiverCreation) continue;
+      await driverReleve.mettreAJourSource(source.sourceId, doitActiverCreation ? patch : { source: sourceNomAttendu });
+      source.source = sourceNomAttendu;
+      if (estListeHtml) source.activerCreation = true;
     }
   }
   const indexParEmail = new Map(
@@ -195,51 +194,66 @@ export async function runAuditSources(
 
   const synthese: Array<{
     emailExpéditeur: string;
-    plugin: PluginSource;
+    source: SourceNom;
     actif: 'Oui' | 'Non';
     nbEmails: number;
   }> = [];
   let nbSourcesCreees = 0;
   let nbSourcesExistantes = 0;
 
+  // CA2 US-6.2 : ne jamais créer de source pour un expéditeur trouvé dans la boîte mail.
+  // Synthèse et décompte uniquement pour les expéditeurs déjà présents dans listerSources().
   for (const [key, nbEmails] of compteParExpediteur.entries()) {
     const sourceExistante = indexParEmail.get(key);
-    if (sourceExistante) {
-      const pluginAttendu = pluginParExpediteur(key);
-      const doitCorrigerPlugin = pluginAttendu !== 'Inconnu' && sourceExistante.plugin !== pluginAttendu;
-      if (doitCorrigerPlugin && sourceExistante.sourceId && driverReleve.mettreAJourSource) {
-        await driverReleve.mettreAJourSource(sourceExistante.sourceId, { plugin: pluginAttendu });
-        sourceExistante.plugin = pluginAttendu;
-      }
-      nbSourcesExistantes += 1;
-      synthese.push({
-        emailExpéditeur: key,
-        plugin: sourceExistante.plugin,
-        actif: sourceExistante.activerCreation ? 'Oui' : 'Non',
-        nbEmails,
-      });
+    if (!sourceExistante) {
       continue;
     }
-    const plugin = pluginParExpediteur(key);
-    const registry = createSourcePluginsRegistry();
-    const def = getDefaultActivationForPlugin(plugin, registry);
-    const source: SourceEmail = {
-      emailExpéditeur: key,
-      plugin,
-      type: 'email',
-      activerCreation: def.activerCreation,
-      activerEnrichissement: def.activerEnrichissement,
-      activerAnalyseIA: def.activerAnalyseIA,
-    };
-    const created = await driverReleve.creerSource(source);
-    indexParEmail.set(normaliserEmailExpediteur(created.emailExpéditeur), created);
+    const sourceNomAttendu = sourceNomParExpediteur(key);
+    const doitCorrigerSource = sourceNomAttendu !== 'Inconnu' && sourceExistante.source !== sourceNomAttendu;
+    if (doitCorrigerSource && sourceExistante.sourceId && driverReleve.mettreAJourSource) {
+      await driverReleve.mettreAJourSource(sourceExistante.sourceId, { source: sourceNomAttendu });
+      sourceExistante.source = sourceNomAttendu;
+    }
+    nbSourcesExistantes += 1;
     synthese.push({
       emailExpéditeur: key,
-      plugin: source.plugin,
-      actif: def.activerCreation ? 'Oui' : 'Non',
+      source: sourceExistante.source,
+      actif: sourceExistante.activerCreation ? 'Oui' : 'Non',
       nbEmails,
     });
-    nbSourcesCreees += 1;
+  }
+
+  // US-6.1 : créer les sources manquantes pour les dossiers "liste html".
+  const sourcesPourListeHtml = Array.from(indexParEmail.values()).map((s) => ({
+    emailExpéditeur: s.emailExpéditeur,
+  }));
+  const { nbCreees: nbListeHtmlCreees, creees: creeesListeHtml } =
+    await creerSourcesManquantesPourListeHtml({
+      dataDir: dir,
+      listerDossiers: listerDossiersSourceListeHtml,
+      getSourceDir: getListeHtmlSourceDir,
+      sourcesExistantes: sourcesPourListeHtml,
+      creerSource: driverReleve.creerSource,
+    });
+  nbSourcesCreees += nbListeHtmlCreees;
+  for (const created of creeesListeHtml) {
+    const key = normaliserCheminListeHtml(created.emailExpéditeur);
+    const sourceNom = created.source ?? 'Inconnu';
+    indexParEmail.set(key, {
+      sourceId: created.sourceId,
+      emailExpéditeur: created.emailExpéditeur,
+      source: sourceNom,
+      type: 'liste html',
+      activerCreation: true,
+      activerEnrichissement: false,
+      activerAnalyseIA: true,
+    });
+    synthese.push({
+      emailExpéditeur: created.emailExpéditeur,
+      source: sourceNom,
+      actif: 'Oui',
+      nbEmails: 0,
+    });
   }
 
   synthese.sort((a, b) => b.nbEmails - a.nbEmails);
@@ -250,11 +264,11 @@ export async function runAuditSources(
       }
       if (
         (
-          ligne.plugin === 'Linkedin' ||
-          ligne.plugin === 'HelloWork' ||
-          ligne.plugin === 'Welcome to the Jungle' ||
-          ligne.plugin === 'Job That Make Sense' ||
-          ligne.plugin === 'Cadre Emploi'
+          ligne.source === 'Linkedin' ||
+          ligne.source === 'HelloWork' ||
+          ligne.source === 'Welcome to the Jungle' ||
+          ligne.source === 'Job That Make Sense' ||
+          ligne.source === 'Cadre Emploi'
         ) &&
         ligne.actif === 'Oui'
       ) {

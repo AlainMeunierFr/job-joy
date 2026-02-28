@@ -1,90 +1,103 @@
-import { createSourcePluginsRegistry } from './source-plugins.js';
+import { createSourceRegistry } from './source-plugins.js';
 
-describe('source plugins registry', () => {
-  it('retourne le plugin email HelloWork pour plugin=HelloWork', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getEmailPlugin('HelloWork');
-    expect(plugin).toBeDefined();
-    expect(plugin?.plugin).toBe('HelloWork');
+describe('source registry', () => {
+  it('retourne la source email HelloWork pour source=HelloWork', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getEmailSource('HelloWork');
+    expect(source).toBeDefined();
+    expect(source?.source).toBe('HelloWork');
   });
 
-  it('retourne le plugin email LinkedIn pour plugin=Linkedin', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getEmailPlugin('Linkedin');
-    expect(plugin).toBeDefined();
-    expect(plugin?.plugin).toBe('Linkedin');
+  it('retourne la source email LinkedIn pour source=Linkedin', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getEmailSource('Linkedin');
+    expect(source).toBeDefined();
+    expect(source?.source).toBe('Linkedin');
   });
 
-  it('retourne undefined pour plugin email Inconnu', () => {
-    const registry = createSourcePluginsRegistry();
-    expect(registry.getEmailPlugin('Inconnu')).toBeUndefined();
+  it('retourne undefined pour source email Inconnu', () => {
+    const registry = createSourceRegistry();
+    expect(registry.getEmailSource('Inconnu')).toBeUndefined();
   });
 
-  it('retourne le plugin email WTTJ pour plugin=Welcome to the Jungle', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getEmailPlugin('Welcome to the Jungle');
-    expect(plugin).toBeDefined();
-    expect(plugin?.plugin).toBe('Welcome to the Jungle');
+  it('retourne la source liste html APEC pour source=APEC', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getListeHtmlSource('APEC');
+    expect(source).toBeDefined();
+    expect(source?.source).toBe('APEC');
   });
 
-  it('retourne le plugin email JTMS pour plugin=Job That Make Sense', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getEmailPlugin('Job That Make Sense');
-    expect(plugin).toBeDefined();
-    expect(plugin?.plugin).toBe('Job That Make Sense');
+  it('retourne undefined pour source liste html Inconnu et Cadre Emploi', () => {
+    const registry = createSourceRegistry();
+    expect(registry.getListeHtmlSource('Inconnu')).toBeUndefined();
+    expect(registry.getListeHtmlSource('Cadre Emploi')).toBeUndefined();
   });
 
-  it('retourne le plugin email Cadre Emploi pour plugin=Cadre Emploi', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getEmailPlugin('Cadre Emploi');
-    expect(plugin).toBeDefined();
-    expect(plugin?.plugin).toBe('Cadre Emploi');
+  it('retourne la source email WTTJ pour source=Welcome to the Jungle', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getEmailSource('Welcome to the Jungle');
+    expect(source).toBeDefined();
+    expect(source?.source).toBe('Welcome to the Jungle');
   });
 
-  it('résout le plugin fetch LinkedIn via URL', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getOfferFetchPluginByUrl('https://www.linkedin.com/jobs/view/123/');
-    expect(plugin?.plugin).toBe('Linkedin');
+  it('retourne la source email JTMS pour source=Job That Make Sense', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getEmailSource('Job That Make Sense');
+    expect(source).toBeDefined();
+    expect(source?.source).toBe('Job That Make Sense');
   });
 
-  it('résout le plugin fetch LinkedIn par plugin (casse normalisée)', () => {
-    const registry = createSourcePluginsRegistry();
-    expect(registry.getOfferFetchPlugin('Linkedin')?.stage2Implemented).toBe(true);
-    expect(registry.getOfferFetchPlugin('LinkedIn')?.stage2Implemented).toBe(true);
-    expect(registry.getOfferFetchPlugin('LINKEDIN')?.stage2Implemented).toBe(true);
+  it('retourne la source email Cadre Emploi pour source=Cadre Emploi', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getEmailSource('Cadre Emploi');
+    expect(source).toBeDefined();
+    expect(source?.source).toBe('Cadre Emploi');
   });
 
-  it('résout le plugin fetch HelloWork via URL (étape 2 implémentée)', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getOfferFetchPluginByUrl('https://www.hellowork.com/fr-fr/emplois/123.html');
-    expect(plugin?.plugin).toBe('HelloWork');
-    expect(plugin?.stage2Implemented).toBe(true);
+  it('résout la source fetch LinkedIn via URL', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getOfferFetchSourceByUrl('https://www.linkedin.com/jobs/view/123/');
+    expect(source?.source).toBe('Linkedin');
   });
 
-  it('résout le plugin fetch WTTJ via URL (étape 2 implémentée)', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getOfferFetchPluginByUrl(
+  it('résout la source fetch LinkedIn par source (casse normalisée)', () => {
+    const registry = createSourceRegistry();
+    expect(registry.getOfferFetchSource('Linkedin')?.stage2Implemented).toBe(true);
+    expect(registry.getOfferFetchSource('LinkedIn')?.stage2Implemented).toBe(true);
+    expect(registry.getOfferFetchSource('LINKEDIN')?.stage2Implemented).toBe(true);
+  });
+
+  it('résout la source fetch HelloWork via URL (étape 2 implémentée)', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getOfferFetchSourceByUrl('https://www.hellowork.com/fr-fr/emplois/123.html');
+    expect(source?.source).toBe('HelloWork');
+    expect(source?.stage2Implemented).toBe(true);
+  });
+
+  it('résout la source fetch WTTJ via URL (étape 2 implémentée)', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getOfferFetchSourceByUrl(
       'https://www.welcometothejungle.com/fr/companies/acme/jobs/product-manager_paris'
     );
-    expect(plugin?.plugin).toBe('Welcome to the Jungle');
-    expect(plugin?.stage2Implemented).toBe(true);
+    expect(source?.source).toBe('Welcome to the Jungle');
+    expect(source?.stage2Implemented).toBe(true);
   });
 
-  it('résout le plugin fetch JTMS via URL', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getOfferFetchPluginByUrl(
+  it('résout la source fetch JTMS via URL', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getOfferFetchSourceByUrl(
       'https://jobs.makesense.org/fr/jobs/FaUYM2eD6MXcpSHqCtUS'
     );
-    expect(plugin?.plugin).toBe('Job That Make Sense');
-    expect(plugin?.stage2Implemented).toBe(true);
+    expect(source?.source).toBe('Job That Make Sense');
+    expect(source?.stage2Implemented).toBe(true);
   });
 
-  it('résout le plugin fetch Cadre Emploi via URL', () => {
-    const registry = createSourcePluginsRegistry();
-    const plugin = registry.getOfferFetchPluginByUrl(
+  it('résout la source fetch Cadre Emploi via URL', () => {
+    const registry = createSourceRegistry();
+    const source = registry.getOfferFetchSourceByUrl(
       'https://www.cadremploi.fr/emploi/detail_offre?offreId=123456'
     );
-    expect(plugin?.plugin).toBe('Cadre Emploi');
-    expect(plugin?.stage2Implemented).toBe(true);
+    expect(source?.source).toBe('Cadre Emploi');
+    expect(source?.stage2Implemented).toBe(true);
   });
 });

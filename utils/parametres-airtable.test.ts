@@ -24,12 +24,11 @@ describe('section AirTable dans parametres.json (baby step 1)', () => {
     rmSync(dataDir, { recursive: true, force: true });
   });
 
-  it('persiste et relit la section airtable (apiKey, base, sources, offres)', () => {
+  it('persiste et relit la section airtable (apiKey, base, offres)', () => {
     const p = getDefaultParametres();
     p.airtable = {
       apiKey: 'secret-key',
       base: 'baseId123',
-      sources: 'sourcesId456',
       offres: 'offresId789',
     };
     ecrireParametres(dataDir, p);
@@ -38,7 +37,6 @@ describe('section AirTable dans parametres.json (baby step 1)', () => {
     expect(lu?.airtable).toBeDefined();
     expect(lu?.airtable?.apiKey).toBe('secret-key');
     expect(lu?.airtable?.base).toBe('baseId123');
-    expect(lu?.airtable?.sources).toBe('sourcesId456');
     expect(lu?.airtable?.offres).toBe('offresId789');
   });
 });
@@ -75,11 +73,10 @@ describe('lireAirTable / ecrireAirTable (baby step 2)', () => {
   it('ecrireAirTable fusionne base, sources, offres avec l’existant', () => {
     ecrireParametres(dataDir, getDefaultParametres());
     ecrireAirTable(dataDir, { apiKey: 'key' });
-    ecrireAirTable(dataDir, { base: 'baseId', sources: 'sourcesId', offres: 'offresId' });
+    ecrireAirTable(dataDir, { base: 'baseId', offres: 'offresId' });
     const at = lireAirTable(dataDir);
     expect(at?.apiKey).toBe('key');
     expect(at?.base).toBe('baseId');
-    expect(at?.sources).toBe('sourcesId');
     expect(at?.offres).toBe('offresId');
   });
 });

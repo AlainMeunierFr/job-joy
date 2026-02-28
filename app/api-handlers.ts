@@ -3,6 +3,7 @@
  * Reçoivent les ports (ex. ConnecteurEmail) par injection — pas d'import des implémentations.
  */
 import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
 import { ServerResponse } from 'node:http';
 import { validerParametresCompte } from '../utils/validation-compte.js';
 import { ecrireCompte, lireCompte } from '../utils/compte-io.js';
@@ -50,21 +51,78 @@ import {
   produireTableauSynthese,
   calculerTotauxTableauSynthese,
   mergeCacheDansLignes,
+  enrichirCacheAImporterListeHtml,
 } from '../utils/tableau-synthese-offres.js';
+import { compterFichiersHtmlEnAttente } from '../utils/lire-fichiers-html-en-attente.js';
+import { toFullPathListeHtml } from '../utils/liste-html-paths.js';
 import type { LigneTableauSynthese } from '../utils/tableau-synthese-offres.js';
 import { decrementAImporter, getDernierAudit, setDernierAudit } from '../utils/cache-audit-ram.js';
 import { createAirtableReleveDriver } from '../utils/airtable-releve-driver.js';
+import {
+  createSourcesV2Driver,
+  sourceEntriesToLegacyLignes,
+  getCheminListeHtmlPourSource,
+  SOURCES_NOMS_CANONIQUES,
+  type SourceEntry,
+} from '../utils/sources-v2.js';
 import { normaliserBaseId } from '../utils/airtable-url.js';
-import { createSourcePluginsRegistry } from '../utils/source-plugins.js';
+import { controlOffresSchema, nomReelChamp, type ResultatControleSchemaOffres } from '../utils/airtable-schema-control.js';
+import { initOffresRepository, type OffresRepository, type OffreRow } from '../utils/repository-offres-sqlite.js';
+import { initVuesOffresRepository, type VuesOffresRepository } from '../utils/repository-vues-offres-sqlite.js';
+
+/** US-7.7 : cache du repository offres par dataDir (une instance par répertoire). */
+const offresRepositoryByDataDir = new Map<string, OffresRepository>();
+
+/** Retourne le repository offres pour dataDir (initialise si besoin). */
+export function getOffresRepository(dataDir: string): OffresRepository {
+  const key = dataDir || join(process.cwd(), 'data');
+  let repo = offresRepositoryByDataDir.get(key);
+  if (!repo) {
+    repo = initOffresRepository(join(key, 'offres.sqlite'));
+    offresRepositoryByDataDir.set(key, repo);
+  }
+  return repo;
+}
+
+/** US-7.7 : vide le cache des repositories (pour tests, libère les handles avant suppression du répertoire). */
+export function clearOffresRepositoryCache(): void {
+  for (const repo of offresRepositoryByDataDir.values()) {
+    repo.close();
+  }
+  offresRepositoryByDataDir.clear();
+}
+
+/** US-7.9 : cache du repository vues offres par dataDir (même base que offres). */
+const vuesOffresRepositoryByDataDir = new Map<string, VuesOffresRepository>();
+
+/** Retourne le repository vues offres pour dataDir (initialise si besoin, même dbPath que offres). */
+export function getVuesOffresRepository(dataDir: string): VuesOffresRepository {
+  const key = dataDir || join(process.cwd(), 'data');
+  let repo = vuesOffresRepositoryByDataDir.get(key);
+  if (!repo) {
+    repo = initVuesOffresRepository(join(key, 'offres.sqlite'));
+    vuesOffresRepositoryByDataDir.set(key, repo);
+  }
+  return repo;
+}
+
+/** US-7.9 : vide le cache vues offres (pour tests). */
+export function clearVuesOffresRepositoryCache(): void {
+  for (const repo of vuesOffresRepositoryByDataDir.values()) {
+    repo.close();
+  }
+  vuesOffresRepositoryByDataDir.clear();
+}
+import { createSourceRegistry } from '../utils/source-plugins.js';
 import { STATUTS_OFFRES_AIRTABLE, STATUTS_OFFRES_AVEC_AUTRE } from '../utils/statuts-offres-airtable.js';
 import {
   recupererTexteOffreTest,
   createOffreTestDriverAirtable,
 } from '../utils/offre-test.js';
-import { appelerClaudeCode, type ResultatAppelClaude } from '../utils/appeler-claudecode.js';
+import { appelerMistral, type ResultatAppelIA } from '../utils/appeler-mistral.js';
 import { parseJsonReponseIA, validerConformiteJsonIA } from '../utils/parse-json-reponse-ia.js';
 import { construirePromptComplet, construireMessageUserAnalyse } from '../utils/prompt-ia.js';
-import { lireClaudeCode } from '../utils/parametres-claudecode.js';
+import { lireMistral } from '../utils/parametres-mistral.js';
 import {
   agregerConsommationParJourEtApi,
   agregerConsommationParJourEtIntention,
@@ -73,14 +131,14 @@ import {
 import {
   INTENTION_TABLEAU_SYNTHESE,
   INTENTION_OFFRE_TEST,
-  INTENTION_TEST_CLAUDECODE,
+  INTENTION_TEST_MISTRAL,
   INTENTION_CONFIG_AIRTABLE,
 } from '../utils/intentions-appels-api.js';
 
 /** Store BDD : tableau synthèse offres pour tests (US-1.7). */
 let bddMockTableauSyntheseStore: LigneTableauSynthese[] | null = null;
 
-/** Store BDD : offre test pour Configuration ClaudeCode (US-2.4). null = utiliser Airtable réel. */
+/** Store BDD : offre test pour Configuration API IA (US-8.1). null = utiliser source réelle. */
 let bddMockOffreTestStore: { hasOffre: boolean; texte?: string } | null = null;
 
 /** BDD : définir la réponse mock de GET /api/offre-test (null = comportement réel). */
@@ -88,12 +146,12 @@ export function setBddMockOffreTest(offre: { hasOffre: boolean; texte?: string }
   bddMockOffreTestStore = offre;
 }
 
-/** Store BDD : réponse mock de POST /api/test-claudecode (null = appel API réel). */
-let bddMockTestClaudecodeStore: ResultatAppelClaude | null = null;
+/** Store BDD : réponse mock de POST /api/test-mistral (null = appel API réel). */
+let bddMockTestMistralStore: ResultatAppelIA | null = null;
 
-/** BDD : définir la réponse mock de POST /api/test-claudecode (null = comportement réel). */
-export function setBddMockTestClaudecode(resultat: ResultatAppelClaude | null): void {
-  bddMockTestClaudecodeStore = resultat;
+/** BDD : définir la réponse mock de POST /api/test-mistral (null = comportement réel). */
+export function setBddMockTestMistral(resultat: ResultatAppelIA | null): void {
+  bddMockTestMistralStore = resultat;
 }
 
 /** BDD : définir les lignes du tableau synthèse offres (null = utiliser produireTableauSynthese). */
@@ -177,7 +235,7 @@ export function setBddMockEmailsGouvernance(
 /** BDD : remplacer les sources mock ([] = vide, pour scénario "aucun expéditeur"; sinon source(s) existante(s)). */
 export function setBddMockSources(sources: Array<{
   emailExpéditeur: string;
-  plugin: SourceEmail['plugin'];
+  source: SourceEmail['source'];
   type?: TypeSource;
   activerCreation: boolean;
   activerEnrichissement: boolean;
@@ -187,7 +245,7 @@ export function setBddMockSources(sources: Array<{
   for (const s of sources) {
     bddMockSourcesStore.push({
       emailExpéditeur: s.emailExpéditeur.trim().toLowerCase(),
-      plugin: s.plugin,
+      source: s.source,
       type: s.type ?? 'email',
       activerCreation: s.activerCreation,
       activerEnrichissement: s.activerEnrichissement,
@@ -245,7 +303,7 @@ export function getBddMockOffresAAnalyser(): Array<{ id: string; poste?: string;
 function createBddMockDriverReleve(): {
   listerSources: () => Promise<SourceRuntime[]>;
   creerSource: (source: SourceEmail) => Promise<SourceRuntime>;
-  mettreAJourSource: (sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'>>) => Promise<void>;
+  mettreAJourSource: (sourceId: string, patch: Partial<Pick<SourceEmail, 'source' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'>>) => Promise<void>;
   creerOffres: (offres: Array<{ idOffre: string; url: string; dateAjout: string; statut: string }>, sourceId: string) => Promise<{ nbCreees: number; nbDejaPresentes: number }>;
   getSourceLinkedIn: () => Promise<{ found: false } | { found: true; activerCreation: boolean; emailExpéditeur: string; sourceId: string }>;
 } {
@@ -262,10 +320,10 @@ function createBddMockDriverReleve(): {
       bddMockSourcesStore.push(rec);
       return rec;
     },
-    async mettreAJourSource(sourceId: string, patch: Partial<Pick<SourceEmail, 'plugin' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'>>) {
+    async mettreAJourSource(sourceId: string, patch: Partial<Pick<SourceEmail, 'source' | 'type' | 'activerCreation' | 'activerEnrichissement' | 'activerAnalyseIA'>>) {
       const i = bddMockSourcesStore.findIndex((s) => s.sourceId === sourceId);
       if (i >= 0) {
-        if (patch.plugin) bddMockSourcesStore[i].plugin = patch.plugin;
+        if (patch.source) bddMockSourcesStore[i].source = patch.source;
         if (patch.type !== undefined) bddMockSourcesStore[i].type = patch.type;
         if (typeof patch.activerCreation === 'boolean') bddMockSourcesStore[i].activerCreation = patch.activerCreation;
         if (typeof patch.activerEnrichissement === 'boolean') bddMockSourcesStore[i].activerEnrichissement = patch.activerEnrichissement;
@@ -285,7 +343,7 @@ function createBddMockDriverReleve(): {
       return { nbCreees, nbDejaPresentes: offres.length - nbCreees };
     },
     async getSourceLinkedIn() {
-      const linkedin = bddMockSourcesStore.find((s) => s.plugin === 'Linkedin');
+      const linkedin = bddMockSourcesStore.find((s) => s.source === 'Linkedin');
       if (!linkedin) return { found: false };
       return { found: true, activerCreation: linkedin.activerCreation, emailExpéditeur: linkedin.emailExpéditeur, sourceId: linkedin.sourceId };
     },
@@ -312,24 +370,33 @@ function airtableHeaders(apiKey: string): Record<string, string> {
   };
 }
 
-/** 2 appels : Sources puis Offres avec la clé étrangère (champ lien vers Sources) + Statut. */
+/** Noms canoniques (code d'initialisation airtable-driver-reel). Requête normale sans appel API Meta. */
+const OFFRES_CHAMP_SOURCE_CANONIQUE = 'source';
+const OFFRES_CHAMP_STATUT_CANONIQUE = 'Statut';
+
+/** Offres Airtable : par champ source (sélecteur). Noms de champs passés en paramètre (canoniques ou issus d'audit). */
 async function listerOffresPourTableau(options: {
   apiKey: string;
   baseId: string;
   offresId: string;
-  sourceIdVersEmail: Map<string, string>;
+  sourceNomVersEmail: Map<string, string>;
+  sourceFieldName: string;
+  statutFieldName: string;
 }): Promise<Array<{ emailExpéditeur: string; statut: string }>> {
-  const { apiKey, baseId, offresId, sourceIdVersEmail } = options;
+  const { apiKey, baseId, offresId, sourceNomVersEmail, sourceFieldName, statutFieldName } = options;
   const offres: Array<{ emailExpéditeur: string; statut: string }> = [];
+  const fieldsParam = `fields%5B%5D=${encodeURIComponent(sourceFieldName)}&fields%5B%5D=${encodeURIComponent(statutFieldName)}`;
   let offset = '';
-  const fieldsParam = 'fields%5B%5D=email%20exp%C3%A9diteur&fields%5B%5D=Statut';
   do {
     const url = `${AIRTABLE_API_BASE}/${encodeURIComponent(baseId)}/${encodeURIComponent(
       offresId
     )}?${fieldsParam}&pageSize=100${offset ? `&offset=${encodeURIComponent(offset)}` : ''}`;
+    if (!offset) console.error('[tableau-synthese] GET Airtable: %s/%s (champs: %s, %s)', baseId, offresId, sourceFieldName, statutFieldName);
     const res = await fetch(url, { method: 'GET', headers: airtableHeaders(apiKey) });
+    if (!offset) console.error('[tableau-synthese] Airtable réponse: status=%d', res.status);
     if (!res.ok) {
       const detail = await res.text();
+      if (!offset) console.error('[tableau-synthese] Airtable corps (brut): %s', detail.slice(0, 500));
       if (res.status === 404) {
         throw new Error(`Airtable Offres : table introuvable (404). Vérifie l’ID table Offres dans Paramètres. ${detail || res.statusText}`);
       }
@@ -340,23 +407,38 @@ async function listerOffresPourTableau(options: {
       offset?: string;
     };
     const records = json.records ?? [];
+    if (!offset && records.length > 0) console.error('[tableau-synthese] Airtable 1er enregistrement (brut): %s', JSON.stringify(records[0]).slice(0, 300));
     for (const rec of records) {
       const fields = rec.fields ?? {};
-      const statut = typeof fields.Statut === 'string' ? fields.Statut.trim() : '';
+      const statut = typeof fields[statutFieldName] === 'string' ? (fields[statutFieldName] as string).trim() : '';
       if (!statut) continue;
-      const lienSource = fields['email expéditeur'];
-      if (Array.isArray(lienSource) && lienSource.length > 0) {
-        const sourceRef = String(lienSource[0] ?? '').trim();
-        const email = sourceIdVersEmail.get(sourceRef) ?? '';
-        if (email) offres.push({ emailExpéditeur: email, statut });
-        continue;
-      }
-      if (typeof lienSource === 'string' && lienSource.trim()) {
-        offres.push({ emailExpéditeur: lienSource.trim().toLowerCase(), statut });
-      }
+      const sourceNomBrut = typeof fields[sourceFieldName] === 'string' ? (fields[sourceFieldName] as string).trim() : '';
+      const sourceCanonique = sourceNomBrut ? normaliserSourceNomValue(sourceNomBrut) : '';
+      let cle = sourceCanonique ? sourceNomVersEmail.get(sourceCanonique) : '';
+      if (!cle && sourceNomBrut) cle = sourceNomVersEmail.get('Inconnu') ?? '';
+      if (cle) offres.push({ emailExpéditeur: cle, statut });
     }
     offset = json.offset ?? '';
   } while (offset);
+  return offres;
+}
+
+/** US-7.7 : liste les offres depuis le repository SQLite au format attendu par produireTableauSynthese (emailExpéditeur, statut). */
+export function listerOffresPourTableauDepuisSqlite(
+  repository: OffresRepository,
+  sourceNomVersEmail: Map<string, string>
+): Array<{ emailExpéditeur: string; statut: string }> {
+  const all = repository.getAll();
+  const offres: Array<{ emailExpéditeur: string; statut: string }> = [];
+  for (const row of all) {
+    const statut = typeof row.Statut === 'string' ? row.Statut.trim() : '';
+    if (!statut) continue;
+    const sourceNomBrut = typeof row.source === 'string' ? row.source.trim() : '';
+    const sourceCanonique = sourceNomBrut ? normaliserSourceNomValue(sourceNomBrut) : '';
+    const cle = sourceCanonique ? sourceNomVersEmail.get(sourceCanonique) : '';
+    const emailExpéditeur = cle || (sourceNomBrut ? sourceNomVersEmail.get('Inconnu') ?? '' : '');
+    if (emailExpéditeur) offres.push({ emailExpéditeur, statut });
+  }
   return offres;
 }
 
@@ -474,6 +556,281 @@ export async function handleGetMeilleureOffre(dataDir: string, res: ServerRespon
   }
 }
 
+/** US Statistiques scores : bornes des 10 colonnes de l'histogramme (score arrondi). Colonne 1: 0.1-1.4, 2: 1.5-2.4, …, 10: ≥ 9.5. */
+const HISTOGRAMME_SCORES_BUCKETS: Array<{ label: string; min: number; max: number }> = [
+  { label: '0 - 1,4', min: 0, max: 1.4 },
+  { label: '1,5 - 2,4', min: 1.5, max: 2.4 },
+  { label: '2,5 - 3,4', min: 2.5, max: 3.4 },
+  { label: '3,5 - 4,4', min: 3.5, max: 4.4 },
+  { label: '4,5 - 5,4', min: 4.5, max: 5.4 },
+  { label: '5,5 - 6,4', min: 5.5, max: 6.4 },
+  { label: '6,5 - 7,4', min: 6.5, max: 7.4 },
+  { label: '7,5 - 8,4', min: 7.5, max: 8.4 },
+  { label: '8,5 - 9,4', min: 8.5, max: 9.4 },
+  { label: '≥ 9,5', min: 9.5, max: Infinity },
+];
+
+/** Liste les offres avec Score_Total et Statut pour l'histogramme (population : Score_Total != 0 ou Statut = Expiré). */
+async function listerOffresPourHistogrammeScores(options: {
+  apiKey: string;
+  baseId: string;
+  offresId: string;
+}): Promise<Array<{ scoreTotal: number; statut: string }>> {
+  const { apiKey, baseId, offresId } = options;
+  const fieldsParam = 'fields%5B%5D=Score_Total&fields%5B%5D=Statut';
+  const out: Array<{ scoreTotal: number; statut: string }> = [];
+  let offset = '';
+  const STATUT_EXPIRE = 'Expiré';
+  do {
+    const url = `${AIRTABLE_API_BASE}/${encodeURIComponent(baseId)}/${encodeURIComponent(
+      offresId
+    )}?${fieldsParam}&pageSize=100${offset ? `&offset=${encodeURIComponent(offset)}` : ''}`;
+    const res = await fetch(url, { method: 'GET', headers: airtableHeaders(apiKey) });
+    if (!res.ok) throw new Error(`Airtable Offres list: ${res.status} ${res.statusText}`);
+    const json = (await res.json()) as {
+      records?: Array<{ fields?: Record<string, unknown> }>;
+      offset?: string;
+    };
+    for (const rec of json.records ?? []) {
+      const fields = rec.fields ?? {};
+      const statut = typeof fields.Statut === 'string' ? fields.Statut.trim() : '';
+      let scoreTotal: number;
+      if (typeof fields.Score_Total === 'number' && Number.isFinite(fields.Score_Total)) {
+        scoreTotal = fields.Score_Total;
+      } else if (typeof fields.Score_Total === 'string') {
+        scoreTotal = parseFloat(fields.Score_Total) || 0;
+      } else {
+        scoreTotal = 0;
+      }
+      const inclus = (scoreTotal !== 0 && scoreTotal != null) || statut === STATUT_EXPIRE;
+      if (inclus) out.push({ scoreTotal, statut });
+    }
+    offset = json.offset ?? '';
+  } while (offset);
+  return out;
+}
+
+const STATUT_EXPIRE_HISTO = 'Expiré';
+
+/** US-7.7 : liste les offres depuis le repository SQLite pour l'histogramme (population : Score_Total != 0 ou Statut = Expiré). */
+export function listerOffresPourHistogrammeScoresDepuisSqlite(
+  repository: OffresRepository
+): Array<{ scoreTotal: number; statut: string }> {
+  const all = repository.getAll();
+  const out: Array<{ scoreTotal: number; statut: string }> = [];
+  for (const row of all) {
+    const statut = typeof row.Statut === 'string' ? row.Statut.trim() : '';
+    let scoreTotal: number;
+    const st = row.Score_Total;
+    if (typeof st === 'number' && Number.isFinite(st)) {
+      scoreTotal = st;
+    } else if (typeof st === 'string') {
+      scoreTotal = parseFloat(st) || 0;
+    } else {
+      scoreTotal = 0;
+    }
+    const inclus = (scoreTotal !== 0 && scoreTotal != null) || statut === STATUT_EXPIRE_HISTO;
+    if (inclus) out.push({ scoreTotal, statut });
+  }
+  return out;
+}
+
+/** GET /api/histogramme-scores-offres : histogramme des scores (US Statistiques). Population : Score_Total != 0 ou Statut = Expiré. US-7.7 : lecture depuis SQLite. */
+export async function handleGetHistogrammeScoresOffres(dataDir: string, res: ServerResponse): Promise<void> {
+  try {
+    const repository = getOffresRepository(dataDir);
+    const offres = listerOffresPourHistogrammeScoresDepuisSqlite(repository);
+    const counts = HISTOGRAMME_SCORES_BUCKETS.map(() => 0);
+    for (const o of offres) {
+      const s = o.scoreTotal;
+      const i = HISTOGRAMME_SCORES_BUCKETS.findIndex((b) => s >= b.min && s <= b.max);
+      if (i >= 0) counts[i] += 1;
+    }
+    const buckets = HISTOGRAMME_SCORES_BUCKETS.map((b, i) => ({
+      label: b.label,
+      min: b.min,
+      max: b.max === Infinity ? 9.5 : b.max,
+      count: counts[i],
+    }));
+    sendJson(res, 200, {
+      ok: true,
+      buckets,
+      total: offres.length,
+    });
+  } catch (err) {
+    console.error('GET /api/histogramme-scores-offres error', err);
+    sendJson(res, 500, { ok: false, message: String(err), buckets: [], total: 0 });
+  }
+}
+
+/** Libellés par défaut pour critères rédhibitoires et scores (colonnes grid page Offres). */
+const REHIBITOIRES_DEFAULT = ['Critère réhib. 1', 'Critère réhib. 2', 'Critère réhib. 3', 'Critère réhib. 4'];
+const SCORES_INCONTOURNABLES_DEFAULT = ['Localisation', 'Salaire', 'Culture', "Qualité d'offre"];
+const SCORES_OPTIONNELS_DEFAULT = ['Score opt. 1', 'Score opt. 2', 'Score opt. 3', 'Score opt. 4'];
+
+/** GET /api/parametrage-ia-libelles : libellés des colonnes Critères rédhib. et Scores (page Offres). */
+export function handleGetParametrageIALibelles(dataDir: string, res: ServerResponse): void {
+  try {
+    const parametres = lireParametres(dataDir);
+    const ia = parametres?.parametrageIA ?? null;
+    const rehibitoires = [0, 1, 2, 3].map(
+      (i) => (ia?.rehibitoires?.[i]?.titre?.trim() || REHIBITOIRES_DEFAULT[i])
+    );
+    /* Titres fixes (Localisation, Salaire, Culture, Qualité d'offre) comme en page Paramètres. */
+    const scoresIncontournables = SCORES_INCONTOURNABLES_DEFAULT.slice();
+    const scoresOptionnels = [0, 1, 2, 3].map(
+      (i) =>
+        (ia?.scoresOptionnels?.[i]?.titre?.trim() || SCORES_OPTIONNELS_DEFAULT[i])
+    );
+    sendJson(res, 200, {
+      rehibitoires,
+      scoresIncontournables,
+      scoresOptionnels,
+    });
+  } catch (err) {
+    console.error('GET /api/parametrage-ia-libelles error', err);
+    sendJson(res, 200, {
+      rehibitoires: REHIBITOIRES_DEFAULT,
+      scoresIncontournables: SCORES_INCONTOURNABLES_DEFAULT,
+      scoresOptionnels: SCORES_OPTIONNELS_DEFAULT,
+    });
+  }
+}
+
+/** GET /api/offres : liste toutes les offres (US-7.9). */
+export function handleGetOffres(dataDir: string, res: ServerResponse): void {
+  try {
+    const repository = getOffresRepository(dataDir);
+    const offres: OffreRow[] = repository.getAll();
+    sendJson(res, 200, { offres }, { 'Cache-Control': 'no-store' });
+  } catch (err) {
+    console.error('GET /api/offres error', err);
+    sendJson(res, 500, { offres: [], message: String(err) });
+  }
+}
+
+/** GET /api/offres/vues : liste des vues sauvegardées (US-7.9 CA6). */
+export function handleGetVuesOffres(dataDir: string, res: ServerResponse): void {
+  try {
+    const repo = getVuesOffresRepository(dataDir);
+    const vues = repo.listAll();
+    sendJson(res, 200, { vues }, { 'Cache-Control': 'no-store' });
+  } catch (err) {
+    console.error('GET /api/offres/vues error', err);
+    sendJson(res, 500, { vues: [], message: String(err) });
+  }
+}
+
+/** POST /api/offres/vues : crée une vue (body: { nom, parametrage }). */
+export function handlePostVueOffres(
+  dataDir: string,
+  body: Record<string, unknown>,
+  res: ServerResponse
+): void {
+  try {
+    const nom = typeof body.nom === 'string' ? body.nom.trim() : '';
+    const parametrage = body.parametrage != null ? body.parametrage : {};
+    if (!nom) {
+      sendJson(res, 400, { ok: false, message: 'nom requis' });
+      return;
+    }
+    const repo = getVuesOffresRepository(dataDir);
+    const id = repo.create(nom, parametrage as object);
+    sendJson(res, 201, { id, nom }, { 'Cache-Control': 'no-store' });
+  } catch (err) {
+    console.error('POST /api/offres/vues error', err);
+    sendJson(res, 500, { ok: false, message: String(err) });
+  }
+}
+
+/** PATCH /api/offres/vues/:id : renomme une vue (body: { nom }). */
+export function handlePatchVueOffres(
+  dataDir: string,
+  id: string,
+  body: Record<string, unknown>,
+  res: ServerResponse
+): void {
+  try {
+    const nom = typeof body.nom === 'string' ? body.nom.trim() : '';
+    if (!id || !nom) {
+      sendJson(res, 400, { ok: false, message: 'id et nom requis' });
+      return;
+    }
+    const repo = getVuesOffresRepository(dataDir);
+    const vue = repo.getById(id);
+    if (!vue) {
+      sendJson(res, 404, { ok: false, message: 'Vue introuvable' });
+      return;
+    }
+    repo.updateNom(id, nom);
+    sendJson(res, 200, { ok: true }, { 'Cache-Control': 'no-store' });
+  } catch (err) {
+    console.error('PATCH /api/offres/vues error', err);
+    sendJson(res, 500, { ok: false, message: String(err) });
+  }
+}
+
+/** DELETE /api/offres/vues/:id (US-7.9 CA6). */
+export function handleDeleteVueOffres(dataDir: string, id: string, res: ServerResponse): void {
+  try {
+    if (!id) {
+      sendJson(res, 400, { ok: false, message: 'id requis' });
+      return;
+    }
+    const repo = getVuesOffresRepository(dataDir);
+    const vue = repo.getById(id);
+    if (!vue) {
+      sendJson(res, 404, { ok: false, message: 'Vue introuvable' });
+      return;
+    }
+    repo.deleteById(id);
+    sendJson(res, 200, { ok: true }, { 'Cache-Control': 'no-store' });
+  } catch (err) {
+    console.error('DELETE /api/offres/vues error', err);
+    sendJson(res, 500, { ok: false, message: String(err) });
+  }
+}
+
+/** BDD US-7.9 : insère une offre en SQLite pour « la base contient au moins une offre ». */
+export function handlePostTestSeedOffreSqlite(
+  dataDir: string,
+  body: Record<string, unknown>,
+  res: ServerResponse
+): void {
+  try {
+    const repo = getOffresRepository(dataDir);
+    const offre: Partial<OffreRow> = {
+      source: typeof body.source === 'string' ? body.source : 'Test',
+      Statut: typeof body.Statut === 'string' ? body.Statut : 'À traiter',
+      URL: typeof body.URL === 'string' ? body.URL : 'https://example.com/offre-1',
+      Poste: typeof body.Poste === 'string' ? body.Poste : 'Poste test',
+      Entreprise: typeof body.Entreprise === 'string' ? body.Entreprise : 'Entreprise test',
+    };
+    repo.insert(offre);
+    const all = repo.getAll();
+    const inserted = all[all.length - 1];
+    sendJson(res, 201, { id: inserted?.id ?? '', count: all.length });
+  } catch (err) {
+    console.error('POST /api/test/seed-offre-sqlite error', err);
+    sendJson(res, 500, { ok: false, message: String(err) });
+  }
+}
+
+/** BDD US-7.9 : vide la table offres SQLite pour « la base ne contient aucune offre ». */
+export function handlePostTestClearOffresSqlite(dataDir: string, res: ServerResponse): void {
+  try {
+    const repo = getOffresRepository(dataDir);
+    const all = repo.getAll();
+    for (const row of all) {
+      repo.deleteById(row.id);
+    }
+    sendJson(res, 200, { ok: true, cleared: all.length });
+  } catch (err) {
+    console.error('POST /api/test/clear-offres-sqlite error', err);
+    sendJson(res, 500, { ok: false, message: String(err) });
+  }
+}
+
 type TraitementTask = {
   status: 'running' | 'done' | 'error';
   message: string;
@@ -502,7 +859,7 @@ type EnrichissementCurrentProgress = {
   index: number;
   total: number;
   recordId: string;
-  plugin?: string;
+  sourceNom?: string;
 };
 
 type AnalyseIACurrentProgress = {
@@ -562,13 +919,13 @@ async function runOneEnrichissementBatch(dataDir: string): Promise<void> {
     enrichissementWorker.currentProgress = undefined;
     const result = await runEnrichissementBackground(dataDir, {
       shouldAbort: () => !enrichissementWorker.running,
-      onProgress: (offre, index, total, plugin) => {
+      onProgress: (offre, index, total, sourceNom) => {
         if (!enrichissementWorker.running) return;
         enrichissementWorker.currentProgress = {
           index,
           total,
           recordId: offre.id,
-          plugin,
+          sourceNom,
         };
       },
     });
@@ -769,7 +1126,7 @@ export function handleGetCompte(dataDir: string, res: ServerResponse): void {
 export async function handlePostRefreshSyntheseOffres(dataDir: string, res: ServerResponse): Promise<void> {
   const useBddMock = process.env.BDD_MOCK_CONNECTEUR === '1';
   const compteBdd = useBddMock ? (lireCompte(dataDir) ?? { provider: 'imap' as const, adresseEmail: 'test@example.com', cheminDossier: 'inbox', cheminDossierArchive: '', imapHost: 'imap.example.com', imapPort: 993, imapSecure: true }) : null;
-  const airtableBdd = useBddMock ? (lireAirTable(dataDir) ?? { apiKey: 'patTestKeyValide123', base: 'appXyz123', sources: 'tblSourcesId', offres: 'tblOffresId' }) : null;
+  const airtableBdd = useBddMock ? (lireAirTable(dataDir) ?? { apiKey: 'patTestKeyValide123', base: 'appXyz123', offres: 'tblOffresId' }) : null;
   const deps = useBddMock
     ? {
         compte: compteBdd ?? undefined,
@@ -797,10 +1154,47 @@ export async function handlePostRefreshSyntheseOffres(dataDir: string, res: Serv
   sendJson(res, 200, { ok: true });
 }
 
-/** GET /api/tableau-synthese-offres : tableau de synthèse par expéditeur et statut (US-1.7, US-1.13). 2 appels : Sources puis Offres (champ lien FK + Statut). Ordre statuts + colonne Autre depuis le code. */
+/** US-7.4 : PATCH/POST activation d'une phase pour une source. Body: { source: string, phase: 'creationEmail'|'creationListeHtml'|'enrichissement'|'analyse', activé: boolean }. Persiste dans sources.json via driver V2. */
+export async function handlePatchSourceActivation(
+  dataDir: string,
+  body: Record<string, unknown>,
+  res: ServerResponse
+): Promise<void> {
+  const source = String(body.source ?? '').trim();
+  const phase = String(body.phase ?? '').trim();
+  const activé = body.activé === true || body.activé === 'true';
+  if (!source || !phase) {
+    sendJson(res, 400, { ok: false, message: 'source et phase requis.' });
+    return;
+  }
+  const nom = SOURCES_NOMS_CANONIQUES.includes(source as (typeof SOURCES_NOMS_CANONIQUES)[number])
+    ? (source as (typeof SOURCES_NOMS_CANONIQUES)[number])
+    : null;
+  if (!nom) {
+    sendJson(res, 400, { ok: false, message: 'source inconnue.' });
+    return;
+  }
+  const driver = createSourcesV2Driver(dataDir);
+  if (phase === 'creationEmail') {
+    await driver.updateSource(nom, { creationEmail: { activé } });
+  } else if (phase === 'creationListeHtml') {
+    await driver.updateSource(nom, { creationListeHtml: { activé } });
+  } else if (phase === 'enrichissement') {
+    await driver.updateSource(nom, { enrichissement: { activé } });
+  } else if (phase === 'analyse') {
+    await driver.updateSource(nom, { analyse: { activé } });
+  } else {
+    sendJson(res, 400, { ok: false, message: 'phase invalide (creationEmail, creationListeHtml, enrichissement, analyse).' });
+    return;
+  }
+  sendJson(res, 200, { ok: true });
+}
+
+/** GET /api/tableau-synthese-offres : tableau de synthèse par expéditeur et statut (US-1.7, US-1.13). Source : SQLite + sources V2 ; en tests, mock injecté via setBddMockTableauSynthese (POST /api/test/set-mock-tableau-synthese). */
 export async function handleGetTableauSyntheseOffres(dataDir: string, res: ServerResponse): Promise<void> {
   let statutsOrdre: string[] = [...STATUTS_OFFRES_AVEC_AUTRE];
   if (bddMockTableauSyntheseStore !== null) {
+    // Mock injecté par les tests BDD/unitaires (set-mock-tableau-synthese)
     let lignes = mergeCacheDansLignes(bddMockTableauSyntheseStore, getDernierAudit());
     lignes = enrichirPhasesImplementation(lignes);
     const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
@@ -813,85 +1207,30 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
     });
     return;
   }
-  const useBddMock = process.env.BDD_MOCK_CONNECTEUR === '1';
-  if (useBddMock) {
-    const repo = {
-      async listerSources() {
-        return bddMockSourcesStore.map((s) => ({
-          emailExpéditeur: s.emailExpéditeur,
-          plugin: s.plugin,
-          activerCreation: s.activerCreation,
-          activerEnrichissement: s.activerEnrichissement,
-          activerAnalyseIA: s.activerAnalyseIA,
-        }));
-      },
-      async listerOffres() {
-        return (bddMockOffresStore as Array<{ sourceId?: string; statut?: string }>)
-          .filter((o) => o.sourceId)
-          .map((o) => {
-            const source = bddMockSourcesStore.find((s) => s.sourceId === o.sourceId);
-            return {
-              emailExpéditeur: source?.emailExpéditeur ?? '',
-              statut: o.statut ?? '',
-            };
-          });
-      },
-    };
-    let lignes = await produireTableauSynthese(repo, STATUTS_OFFRES_AVEC_AUTRE);
-    lignes = mergeCacheDansLignes(lignes, getDernierAudit());
-    const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
-    sendJson(res, 200, {
-      lignes: enrichirPhasesImplementation(lignes),
-      statutsOrdre: [...STATUTS_OFFRES_AVEC_AUTRE],
-      totauxColonnes: totaux.totalParColonne,
-      totalParLigne: totaux.totalParLigne,
-      totalGeneral: totaux.totalGeneral,
-    });
-    return;
-  }
-  const airtable = lireAirTable(dataDir);
-  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.sources?.trim() || !airtable?.offres?.trim()) {
-    sendJson(res, 200, {
-      lignes: [],
-      statutsOrdre: [...STATUTS_OFFRES_AVEC_AUTRE],
-      totauxColonnes: {},
-      totalParLigne: [],
-      totalGeneral: 0,
-    }, { 'Cache-Control': 'no-store' });
-    return;
-  }
-  const baseId = normaliserBaseId(airtable.base.trim());
-  const apiKey = airtable.apiKey.trim();
-  const offresId = airtable.offres.trim();
-  statutsOrdre = [...STATUTS_OFFRES_AVEC_AUTRE];
-
-  /** Si l'ID Offres est une vue (viw...), l'API ne renvoie que les enregistrements de cette vue, pas toute la table. */
-  const offresIdEstUneVue = offresId.toLowerCase().startsWith('viw');
-
   try {
-    const driver = createAirtableReleveDriver({
-      apiKey,
-      baseId,
-      sourcesId: airtable.sources.trim(),
-      offresId,
-    });
-    const sources = await driver.listerSources();
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: true, intention: INTENTION_TABLEAU_SYNTHESE });
-    const sourceIdVersEmail = new Map(
-      sources.map((s) => [s.sourceId, s.emailExpéditeur.trim().toLowerCase()])
-    );
-    const offres = await listerOffresPourTableau({
-      apiKey,
-      baseId,
-      offresId,
-      sourceIdVersEmail,
-    });
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: true, intention: INTENTION_TABLEAU_SYNTHESE });
+    const offresRepository = getOffresRepository(dataDir);
+    const sourcesDriverV2 = createSourcesV2Driver(dataDir);
+    const entries: SourceEntry[] = await sourcesDriverV2.listSources();
+    console.error('[tableau-synthese] Sources chargées: %d entrées', entries.length);
+    const sourceNomVersEmail = new Map<string, string>();
+    for (const e of entries) {
+      const premier = e.creationEmail.emails[0]?.trim().toLowerCase();
+      const cle = premier ?? getCheminListeHtmlPourSource(e.source);
+      sourceNomVersEmail.set(e.source, cle);
+    }
+    const legacyLignes = sourceEntriesToLegacyLignes(entries);
+    statutsOrdre = [...STATUTS_OFFRES_AVEC_AUTRE];
+
+    const offres = listerOffresPourTableauDepuisSqlite(offresRepository, sourceNomVersEmail);
+    const dbPath = join(dataDir || join(process.cwd(), 'data'), 'offres.sqlite');
+    console.error('[tableau-synthese] Source SQLite: %s → %d offres', dbPath, offres.length);
+
     let lignes = await produireTableauSynthese({
       async listerSources() {
-        return sources.map((s) => ({
+        return legacyLignes.map((s) => ({
           emailExpéditeur: s.emailExpéditeur,
-          plugin: s.plugin,
+          source: s.source,
+          type: s.type,
           activerCreation: s.activerCreation,
           activerEnrichissement: s.activerEnrichissement,
           activerAnalyseIA: s.activerAnalyseIA,
@@ -901,48 +1240,174 @@ export async function handleGetTableauSyntheseOffres(dataDir: string, res: Serve
         return offres;
       },
     }, statutsOrdre);
-    lignes = mergeCacheDansLignes(lignes, getDernierAudit());
+    let cachePourMerge = getDernierAudit();
+    try {
+      const compterListeHtml = (adresse: string) =>
+        compterFichiersHtmlEnAttente(toFullPathListeHtml(dataDir, adresse));
+      cachePourMerge = await enrichirCacheAImporterListeHtml(cachePourMerge, legacyLignes, compterListeHtml);
+    } catch {
+      // Ne pas faire échouer le GET si l'enrichissement liste html échoue (ex. chemin invalide)
+    }
+    lignes = mergeCacheDansLignes(lignes, cachePourMerge);
+    let lignesAgg = agregerLignesParSource(lignes, statutsOrdre);
+    // US-7.4 : garantir une ligne par source (même sans offres) pour que le tableau ne soit jamais vide
+    lignesAgg = completerLignesParSourceV2(entries, lignesAgg, statutsOrdre);
+    for (const ligne of lignesAgg) {
+      const entry = entries.find((e) => e.source === (ligne.sourceEtape2 || ligne.emailExpéditeur));
+      if (entry) {
+        ligne.creationEmailActivé = entry.creationEmail.activé;
+        ligne.creationListeHtmlActivé = entry.creationListeHtml.activé;
+        ligne.urlOfficielle = entry.urlOfficielle ?? '';
+      }
+    }
+    lignes = lignesAgg;
     const totaux = calculerTotauxTableauSynthese(lignes, statutsOrdre);
-    const payload: Record<string, unknown> = {
+    sendJson(res, 200, {
       lignes: enrichirPhasesImplementation(lignes),
       statutsOrdre,
       totauxColonnes: totaux.totalParColonne,
       totalParLigne: totaux.totalParLigne,
       totalGeneral: totaux.totalGeneral,
-    };
-    if (offresIdEstUneVue) {
-      payload.avertissement =
-        'L\'ID configuré pour la table Offres est un ID de vue (viw...). Une vue n\'affiche qu\'une partie des enregistrements. Pour le tableau de synthèse complet, configurez l\'ID de la table (tbl...) dans Paramètres.';
-    }
-    sendJson(res, 200, payload, {
+    }, {
       'Cache-Control': 'no-store',
     });
   } catch (err) {
-    enregistrerAppel(dataDir, { api: 'Airtable', succes: false, codeErreur: err instanceof Error ? err.message : String(err), intention: INTENTION_TABLEAU_SYNTHESE });
     throw err;
   }
 }
 
-function normaliserPluginValue(value: string): SourceEmail['plugin'] {
+function normaliserSourceNomValue(value: string): SourceEmail['source'] {
   const v = (value ?? '').trim();
   if (v.toLowerCase() === 'linkedin') return 'Linkedin';
-  if (v === 'HelloWork' || v === 'Welcome to the Jungle' || v === 'Job That Make Sense' || v === 'Cadre Emploi' || v === 'Inconnu') return v as SourceEmail['plugin'];
+  if (v === 'APEC' || v === 'HelloWork' || v === 'Welcome to the Jungle' || v === 'Job That Make Sense' || v === 'Cadre Emploi' || v === 'Externatic' || v === 'Talent.io' || v === 'Inconnu') return v as SourceEmail['source'];
   return 'Inconnu';
+}
+
+/** US-7.4 : type étendu avec Email/Fichier à importer et activations création email/liste html par source. US-6.6 CA5 : urlOfficielle pour lien dans le tableau de bord. */
+export type LigneTableauSyntheseV2 = LigneTableauSynthese & {
+  emailÀImporter?: number;
+  fichierÀImporter?: number;
+  creationEmailActivé?: boolean;
+  creationListeHtmlActivé?: boolean;
+  /** US-6.6 CA5 : URL officielle de la source (lien cliquable dans le tableau). */
+  urlOfficielle?: string;
+};
+
+/** US-7.4 : complète les lignes pour avoir exactement une ligne par source (entries V2). Les sources absentes de lignesAgg reçoivent une ligne à zéro. */
+function completerLignesParSourceV2(
+  entries: SourceEntry[],
+  lignesAgg: LigneTableauSyntheseV2[],
+  statutsOrdre: readonly string[]
+): LigneTableauSyntheseV2[] {
+  const bySource = new Map<string, LigneTableauSyntheseV2>();
+  for (const l of lignesAgg) {
+    const nom = l.sourceEtape2 || l.sourceEtape1 || l.emailExpéditeur;
+    if (nom) bySource.set(nom, l);
+  }
+  const statutsVides: Record<string, number> = {};
+  for (const s of statutsOrdre) statutsVides[s] = 0;
+  for (const e of entries) {
+    if (bySource.has(e.source)) continue;
+    bySource.set(e.source, {
+      emailExpéditeur: e.source,
+      sourceEtape1: e.source,
+      sourceEtape2: e.source,
+      activerCreation: e.creationEmail.activé,
+      activerEnrichissement: e.enrichissement.activé,
+      activerAnalyseIA: e.analyse.activé,
+      statuts: { ...statutsVides },
+      aImporter: 0,
+      emailÀImporter: 0,
+      fichierÀImporter: 0,
+      creationEmailActivé: e.creationEmail.activé,
+      creationListeHtmlActivé: e.creationListeHtml.activé,
+      urlOfficielle: e.urlOfficielle ?? '',
+    });
+  }
+  const ordre = [...SOURCES_NOMS_CANONIQUES];
+  const result = Array.from(bySource.values());
+  result.sort((a, b) => {
+    const i = ordre.indexOf(a.sourceEtape2 as (typeof ordre)[number]);
+    const j = ordre.indexOf(b.sourceEtape2 as (typeof ordre)[number]);
+    const ci = i >= 0 ? i : ordre.length;
+    const cj = j >= 0 ? j : ordre.length;
+    return ci - cj || (a.sourceEtape2 ?? '').localeCompare(b.sourceEtape2 ?? '');
+  });
+  return result;
+}
+
+/** US-7.3 / US-7.4 : agrège les lignes du tableau (une par email/path) en une ligne par source (nom canonique). */
+function agregerLignesParSource(
+  lignes: LigneTableauSynthese[],
+  statutsOrdre: readonly string[]
+): LigneTableauSyntheseV2[] {
+  const bySource = new Map<string, LigneTableauSyntheseV2>();
+  for (const ligne of lignes) {
+    const nom = ligne.sourceEtape2 || ligne.sourceEtape1 || ligne.emailExpéditeur;
+    const isEmail = (ligne.emailExpéditeur || '').includes('@');
+    const aImp = ligne.aImporter ?? 0;
+    const existante = bySource.get(nom);
+    if (!existante) {
+      bySource.set(nom, {
+        emailExpéditeur: nom,
+        sourceEtape1: ligne.sourceEtape1,
+        sourceEtape2: ligne.sourceEtape2,
+        typeSource: ligne.typeSource,
+        activerCreation: ligne.activerCreation,
+        activerEnrichissement: ligne.activerEnrichissement,
+        activerAnalyseIA: ligne.activerAnalyseIA,
+        statuts: { ...ligne.statuts },
+        aImporter: aImp,
+        emailÀImporter: isEmail ? aImp : 0,
+        fichierÀImporter: isEmail ? 0 : aImp,
+      });
+      continue;
+    }
+    for (const s of statutsOrdre) {
+      existante.statuts[s] = (existante.statuts[s] ?? 0) + (ligne.statuts[s] ?? 0);
+    }
+    existante.aImporter = (existante.aImporter ?? 0) + aImp;
+    existante.emailÀImporter = (existante.emailÀImporter ?? 0) + (isEmail ? aImp : 0);
+    existante.fichierÀImporter = (existante.fichierÀImporter ?? 0) + (isEmail ? 0 : aImp);
+  }
+  const ordre = [...SOURCES_NOMS_CANONIQUES];
+  const result: LigneTableauSyntheseV2[] = Array.from(bySource.values());
+  result.sort((a, b) => {
+    const i = ordre.indexOf(a.sourceEtape2 as (typeof ordre)[number]);
+    const j = ordre.indexOf(b.sourceEtape2 as (typeof ordre)[number]);
+    const ci = i >= 0 ? i : ordre.length;
+    const cj = j >= 0 ? j : ordre.length;
+    return ci - cj || a.sourceEtape2.localeCompare(b.sourceEtape2);
+  });
+  return result;
 }
 
 function enrichirPhasesImplementation(
   lignes: LigneTableauSynthese[]
-): Array<LigneTableauSynthese & { phase1Implemented: boolean; phase2Implemented: boolean; phase3Implemented: boolean }> {
-  const registry = createSourcePluginsRegistry();
+): Array<
+  LigneTableauSynthese & {
+    phase1Implemented: boolean;
+    phase1EmailImplemented: boolean;
+    phase1ListeHtmlImplemented: boolean;
+    phase2Implemented: boolean;
+    phase3Implemented: boolean;
+  }
+> {
+  const registry = createSourceRegistry();
   return lignes.map((ligne) => {
-    const pluginRaw = ligne.pluginEtape1 || ligne.pluginEtape2 || 'Inconnu';
-    const plugin = normaliserPluginValue(pluginRaw);
-    const emailPlugin = registry.getEmailPlugin(plugin);
-    const offerPlugin = registry.getOfferFetchPlugin(plugin);
-    const phase2Impl = !!offerPlugin?.stage2Implemented;
+    const sourceNomRaw = ligne.sourceEtape1 || ligne.sourceEtape2 || 'Inconnu';
+    const sourceNom = normaliserSourceNomValue(sourceNomRaw);
+    const typeSource = ligne.typeSource ?? (ligne.emailExpéditeur.includes('@') ? 'email' : 'liste html');
+    const phase1EmailImpl = registry.hasCreationEmail(sourceNom);
+    const phase1ListeHtmlImpl = registry.hasCreationListeHtml(sourceNom);
+    const phase1Impl =
+      typeSource === 'liste html' ? phase1ListeHtmlImpl : phase1EmailImpl;
+    const phase2Impl = registry.hasEnrichissement(sourceNom);
     return {
       ...ligne,
-      phase1Implemented: !!emailPlugin,
+      phase1Implemented: phase1Impl,
+      phase1EmailImplemented: phase1EmailImpl,
+      phase1ListeHtmlImplemented: phase1ListeHtmlImpl,
       phase2Implemented: phase2Impl,
       phase3Implemented: true,
     };
@@ -960,7 +1425,6 @@ export function handleGetAirtable(dataDir: string, res: ServerResponse): void {
   sendJson(res, 200, {
     base: airtable.base,
     baseTest: airtable.baseTest,
-    sources: airtable.sources,
     offres: airtable.offres,
     hasApiKey: !!(airtable.apiKey?.trim()),
   });
@@ -985,7 +1449,7 @@ export async function getOffreTestHasOffre(dataDir: string): Promise<boolean> {
   return !!texte;
 }
 
-/** GET /api/offre-test : texte d'une offre pour préremplir le champ test ClaudeCode (US-2.4). */
+/** GET /api/offre-test : texte d'une offre pour préremplir le champ test API IA (US-8.1). */
 export async function handleGetOffreTest(dataDir: string, res: ServerResponse): Promise<void> {
   if (bddMockOffreTestStore !== null) {
     sendJson(res, 200, {
@@ -1028,28 +1492,28 @@ export async function handleGetOffreTest(dataDir: string, res: ServerResponse): 
   }
 }
 
-/** POST /api/test-claudecode : envoie le prompt (système + texte offre) à l'API Claude et retourne le résultat (US-2.4). US-2.5 : enregistre l'appel dans le log consommation API. */
-export async function handlePostTestClaudecode(
+/** POST /api/test-mistral : envoie le prompt (système + texte offre) à l'API Mistral et retourne le résultat (US-8.1). Enregistre l'appel dans le log avec intention Mistral. */
+export async function handlePostTestMistral(
   dataDir: string,
   body: Record<string, unknown>,
   res: ServerResponse
 ): Promise<void> {
-  if (bddMockTestClaudecodeStore !== null) {
+  if (bddMockTestMistralStore !== null) {
     enregistrerAppel(dataDir, {
-      api: 'Claude',
-      succes: bddMockTestClaudecodeStore.ok,
-      codeErreur: bddMockTestClaudecodeStore.ok ? undefined : bddMockTestClaudecodeStore.code,
-      intention: INTENTION_TEST_CLAUDECODE,
+      api: 'Mistral',
+      succes: bddMockTestMistralStore.ok,
+      codeErreur: bddMockTestMistralStore.ok ? undefined : bddMockTestMistralStore.code,
+      intention: INTENTION_TEST_MISTRAL,
     });
-    sendJson(res, 200, bddMockTestClaudecodeStore);
+    sendJson(res, 200, bddMockTestMistralStore);
     return;
   }
-  const claudecode = lireClaudeCode(dataDir);
-  if (!claudecode?.hasApiKey) {
+  const mistral = lireMistral(dataDir);
+  if (!mistral?.hasApiKey) {
     sendJson(res, 200, {
       ok: false,
       code: 'no_api_key',
-      message: 'Clé API ClaudeCode non configurée. Enregistrez une clé dans la section Configuration ClaudeCode.',
+      message: 'Clé API Mistral non configurée. Enregistrez une clé dans la section API IA.',
     });
     return;
   }
@@ -1067,12 +1531,12 @@ export async function handlePostTestClaudecode(
   const parametrageIA = lireParametres(dataDir)?.parametrageIA ?? null;
   const promptSystem = construirePromptComplet(dataDir, parametrageIA);
   const messageUser = construireMessageUserAnalyse(metadonnees, texteOffre);
-  const result = await appelerClaudeCode(dataDir, promptSystem, messageUser);
+  const result = await appelerMistral(dataDir, promptSystem, messageUser);
   enregistrerAppel(dataDir, {
-    api: 'Claude',
+    api: 'Mistral',
     succes: result.ok,
     codeErreur: result.ok ? undefined : result.code,
-    intention: INTENTION_TEST_CLAUDECODE,
+    intention: INTENTION_TEST_MISTRAL,
   });
   const payload: Record<string, unknown> = { ...result };
   if (result.ok && typeof result.texte === 'string') {
@@ -1128,7 +1592,7 @@ export function handlePostTraitementStart(dataDir: string, res: ServerResponse):
 
   const useBddMockTraitement = process.env.BDD_MOCK_CONNECTEUR === '1';
   const compteBddT = useBddMockTraitement ? (lireCompte(dataDir) ?? { provider: 'imap' as const, adresseEmail: 'test@example.com', cheminDossier: 'inbox', cheminDossierArchive: '', imapHost: 'imap.example.com', imapPort: 993, imapSecure: true }) : null;
-  const airtableBddT = useBddMockTraitement ? (lireAirTable(dataDir) ?? { apiKey: 'patTestKeyValide123', base: 'appXyz123', sources: 'tblSourcesId', offres: 'tblOffresId' }) : null;
+  const airtableBddT = useBddMockTraitement ? (lireAirTable(dataDir) ?? { apiKey: 'patTestKeyValide123', base: 'appXyz123', offres: 'tblOffresId' }) : null;
   const depsTraitement = useBddMockTraitement
     ? {
         compte: compteBddT ?? undefined,
@@ -1208,7 +1672,7 @@ export function handlePostAuditStart(
 
   const useBddMock = process.env.BDD_MOCK_CONNECTEUR === '1';
   const compteBdd = useBddMock ? (lireCompte(dataDir) ?? { provider: 'imap' as const, adresseEmail: 'test@example.com', cheminDossier: 'inbox', cheminDossierArchive: '', imapHost: 'imap.example.com', imapPort: 993, imapSecure: true }) : null;
-  const airtableBdd = useBddMock ? (lireAirTable(dataDir) ?? { apiKey: 'patTestKeyValide123', base: 'appXyz123', sources: 'tblSourcesId', offres: 'tblOffresId' }) : null;
+  const airtableBdd = useBddMock ? (lireAirTable(dataDir) ?? { apiKey: 'patTestKeyValide123', base: 'appXyz123', offres: 'tblOffresId' }) : null;
   const deps = useBddMock
     ? {
         compte: compteBdd ?? undefined,
@@ -1320,13 +1784,16 @@ export function handlePostEnrichissementWorkerStart(dataDir: string, res: Server
     creationWorkerState.lastError = undefined;
     creationWorkerState.lastResult = undefined;
     creationWorkerState.currentProgress = undefined;
+    console.error('[Traitement] Création (phase 1) démarrée…');
     let enrichissementTriggered = false;
     void runCreation(dataDir, {
       onProgress: (message) => {
         if (!creationWorkerState.running) return;
         const m = /(\d+)\/(\d+)/.exec(message);
         if (m) {
-          creationWorkerState.currentProgress = { index: parseInt(m[1], 10) - 1, total: parseInt(m[2], 10) };
+          const num = parseInt(m[1], 10);
+          const total = parseInt(m[2], 10);
+          creationWorkerState.currentProgress = { index: Math.max(0, num - 1), total };
         }
       },
       onSourceProgress: (emailExpediteur, nbProcessed) => {
@@ -1343,13 +1810,17 @@ export function handlePostEnrichissementWorkerStart(dataDir: string, res: Server
         creationWorkerState.lastError = result.ok ? undefined : result.message;
         creationWorkerState.currentProgress = undefined;
         if (result.ok) {
+          console.error('[Traitement] Création terminée:', result.nbOffresCreees ?? 0, 'créée(s)');
           void autoStartEnrichissementWorkerIfNeeded(dataDir);
+        } else {
+          console.error('[Traitement] Création échouée:', result.message);
         }
       })
       .catch((err) => {
         creationWorkerState.running = false;
         creationWorkerState.lastError = err instanceof Error ? err.message : String(err);
         creationWorkerState.currentProgress = undefined;
+        console.error('[Traitement] Création erreur:', err instanceof Error ? err.message : String(err));
       });
   }
   startEnrichissementWorker(dataDir);
@@ -1358,6 +1829,8 @@ export function handlePostEnrichissementWorkerStart(dataDir: string, res: Server
 }
 
 export function handlePostEnrichissementWorkerStop(dataDir: string, res: ServerResponse): void {
+  creationWorkerState.running = false;
+  creationWorkerState.currentProgress = undefined;
   stopEnrichissementWorker();
   stopAnalyseIAWorker();
   sendJson(res, 200, { ok: true, running: false });
@@ -1508,11 +1981,7 @@ export function handlePostCompte(
  * erreur si apiKey vide/invalide (ex. patInvalidKey) pour les scénarios d'échec.
  */
 const airtableDriverMockBdd: AirtableConfigDriver = {
-  async creerBaseEtTables(apiKey: string): Promise<{
-    baseId: string;
-    sourcesId: string;
-    offresId: string;
-  }> {
+  async creerBaseEtTables(apiKey: string): Promise<{ baseId: string; offresId: string }> {
     const key = (apiKey || '').trim();
     if (key.length < 10 || /Invalid|invalide/i.test(key)) {
       throw new Error('Indication d\'erreur d\'authentification ou d\'API.');
@@ -1522,7 +1991,6 @@ const airtableDriverMockBdd: AirtableConfigDriver = {
     }
     return {
       baseId: 'appBddMock',
-      sourcesId: 'tblSourcesBdd',
       offresId: 'tblOffresBdd',
     };
   },

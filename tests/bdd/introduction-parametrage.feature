@@ -8,7 +8,7 @@ Fonctionnalité: Introduction au process de paramétrage
 
   Scénario: La page Paramètres affiche le bloc Avant propos en premier
     Alors la page Paramètres affiche un bloc introductif identifié comme section d'introduction (titre ou libellé explicite)
-    Et ce bloc introductif est affiché en premier sur la page, avant tout bloc de configuration (Airtable, compte email, ClaudeCode, etc.)
+    Et ce bloc introductif est affiché en premier sur la page, avant tout bloc de configuration (Airtable, compte email, API IA, etc.)
 
   Scénario: Le bloc Avant propos est repliable comme les autres sections
     Alors le bloc introductif est un bloc repliable (details) avec le libellé "Avant propos"

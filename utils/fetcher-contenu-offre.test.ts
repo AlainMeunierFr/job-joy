@@ -25,7 +25,7 @@ describe('createFetcherContenuOffre', () => {
     const fetcher = createFetcherContenuOffre();
     const r = await fetcher.recupererContenuOffre('https://example.com/job');
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.message).toMatch(/Aucun plugin/i);
+    if (!r.ok) expect(r.message).toMatch(/Aucune source/i);
   });
 
   it('délègue au plugin LinkedIn et retourne son résultat', async () => {

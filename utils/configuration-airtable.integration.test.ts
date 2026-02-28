@@ -56,15 +56,14 @@ describe('configuration Airtable (intégration — schéma)', () => {
         throw new Error(`Configuration Airtable échouée: ${result.message}`);
       }
       expect(result.baseId).toBeTruthy();
-      expect(result.sourcesId).toBeTruthy();
       expect(result.offresId).toBeTruthy();
 
       const airtable = lireAirTable(dataDir);
       expect(airtable).not.toBeNull();
       expect(airtable?.apiKey).toBe(apiKey);
       expect(airtable?.base).toBe(result.baseId);
-      expect(airtable?.sources).toBe(result.sourcesId);
       expect(airtable?.offres).toBe(result.offresId);
+      // US-7.2 : sources (ID table Sources) n'est plus persisté
     },
     runIntegration ? 60_000 : 5
   );

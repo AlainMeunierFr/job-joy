@@ -8,8 +8,8 @@ describe('audit-sources-cli', () => {
       nbSourcesCreees: 1,
       nbSourcesExistantes: 1,
       synthese: [
-        { emailExpéditeur: 'jobs@linkedin.com', plugin: 'Linkedin' as const, actif: 'Oui' as const, nbEmails: 3 },
-        { emailExpéditeur: 'alerte@wttj.com', plugin: 'Inconnu' as const, actif: 'Non' as const, nbEmails: 1 },
+        { emailExpéditeur: 'jobs@linkedin.com', source: 'Linkedin' as const, actif: 'Oui' as const, nbEmails: 3 },
+        { emailExpéditeur: 'alerte@wttj.com', source: 'Inconnu' as const, actif: 'Non' as const, nbEmails: 1 },
       ],
       sousTotauxPrevisionnels: {
         emailsÀArchiver: 3,

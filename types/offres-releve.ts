@@ -3,7 +3,7 @@
  * Même nom pour les propriétés JSON et les champs TypeScript.
  */
 
-/** Résultat de la recherche de la source LinkedIn dans la table Sources (identifiée par email expéditeur + plugin). */
+/** Résultat de la recherche de la source LinkedIn (ex-Airtable Sources ; désormais sources.json). */
 export type SourceLinkedInResult =
   | { found: false }
   | {
@@ -11,6 +11,8 @@ export type SourceLinkedInResult =
       activerCreation: boolean;
       emailExpéditeur: string;
       sourceId: string;
+      /** Nom de source pour la colonne Offres.source (ex. Linkedin). */
+      sourceNom?: string;
     };
 
 /** Une offre extraite du HTML d'un email LinkedIn (avant enregistrement). */
@@ -50,6 +52,9 @@ export interface OffreInsert {
   département?: string;
   salaire?: string;
 }
+
+/** US-7.2 CA5 : méthode de création d'une offre (colonne Airtable « Méthode de création »). */
+export type MethodeCreationOffre = 'email' | 'liste html' | 'manuelle';
 
 /** Résultat de creerOffres (upsert : créées + déjà présentes et mises à jour). */
 export type ResultatCreerOffres = { nbCreees: number; nbDejaPresentes: number };

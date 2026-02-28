@@ -1,6 +1,6 @@
 /**
  * Step definitions pour la fonctionnalité Justifications des arbitrages réhibitoires (US-3.2).
- * Réutilise les steps de configuration-claudecode (page Paramètres, Tester API, etc.).
+ * Réutilise les steps de configuration-api-ia (page Paramètres, Tester API Mistral, etc.).
  */
 import { createBdd } from 'playwright-bdd';
 import { expect } from '@playwright/test';
@@ -11,20 +11,20 @@ export const { Given, When, Then } = createBdd(test);
 const API_BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3011';
 const PAGE_PARAMETRES = '/parametres';
 
-/** Dernière réponse POST /api/test-claudecode (scénario 1). */
-let lastTestClaudecodeResponse: Record<string, unknown> | null = null;
+/** Dernière réponse POST /api/test-mistral (scénario 1). */
+let lastTestMistralResponse: Record<string, unknown> | null = null;
 
-function ouvrirBlocClaudeCodeSiFerme(page: import('@playwright/test').Page): Promise<void> {
-  const details = page.locator('details.blocParametrage-claudecode');
+function ouvrirBlocApiIaSiFerme(page: import('@playwright/test').Page): Promise<void> {
+  const details = page.locator('details.blocParametrage-api-ia');
   return details.getAttribute('open').then((open) => {
     if (open === null) {
-      return page.locator('#titre-claudecode').click();
+      return page.locator('#titre-api-ia').click();
     }
   });
 }
 
-const sectionClaudeCode = () =>
-  'details.blocParametrage-claudecode, [data-layout="configuration-claudecode"]';
+const sectionApiIa = () =>
+  'details.blocParametrage-api-ia, [data-layout="configuration-api-ia"]';
 
 // --- Contexte : paramétrage IA ---
 Given('que le paramétrage IA définit au moins un critère rédhibitoire', async () => {
@@ -105,9 +105,9 @@ Given('le paramétrage IA définit quatre critères rédhibitoires', async () =>
 
 // --- Mock API avec justifications (US-3.2) ---
 Given(
-  "que l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse contenant des justifications pour les réhibitoires configurés",
+  "que l'API Mistral est mockée pour renvoyer un résultat d'analyse contenant des justifications pour les réhibitoires configurés",
   async () => {
-    const res = await fetch(`${API_BASE}/api/test/set-mock-test-claudecode`, {
+    const res = await fetch(`${API_BASE}/api/test/set-mock-test-mistral`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -122,14 +122,14 @@ Given(
         },
       }),
     });
-    if (!res.ok) throw new Error(`set-mock-test-claudecode failed: ${res.status}`);
+    if (!res.ok) throw new Error(`set-mock-test-mistral failed: ${res.status}`);
   }
 );
 
 Given(
-  "l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse contenant des justifications pour les réhibitoires configurés",
+  "l'API Mistral est mockée pour renvoyer un résultat d'analyse contenant des justifications pour les réhibitoires configurés",
   async () => {
-    const res = await fetch(`${API_BASE}/api/test/set-mock-test-claudecode`, {
+    const res = await fetch(`${API_BASE}/api/test/set-mock-test-mistral`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -144,14 +144,14 @@ Given(
         },
       }),
     });
-    if (!res.ok) throw new Error(`set-mock-test-claudecode failed: ${res.status}`);
+    if (!res.ok) throw new Error(`set-mock-test-mistral failed: ${res.status}`);
   }
 );
 
 Given(
-  "que l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse contenant une justification avec du texte explicatif",
+  "que l'API Mistral est mockée pour renvoyer un résultat d'analyse contenant une justification avec du texte explicatif",
   async () => {
-    const res = await fetch(`${API_BASE}/api/test/set-mock-test-claudecode`, {
+    const res = await fetch(`${API_BASE}/api/test/set-mock-test-mistral`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -165,14 +165,14 @@ Given(
         },
       }),
     });
-    if (!res.ok) throw new Error(`set-mock-test-claudecode failed: ${res.status}`);
+    if (!res.ok) throw new Error(`set-mock-test-mistral failed: ${res.status}`);
   }
 );
 
 Given(
-  "l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse contenant une justification avec du texte explicatif",
+  "l'API Mistral est mockée pour renvoyer un résultat d'analyse contenant une justification avec du texte explicatif",
   async () => {
-    const res = await fetch(`${API_BASE}/api/test/set-mock-test-claudecode`, {
+    const res = await fetch(`${API_BASE}/api/test/set-mock-test-mistral`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -186,14 +186,14 @@ Given(
         },
       }),
     });
-    if (!res.ok) throw new Error(`set-mock-test-claudecode failed: ${res.status}`);
+    if (!res.ok) throw new Error(`set-mock-test-mistral failed: ${res.status}`);
   }
 );
 
 Given(
-  "que l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse avec des justifications distinctes pour Réhibitoire1, Réhibitoire2, Réhibitoire3 et Réhibitoire4",
+  "que l'API Mistral est mockée pour renvoyer un résultat d'analyse avec des justifications distinctes pour Réhibitoire1, Réhibitoire2, Réhibitoire3 et Réhibitoire4",
   async () => {
-    const res = await fetch(`${API_BASE}/api/test/set-mock-test-claudecode`, {
+    const res = await fetch(`${API_BASE}/api/test/set-mock-test-mistral`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -210,14 +210,14 @@ Given(
         },
       }),
     });
-    if (!res.ok) throw new Error(`set-mock-test-claudecode failed: ${res.status}`);
+    if (!res.ok) throw new Error(`set-mock-test-mistral failed: ${res.status}`);
   }
 );
 
 Given(
-  "l'API ClaudeCode est mockée pour renvoyer un résultat d'analyse avec des justifications distinctes pour Réhibitoire1, Réhibitoire2, Réhibitoire3 et Réhibitoire4",
+  "l'API Mistral est mockée pour renvoyer un résultat d'analyse avec des justifications distinctes pour Réhibitoire1, Réhibitoire2, Réhibitoire3 et Réhibitoire4",
   async () => {
-    const res = await fetch(`${API_BASE}/api/test/set-mock-test-claudecode`, {
+    const res = await fetch(`${API_BASE}/api/test/set-mock-test-mistral`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -234,28 +234,28 @@ Given(
         },
       }),
     });
-    if (!res.ok) throw new Error(`set-mock-test-claudecode failed: ${res.status}`);
+    if (!res.ok) throw new Error(`set-mock-test-mistral failed: ${res.status}`);
   }
 );
 
 // --- CA4 : Appel API (scénario 1) ---
 When(
-  /^j'appelle l'API de test d'analyse ClaudeCode \(POST \/api\/test-claudecode\)$/,
+  /^j'appelle l'API de test d'analyse Mistral \(POST \/api\/test-mistral[^)]*\)$/,
   async () => {
-    const apiRes = await fetch(`${API_BASE}/api/test-claudecode`, {
+    const apiRes = await fetch(`${API_BASE}/api/test-mistral`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ texteOffre: 'Texte offre pour test API.' }),
     });
-    lastTestClaudecodeResponse = (await apiRes.json()) as Record<string, unknown>;
+    lastTestMistralResponse = (await apiRes.json()) as Record<string, unknown>;
   }
 );
 
 Then(
   'la réponse contient les champs Réhibitoire1 à RéhibitoireN \\(string justification) pour chaque réhibitoire configuré',
   async () => {
-    expect(lastTestClaudecodeResponse).toBeDefined();
-    const jv = lastTestClaudecodeResponse?.jsonValidation as { valid?: boolean; json?: Record<string, unknown> } | undefined;
+    expect(lastTestMistralResponse).toBeDefined();
+    const jv = lastTestMistralResponse?.jsonValidation as { valid?: boolean; json?: Record<string, unknown> } | undefined;
     expect(jv?.valid).toBe(true);
     const json = jv?.json;
     expect(json).toBeDefined();
@@ -266,7 +266,7 @@ Then(
 Then(
   'chaque justification est une chaîne de caractères \\(texte court)',
   async () => {
-    const jv = lastTestClaudecodeResponse?.jsonValidation as { json?: Record<string, unknown> } | undefined;
+    const jv = lastTestMistralResponse?.jsonValidation as { json?: Record<string, unknown> } | undefined;
     const json = jv?.json;
     expect(json).toBeDefined();
     if (typeof json?.Réhibitoire1 === 'string') {
@@ -286,8 +286,8 @@ Given(
         lignes: [
           {
             emailExpéditeur: 'test@example.com',
-            pluginEtape1: 'Inconnu',
-            pluginEtape2: 'Inconnu',
+            sourceEtape1: 'Inconnu',
+            sourceEtape2: 'Inconnu',
             activerCreation: true,
             activerEnrichissement: true,
             activerAnalyseIA: true,
@@ -312,8 +312,8 @@ Given(
         lignes: [
           {
             emailExpéditeur: 'test@example.com',
-            pluginEtape1: 'Inconnu',
-            pluginEtape2: 'Inconnu',
+            sourceEtape1: 'Inconnu',
+            sourceEtape2: 'Inconnu',
             activerCreation: true,
             activerEnrichissement: true,
             activerAnalyseIA: true,
@@ -363,10 +363,10 @@ Then(
 
 // --- CA5 : UI — zone résultat et justifications ---
 Then(
-  'la zone de résultat du test ClaudeCode affiche le résultat de l\'analyse',
+  'la zone de résultat du test API IA affiche le résultat de l\'analyse',
   async ({ page }) => {
-    await ouvrirBlocClaudeCodeSiFerme(page);
-    const zone = page.locator('#zone-resultat-test-claudecode');
+    await ouvrirBlocApiIaSiFerme(page);
+    const zone = page.locator('#zone-resultat-test-ia');
     await expect(zone).toBeVisible();
     await expect(zone).toHaveAttribute('data-type', 'succes');
     await expect(zone).toContainText('JSON valide');
@@ -376,7 +376,7 @@ Then(
 Then(
   "pour chaque critère rédhibitoire affiché \\(Réhibitoire1 à N), la justification associée est affichée à côté ou en dessous du booléen",
   async ({ page }) => {
-    const zone = page.locator('#zone-resultat-test-claudecode');
+    const zone = page.locator('#zone-resultat-test-ia');
     const sectionRehib = zone.locator('[data-layout="zone-resultat-rehibitoires"]');
     await expect(sectionRehib).toBeVisible();
     await expect(sectionRehib).toContainText('Réhibitoires');
@@ -389,9 +389,9 @@ Then(
 );
 
 Then(
-  'la zone de résultat du test ClaudeCode affiche les justifications en texte lisible',
+  'la zone de résultat du test API IA affiche les justifications en texte lisible',
   async ({ page }) => {
-    const zone = page.locator('#zone-resultat-test-claudecode');
+    const zone = page.locator('#zone-resultat-test-ia');
     await expect(zone.locator('.blocResultatRehibitoireJustification')).toBeVisible();
     const text = await zone.locator('.blocResultatRehibitoireJustification').first().textContent();
     expect(text?.trim().length).toBeGreaterThan(0);
@@ -401,7 +401,7 @@ Then(
 Then(
   "aucune balise HTML brute n'est visible dans le texte des justifications",
   async ({ page }) => {
-    const zone = page.locator('#zone-resultat-test-claudecode');
+    const zone = page.locator('#zone-resultat-test-ia');
     const justifs = zone.locator('.blocResultatRehibitoireJustification');
     const count = await justifs.count();
     for (let i = 0; i < count; i++) {
@@ -414,7 +414,7 @@ Then(
 Then(
   'la zone de résultat affiche les critères rédhibitoires dans l\'ordre \\({int} puis {int} puis {int} puis {int})',
   async ({ page }) => {
-    const zone = page.locator('#zone-resultat-test-claudecode');
+    const zone = page.locator('#zone-resultat-test-ia');
     const sectionRehib = zone.locator('[data-layout="zone-resultat-rehibitoires"]');
     await expect(sectionRehib).toBeVisible();
     await expect(sectionRehib).toContainText('Réhibitoire 1');
@@ -433,7 +433,7 @@ Then(
 Then(
   'chaque justification est affichée à côté du bon critère \\(justification {int} avec réhibitoire {int}, etc.)',
   async ({ page }) => {
-    const zone = page.locator('#zone-resultat-test-claudecode');
+    const zone = page.locator('#zone-resultat-test-ia');
     const sectionRehib = zone.locator('[data-layout="zone-resultat-rehibitoires"]');
     const blocs = sectionRehib.locator('[data-layout="bloc-resultat-rehibitoire"]');
     await expect(blocs).toHaveCount(4);

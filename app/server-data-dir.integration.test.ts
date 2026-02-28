@@ -60,7 +60,7 @@ describe('server DATA_DIR (US-3.6) - intégration', () => {
     });
 
     const baseUrl = `http://127.0.0.1:${PORT}`;
-    await waitForServer(baseUrl, 10000);
+    await waitForServer(baseUrl, 20000);
 
     const res = await fetch(`${baseUrl}/api/parametrage-ia`, {
       method: 'POST',

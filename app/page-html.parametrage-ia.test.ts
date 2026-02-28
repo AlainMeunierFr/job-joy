@@ -26,7 +26,7 @@ describe('page Paramètres - section Paramétrage IA (US-2.1)', () => {
 
   it('affiche un container "Paramétrage IA" avec titre', async () => {
     const html = await getParametresContent(dataDir);
-    expect(html).toContain('Paramétrage prompt de l\'IA');
+    expect(html).toContain('Prompt de l\'IA');
     expect(html).toContain('section-parametrage-ia');
     expect(html).toContain('data-layout="parametrage-ia"');
   });

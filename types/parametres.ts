@@ -50,16 +50,16 @@ export interface GmailParams {
   /** À venir. */
 }
 
-/** Section ClaudeCode dans parametres.json (API Key pour ClaudeCode, jamais persistée en clair). */
-export interface ClaudeCode {
+/** Section Mistral dans parametres.json (API Key pour Mistral, jamais persistée en clair). */
+export interface Mistral {
   /** Clé API en clair (en mémoire uniquement, après déchiffrement). Ne pas écrire en JSON. */
   apiKey?: string;
   /** Clé API chiffrée (AES-256-GCM) pour persistance. */
   apiKeyChiffre?: string;
 }
 
-/** Résultat de lecture ClaudeCode (avec indicateur hasApiKey pour savoir si une clé est configurée sans l'exposer). */
-export interface ClaudeCodeLu extends ClaudeCode {
+/** Résultat de lecture Mistral (avec indicateur hasApiKey pour savoir si une clé est configurée sans l'exposer). */
+export interface MistralLu extends Mistral {
   /** True si une clé est enregistrée (apiKeyChiffre présente), sans exposer la valeur. */
   hasApiKey: boolean;
 }
@@ -74,7 +74,7 @@ export interface AirTable {
   base?: string;
   /** Base dédiée au test du schéma (création tables pour nouveaux utilisateurs). Utilisée uniquement par les tests d’intégration, jamais par la CLI ni l’app. */
   baseTest?: string;
-  /** ID de la table Sources. */
+  /** Legacy : ID table Sources (non utilisé ; paramétrage = data/sources.json). */
   sources?: string;
   /** ID de la table Offres. */
   offres?: string;
@@ -132,8 +132,8 @@ export interface ParametresPersistes {
   airtable?: AirTable;
   /** Section Paramétrage IA (optionnelle). */
   parametrageIA?: ParametrageIA;
-  /** Section ClaudeCode (optionnelle). */
-  claudecode?: ClaudeCode;
+  /** Section Mistral (optionnelle). */
+  mistral?: Mistral;
   /** Partie modifiable du prompt IA (éditable par l'utilisateur, ex. promptIA dans JSON). */
   promptIA?: string;
   /** US-2.7 : Formule du score total (coefficients + expression math.js). */

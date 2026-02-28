@@ -24,13 +24,18 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-export function getPageAudit(data: AuditTraceabilityData | null): string {
+/** Options pour la page Audit (layout uniquement). */
+export type PageAuditOptions = {
+  /** US-7.9 : afficher le lien Offres dans le menu (si au moins une offre en base). */
+  showOffresLink?: boolean;
+};
+
+export function getPageAudit(data: AuditTraceabilityData | null, options?: PageAuditOptions): string {
   const noData = !data || !data.artefacts || Object.keys(data.artefacts).length === 0;
   const jsonScript = noData ? 'null' : JSON.stringify(data);
 
   const mainContent = `
 <div class="pageAudit" data-layout="page-audit">
-  <h1>Audit de traçabilité US ↔ code</h1>
   ${noData ? `
   <p class="auditNoData">Aucun audit disponible. Lancez l’audit depuis <strong>Menu.ps1</strong> (option 7) puis exécutez la commande <strong>/audit-code</strong> dans Cursor pour compléter l’analyse sémantique.</p>
   ` : `
@@ -123,5 +128,8 @@ export function getPageAudit(data: AuditTraceabilityData | null): string {
   ` }
   `;
 
-  return getLayoutHtml('audit', 'Audit du code', mainContent, { showAuditLink: true });
+  return getLayoutHtml('audit', 'Audit du code', mainContent, {
+    showAuditLink: true,
+    showOffresLink: options?.showOffresLink,
+  });
 }

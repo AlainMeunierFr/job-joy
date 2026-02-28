@@ -13,7 +13,7 @@ type AuditResult = {
   status: string;
   result?: {
     ok: boolean;
-    synthese?: Array<{ emailExpéditeur: string; plugin: string; actif: string }>;
+    synthese?: Array<{ emailExpéditeur: string; source: string; actif: string }>;
   };
 };
 type TraitementResponse = { ok: boolean; message?: string; nbOffresCreees?: number };
@@ -66,7 +66,7 @@ async function pollTaskStatus(
 
 async function runAuditAndGetSynthese(
   page: { request: { post: (url: string, options?: { data: Record<string, unknown> }) => Promise<{ json: () => Promise<Record<string, unknown>> }> } }
-): Promise<Array<{ emailExpéditeur: string; plugin: string; actif: string }>> {
+): Promise<Array<{ emailExpéditeur: string; source: string; actif: string }>> {
   const startRes = await page.request.post(`${API_BASE}/api/audit/start`, { data: {} });
   const startData = (await startRes.json()) as { taskId?: string };
   if (!startData.taskId) return [];
@@ -289,7 +289,7 @@ When('je lance l\'etape 2 d\'enrichissement des offres à récupérer', async ({
 Then('la source {string} est mise à jour avec l\'plugin {string}', async ({ page }, expediteur: string, plugin: string) => {
   const synthese = await runAuditAndGetSynthese(page as never);
   const row = synthese.find((r) => r.emailExpéditeur?.toLowerCase() === expediteur.toLowerCase());
-  expect(row?.plugin).toBe(plugin);
+  expect(row?.source).toBe(plugin);
   currentExpediteur = expediteur.toLowerCase();
   currentPlugin = plugin;
 });

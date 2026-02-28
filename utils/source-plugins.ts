@@ -1,5 +1,5 @@
 import type { OffreExtraite, ResultatEnrichissementOffre } from '../types/offres-releve.js';
-import type { PluginSource } from './gouvernance-sources-emails.js';
+import type { SourceNom } from './gouvernance-sources-emails.js';
 import {
   extractCadreemploiOffresFromHtml,
   extractHelloworkOffresFromHtml,
@@ -7,122 +7,160 @@ import {
   extractLinkedinOffresFromHtml,
   extractWelcomeToTheJungleOffresFromHtml,
 } from './extraction-offres-email.js';
+import { createApecOfferFetchPlugin } from './apec-offer-fetch-plugin.js';
 import { createCadreEmploiOfferFetchPlugin } from './cadreemploi-offer-fetch-plugin.js';
 import { createHelloworkOfferFetchPlugin } from './hellowork-offer-fetch-plugin.js';
 import { createJobThatMakeSenseOfferFetchPlugin } from './job-that-make-sense-offer-fetch-plugin.js';
 import { createLinkedinOfferFetchPlugin } from './linkedin-offer-fetch-plugin.js';
 import { createWelcomeToTheJungleOfferFetchPlugin } from './welcome-to-the-jungle-offer-fetch-plugin.js';
 
-export interface SourceEmailPlugin {
-  plugin: PluginSource;
+export interface SourceEmailAdapter {
+  source: SourceNom;
   extraireOffresDepuisEmail(html: string): OffreExtraite[];
 }
 
-export interface SourceOfferFetchPlugin {
-  plugin: PluginSource;
+/** Source qui implémente la création (phase 1) depuis le dossier "liste html" (fichiers HTML sauvegardés). */
+export interface SourceListeHtmlAdapter {
+  source: SourceNom;
+}
+
+export interface SourceOfferFetchAdapter {
+  source: SourceNom;
   stage2Implemented: boolean;
   recupererContenuOffre(url: string): Promise<ResultatEnrichissementOffre>;
 }
 
-export interface SourcePluginsRegistry {
-  getEmailPlugin(plugin: PluginSource): SourceEmailPlugin | undefined;
-  getOfferFetchPlugin(plugin: PluginSource | string): SourceOfferFetchPlugin | undefined;
-  getOfferFetchPluginByUrl(url: string): SourceOfferFetchPlugin | undefined;
+/** @deprecated Utiliser SourceOfferFetchAdapter (alias conservé pour les fichiers *-offer-fetch-plugin.ts). */
+export type SourceOfferFetchPlugin = SourceOfferFetchAdapter;
+
+/**
+ * Registry des sources avec 3 interfaces explicites :
+ * - Création email (phase 1) : extraction d'offres depuis le HTML des emails.
+ * - Création liste html (phase 1) : extraction d'offres depuis les fichiers HTML du dossier "liste html/<slug>".
+ * - Enrichissement (phase 2) : récupération du contenu de la page d'offre depuis son URL.
+ */
+export interface SourceRegistry {
+  /** Interface "création email" : extrait les offres depuis le HTML d'un email. */
+  getEmailSource(sourceNom: SourceNom): SourceEmailAdapter | undefined;
+  /** Interface "création liste html" : extrait les offres depuis le dossier liste html. */
+  getListeHtmlSource(sourceNom: SourceNom): SourceListeHtmlAdapter | undefined;
+  /** Interface "enrichissement" : récupère le contenu (poste, entreprise, etc.) depuis l'URL de l'offre. */
+  getOfferFetchSource(sourceNom: SourceNom | string): SourceOfferFetchAdapter | undefined;
+  getOfferFetchSourceByUrl(url: string): SourceOfferFetchAdapter | undefined;
+
+  /** Phase 1 implémentée pour une source de type email ? */
+  hasCreationEmail(sourceNom: SourceNom): boolean;
+  /** Phase 1 implémentée pour une source de type liste html ? */
+  hasCreationListeHtml(sourceNom: SourceNom): boolean;
+  /** Phase 2 (enrichissement) implémentée pour cette source ? */
+  hasEnrichissement(sourceNom: SourceNom): boolean;
 }
 
-const linkedinEmailPlugin: SourceEmailPlugin = {
-  plugin: 'Linkedin',
+const linkedinEmailSource: SourceEmailAdapter = {
+  source: 'Linkedin',
   extraireOffresDepuisEmail: extractLinkedinOffresFromHtml,
 };
 
-const helloworkEmailPlugin: SourceEmailPlugin = {
-  plugin: 'HelloWork',
+const helloworkEmailSource: SourceEmailAdapter = {
+  source: 'HelloWork',
   extraireOffresDepuisEmail: extractHelloworkOffresFromHtml,
 };
 
-const wttjEmailPlugin: SourceEmailPlugin = {
-  plugin: 'Welcome to the Jungle',
+const wttjEmailSource: SourceEmailAdapter = {
+  source: 'Welcome to the Jungle',
   extraireOffresDepuisEmail: extractWelcomeToTheJungleOffresFromHtml,
 };
 
-const jtmsEmailPlugin: SourceEmailPlugin = {
-  plugin: 'Job That Make Sense',
+const jtmsEmailSource: SourceEmailAdapter = {
+  source: 'Job That Make Sense',
   extraireOffresDepuisEmail: extractJobThatMakeSenseOffresFromHtml,
 };
 
-const cadreemploiEmailPlugin: SourceEmailPlugin = {
-  plugin: 'Cadre Emploi',
+const cadreemploiEmailSource: SourceEmailAdapter = {
+  source: 'Cadre Emploi',
   extraireOffresDepuisEmail: extractCadreemploiOffresFromHtml,
 };
 
-/** Entrée pour la liste des plugins affichée dans Avant propos (tableau email / plugin / création / enrichissement). */
-export interface LigneListePlugin {
+/** Source liste html : création (phase 1) depuis dossier "liste html/<slug>". US-6.1 */
+const apecListeHtmlSource: SourceListeHtmlAdapter = { source: 'APEC' };
+
+/** Entrée pour la liste des sources affichée dans Avant propos (tableau email / source / création / enrichissement). */
+export interface LigneListeSource {
   email: string;
-  plugin: string;
+  source: string;
   creation: boolean;
   enrichissement: boolean;
 }
 
-/** Retourne la liste des plugins avec création et/ou enrichissement pour injection dans AvantPropos.html. */
-export function getListePluginsPourAvantPropos(): LigneListePlugin[] {
-  const registry = createSourcePluginsRegistry();
-  const pluginsAvecSource: { plugin: PluginSource; email: string }[] = [
-    { plugin: 'Linkedin', email: 'notifications@linkedin.com' },
-    { plugin: 'HelloWork', email: 'notification@emails.hellowork.com' },
-    { plugin: 'Welcome to the Jungle', email: 'alerts@welcometothejungle.com' },
-    { plugin: 'Job That Make Sense', email: 'jobs@makesense.org' },
-    { plugin: 'Cadre Emploi', email: 'offres@alertes.cadremploi.fr' },
+/** Retourne la liste des sources avec création et/ou enrichissement pour injection dans AvantPropos.html. */
+export function getListeSourcesPourAvantPropos(): LigneListeSource[] {
+  const registry = createSourceRegistry();
+  const sourcesAvecEmail: { source: SourceNom; email: string }[] = [
+    { source: 'Linkedin', email: 'notifications@linkedin.com' },
+    { source: 'HelloWork', email: 'notification@emails.hellowork.com' },
+    { source: 'Welcome to the Jungle', email: 'alerts@welcometothejungle.com' },
+    { source: 'Job That Make Sense', email: 'jobs@makesense.org' },
+    { source: 'Cadre Emploi', email: 'offres@alertes.cadremploi.fr' },
   ];
-  return pluginsAvecSource.map(({ plugin, email }) => ({
+  return sourcesAvecEmail.map(({ source: sourceNom, email }) => ({
     email,
-    plugin,
-    creation: !!registry.getEmailPlugin(plugin),
-    enrichissement: !!registry.getOfferFetchPlugin(plugin)?.stage2Implemented,
+    source: sourceNom,
+    creation: !!registry.getEmailSource(sourceNom),
+    enrichissement: !!registry.getOfferFetchSource(sourceNom)?.stage2Implemented,
   }));
 }
 
-export function createSourcePluginsRegistry(): SourcePluginsRegistry {
-  const offerFetchPlugins: SourceOfferFetchPlugin[] = [
+export function createSourceRegistry(): SourceRegistry {
+  const offerFetchSources: SourceOfferFetchAdapter[] = [
     createLinkedinOfferFetchPlugin(),
     createHelloworkOfferFetchPlugin(),
     createWelcomeToTheJungleOfferFetchPlugin(),
     createJobThatMakeSenseOfferFetchPlugin(),
     createCadreEmploiOfferFetchPlugin(),
+    createApecOfferFetchPlugin(),
   ];
 
   return {
-    getEmailPlugin(plugin) {
-      const p = typeof plugin === 'string' ? plugin.trim() : '';
-      if (p === 'HelloWork') return helloworkEmailPlugin;
-      if (p === 'Linkedin' || p.toLowerCase() === 'linkedin') return linkedinEmailPlugin;
-      if (p === 'Welcome to the Jungle') return wttjEmailPlugin;
-      if (p === 'Job That Make Sense') return jtmsEmailPlugin;
-      if (p === 'Cadre Emploi') return cadreemploiEmailPlugin;
+    getEmailSource(sourceNom) {
+      const p = typeof sourceNom === 'string' ? sourceNom.trim() : '';
+      if (p === 'HelloWork') return helloworkEmailSource;
+      if (p === 'Linkedin' || p.toLowerCase() === 'linkedin') return linkedinEmailSource;
+      if (p === 'Welcome to the Jungle') return wttjEmailSource;
+      if (p === 'Job That Make Sense') return jtmsEmailSource;
+      if (p === 'Cadre Emploi') return cadreemploiEmailSource;
       return undefined;
     },
-    getOfferFetchPlugin(plugin) {
-      const pluginNorm =
-        typeof plugin === 'string' && plugin.toLowerCase() === 'linkedin' ? 'Linkedin' : plugin;
-      return offerFetchPlugins.find((p) => p.plugin === pluginNorm);
+    getListeHtmlSource(sourceNom) {
+      const p = typeof sourceNom === 'string' ? sourceNom.trim() : '';
+      if (p === 'APEC') return apecListeHtmlSource;
+      return undefined;
     },
-    getOfferFetchPluginByUrl(url) {
+    getOfferFetchSource(sourceNom) {
+      const p = typeof sourceNom === 'string' ? sourceNom.trim() : '';
+      const sourceNorm =
+        p.toLowerCase() === 'linkedin' ? 'Linkedin' : (p as SourceNom);
+      return offerFetchSources.find((x) => x.source === sourceNorm);
+    },
+    getOfferFetchSourceByUrl(url) {
       const u = (url ?? '').toLowerCase();
-      if (u.includes('linkedin.com')) {
-        return offerFetchPlugins.find((p) => p.plugin === 'Linkedin');
-      }
-      if (u.includes('hellowork.com')) {
-        return offerFetchPlugins.find((p) => p.plugin === 'HelloWork');
-      }
-      if (u.includes('welcometothejungle.com')) {
-        return offerFetchPlugins.find((p) => p.plugin === 'Welcome to the Jungle');
-      }
+      if (u.includes('linkedin.com')) return offerFetchSources.find((s) => s.source === 'Linkedin');
+      if (u.includes('hellowork.com')) return offerFetchSources.find((s) => s.source === 'HelloWork');
+      if (u.includes('welcometothejungle.com')) return offerFetchSources.find((s) => s.source === 'Welcome to the Jungle');
       if (u.includes('jobs.makesense.org') || u.includes('customeriomail.com/e/c/')) {
-        return offerFetchPlugins.find((p) => p.plugin === 'Job That Make Sense');
+        return offerFetchSources.find((s) => s.source === 'Job That Make Sense');
       }
-      if (u.includes('cadremploi.fr')) {
-        return offerFetchPlugins.find((p) => p.plugin === 'Cadre Emploi');
-      }
+      if (u.includes('cadremploi.fr')) return offerFetchSources.find((s) => s.source === 'Cadre Emploi');
+      if (u.includes('apec.fr')) return offerFetchSources.find((s) => s.source === 'APEC');
       return undefined;
+    },
+    hasCreationEmail(sourceNom) {
+      return !!this.getEmailSource(sourceNom);
+    },
+    hasCreationListeHtml(sourceNom) {
+      return !!this.getListeHtmlSource(sourceNom);
+    },
+    hasEnrichissement(sourceNom) {
+      return !!this.getOfferFetchSource(sourceNom)?.stage2Implemented;
     },
   };
 }

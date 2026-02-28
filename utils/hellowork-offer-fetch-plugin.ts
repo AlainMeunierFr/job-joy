@@ -22,7 +22,7 @@ function extractAgentIaScriptContent(html: string): string | undefined {
 
 export function createHelloworkOfferFetchPlugin(): SourceOfferFetchPlugin {
   return {
-    plugin: 'HelloWork',
+    source: 'HelloWork',
     stage2Implemented: true,
     async recupererContenuOffre(url: string): Promise<ResultatEnrichissementOffre> {
       const u = (url ?? '').trim();

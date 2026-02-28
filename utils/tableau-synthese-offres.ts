@@ -3,14 +3,16 @@
  * Construit un tableau croisé dynamique : une ligne par expéditeur, colonnes statuts.
  */
 import { STATUTS_OFFRES_AIRTABLE } from './statuts-offres-airtable.js';
-import type { PluginSource } from './gouvernance-sources-emails.js';
+import type { SourceNom, TypeSource } from './gouvernance-sources-emails.js';
 
-/** Ordre de tri des lignes : plugin étape 2 puis plugin étape 1 (CA3 BDD). */
-const ORDRE_TRI_PLUGIN: PluginSource[] = ['HelloWork', 'Linkedin', 'Inconnu'];
+/** Ordre de tri des lignes : source étape 2 puis source étape 1 (CA3 BDD). */
+const ORDRE_TRI_SOURCE: SourceNom[] = ['HelloWork', 'Linkedin', 'APEC', 'Inconnu'];
 
 export interface SourcePourTableau {
   emailExpéditeur: string;
-  plugin: PluginSource;
+  source: SourceNom;
+  /** Type de la source (email vs liste html) pour savoir quelle capacité phase 1 utiliser. */
+  type?: TypeSource;
   activerCreation: boolean;
   activerEnrichissement: boolean;
   activerAnalyseIA: boolean;
@@ -23,8 +25,10 @@ export interface OffrePourTableau {
 
 export interface LigneTableauSynthese {
   emailExpéditeur: string;
-  pluginEtape1: string;
-  pluginEtape2: string;
+  sourceEtape1: string;
+  sourceEtape2: string;
+  /** Type de la source (email / liste html) pour calcul phase1Implemented. */
+  typeSource?: TypeSource;
   activerCreation: boolean;
   activerEnrichissement: boolean;
   activerAnalyseIA: boolean;
@@ -71,10 +75,37 @@ function creerStatutsVides(statutsOrdre: readonly string[]): Record<string, numb
   return statuts;
 }
 
+/** Compare sans tenir compte des accents ni de la casse (pour rapprocher Airtable du tableau). */
+function normaliserPourComparaison(s: string): string {
+  return (s ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Mark}/gu, '');
+}
+
+/**
+ * Ramène le statut Airtable (éventuellement sans accent ou autre casse) vers la clé canonique du tableau.
+ * Ex. "A completer" → "A compléter", "A traiter" → "À traiter", "refusé" → "Refusé".
+ */
+function statutCanonique(statutBrut: string, statutsOrdre: readonly string[]): string {
+  const s = statutBrut?.trim() || '';
+  if (!s) return '';
+  if (statutsOrdre.includes(s)) return s;
+  const n = normaliserPourComparaison(s);
+  for (const canon of statutsOrdre) {
+    if (canon !== 'Autre' && normaliserPourComparaison(canon) === n) return canon;
+  }
+  return 'Autre';
+}
+
+/** Indique si l'expéditeur est un chemin liste html (pas une adresse email). US-6.1 */
+function estSourceListeHtml(emailExpéditeur: string): boolean {
+  return !emailExpéditeur.includes('@');
+}
+
 export function construireTableauSynthese(options: OptionsTableauSynthese): LigneTableauSynthese[] {
   const { sources, offres, statutsOrdre = STATUTS_OFFRES_AIRTABLE } = options;
-  if (offres.length === 0) return [];
-
   const indexSources = new Map(sources.map((s) => [normaliserEmail(s.emailExpéditeur), s]));
   const compteursParExpediteur = new Map<string, Record<string, number>>();
 
@@ -88,7 +119,9 @@ export function construireTableauSynthese(options: OptionsTableauSynthese): Lign
       statuts = creerStatutsVides(statutsOrdre);
       compteursParExpediteur.set(key, statuts);
     }
-    const statut = offre.statut?.trim() || '';
+    const statutBrut = offre.statut?.trim() || '';
+    if (!statutBrut) continue;
+    const statut = statutCanonique(statutBrut, statutsOrdre);
     if (!statut) continue;
     if (statuts[statut] !== undefined) {
       statuts[statut] += 1;
@@ -97,12 +130,16 @@ export function construireTableauSynthese(options: OptionsTableauSynthese): Lign
     }
   }
 
-  const lignes = Array.from(compteursParExpediteur.entries()).map(([key, statuts]) => {
+  const typeSourcePour = (s: SourcePourTableau): TypeSource =>
+    s.type ?? (estSourceListeHtml(s.emailExpéditeur) ? 'liste html' : 'email');
+
+  let lignes = Array.from(compteursParExpediteur.entries()).map(([key, statuts]) => {
     const source = indexSources.get(key)!;
     return {
       emailExpéditeur: source.emailExpéditeur,
-      pluginEtape1: source.plugin,
-      pluginEtape2: source.plugin,
+      sourceEtape1: source.source,
+      sourceEtape2: source.source,
+      typeSource: typeSourcePour(source),
       activerCreation: source.activerCreation,
       activerEnrichissement: source.activerEnrichissement,
       activerAnalyseIA: source.activerAnalyseIA,
@@ -111,14 +148,31 @@ export function construireTableauSynthese(options: OptionsTableauSynthese): Lign
     };
   });
 
-  const indexOfPlugin = (a: string) => {
-    const i = ORDRE_TRI_PLUGIN.indexOf(a as PluginSource);
-    return i >= 0 ? i : ORDRE_TRI_PLUGIN.length;
+  // US-6.1 : inclure les sources "liste html" (chemin) sans offres pour afficher "À importer".
+  for (const [key, source] of indexSources) {
+    if (compteursParExpediteur.has(key)) continue;
+    if (!estSourceListeHtml(source.emailExpéditeur)) continue;
+    lignes.push({
+      emailExpéditeur: source.emailExpéditeur,
+      sourceEtape1: source.source,
+      sourceEtape2: source.source,
+      typeSource: typeSourcePour(source),
+      activerCreation: source.activerCreation,
+      activerEnrichissement: source.activerEnrichissement,
+      activerAnalyseIA: source.activerAnalyseIA,
+      statuts: creerStatutsVides(statutsOrdre),
+      aImporter: 0,
+    });
+  }
+
+  const indexOfSourceNom = (a: string) => {
+    const i = ORDRE_TRI_SOURCE.indexOf(a as SourceNom);
+    return i >= 0 ? i : ORDRE_TRI_SOURCE.length;
   };
   lignes.sort((a, b) => {
-    const cmp2 = indexOfPlugin(a.pluginEtape2) - indexOfPlugin(b.pluginEtape2);
+    const cmp2 = indexOfSourceNom(a.sourceEtape2) - indexOfSourceNom(b.sourceEtape2);
     if (cmp2 !== 0) return cmp2;
-    const cmp1 = indexOfPlugin(a.pluginEtape1) - indexOfPlugin(b.pluginEtape1);
+    const cmp1 = indexOfSourceNom(a.sourceEtape1) - indexOfSourceNom(b.sourceEtape1);
     if (cmp1 !== 0) return cmp1;
     return a.emailExpéditeur.localeCompare(b.emailExpéditeur);
   });
@@ -137,6 +191,24 @@ export function mergeCacheDansLignes(
     ...ligne,
     aImporter: cache[normaliserEmail(ligne.emailExpéditeur)] ?? 0,
   }));
+}
+
+/**
+ * US-6.1 : enrichit le cache audit avec le nombre de fichiers .html en attente pour chaque source "liste html" (chemin).
+ * À utiliser avant mergeCacheDansLignes pour que la colonne "À importer" affiche le bon nombre pour ces sources.
+ */
+export async function enrichirCacheAImporterListeHtml(
+  cacheAudit: Record<string, number>,
+  sources: Array<{ emailExpéditeur: string }>,
+  compterFichiersListeHtml: (sourceDir: string) => Promise<number>
+): Promise<Record<string, number>> {
+  const out = { ...cacheAudit };
+  for (const s of sources) {
+    if (!estSourceListeHtml(s.emailExpéditeur)) continue;
+    const key = normaliserEmail(s.emailExpéditeur);
+    out[key] = await compterFichiersListeHtml(s.emailExpéditeur);
+  }
+  return out;
 }
 
 /**

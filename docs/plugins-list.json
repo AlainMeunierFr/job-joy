@@ -1,31 +1,31 @@
 [
   {
     "email": "notifications@linkedin.com",
-    "plugin": "Linkedin",
+    "source": "Linkedin",
     "creation": true,
     "enrichissement": true
   },
   {
     "email": "notification@emails.hellowork.com",
-    "plugin": "HelloWork",
+    "source": "HelloWork",
     "creation": true,
     "enrichissement": true
   },
   {
     "email": "alerts@welcometothejungle.com",
-    "plugin": "Welcome to the Jungle",
+    "source": "Welcome to the Jungle",
     "creation": true,
     "enrichissement": true
   },
   {
     "email": "jobs@makesense.org",
-    "plugin": "Job That Make Sense",
+    "source": "Job That Make Sense",
     "creation": true,
     "enrichissement": true
   },
   {
     "email": "offres@alertes.cadremploi.fr",
-    "plugin": "Cadre Emploi",
+    "source": "Cadre Emploi",
     "creation": true,
     "enrichissement": true
   }

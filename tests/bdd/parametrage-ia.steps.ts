@@ -25,6 +25,12 @@ Then('la page comporte un container ou une section intitulée {string}', async (
     await expect(section.locator('h2')).toHaveText(title);
     return;
   }
+  if (title === 'Statistiques des scores') {
+    const section = page.locator('[data-layout="histogramme-scores-offres"]');
+    await expect(section).toBeVisible();
+    await expect(section.locator('h2')).toHaveText(title);
+    return;
+  }
   const section = page.locator('details.blocParametrage').filter({ has: page.locator(`summary:has-text("${title}")`) });
   await expect(section.first()).toBeVisible();
   await expect(section.first()).toContainText(title);

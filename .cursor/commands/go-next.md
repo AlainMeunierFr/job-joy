@@ -1,9 +1,9 @@
-# GO NEXT — État après tunnel US-3.15
+# GO NEXT — US-8.1 Implémenter Mistral (étape BDD livrée)
 
-**Dernier tunnel** : US-3.15 (Identification des utilisateurs) **terminé**. US → BDD → TDD-back-end → TDD-front-end → Designer livrés.
+**US en cours** : US-8.1 – Implémenter Mistral  
+**Étape livrée** : BDD (refactor .feature terminé, revue acceptée).  
+**Rapport** : `.cursor/RAPPORT-revue-US-8.1-BDD-2026-02.md`
 
-**Rapport** : `.cursor/RAPPORT-revue-US-3.15-TDD-front-end.md`
+**Au prochain GO NEXT** : le Lead Dev passera à l’agent **TDD-back-end** pour US-8.1 (paramètres Mistral, appel API Mistral, suppression ClaudeCode). Un plan de baby steps sera proposé avant délégation.
 
-**Prochaines options** (au choix) :
-- Démarrer une **nouvelle US** : dire **GO US** pour invoquer l’agent US.
-- Reprendre un autre tunnel en cours (ex. US-3.6, US-3.3) : mettre à jour ce fichier avec @Agent et le prompt puis dire GO NEXT.
+Pour enchaîner : dire **GO NEXT** (le Lead Dev fera la revue puis proposera les baby steps TDD-back-end).

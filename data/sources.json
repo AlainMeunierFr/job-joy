@@ -1,0 +1,285 @@
+[
+  {
+    "source": "Linkedin",
+    "urlOfficielle": "https://www.linkedin.com/jobs",
+    "creationEmail": {
+      "activé": true,
+      "emails": [
+        "jobalerts-noreply@linkedin.com",
+        "jobs-listings@linkedin.com"
+      ]
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "HelloWork",
+    "urlOfficielle": "https://www.hellowork.com",
+    "creationEmail": {
+      "activé": true,
+      "emails": [
+        "notification@emails.hellowork.com"
+      ]
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "APEC",
+    "urlOfficielle": "https://www.apec.fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Cadre Emploi",
+    "urlOfficielle": "https://www.cadremploi.fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": [
+        "offres@alertes.cadremploi.fr"
+      ]
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Welcome to the Jungle",
+    "urlOfficielle": "https://www.welcometothejungle.com/fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": [
+        "alerts@welcometothejungle.com"
+      ]
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Job That Make Sense",
+    "urlOfficielle": "https://jobs.makesense.org/fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": [
+        "jobs@makesense.org"
+      ]
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Indeed",
+    "urlOfficielle": "https://www.indeed.fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "France Travail",
+    "urlOfficielle": "https://www.francetravail.fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "LesJeudis",
+    "urlOfficielle": "https://www.lesjeudis.com",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Michael Page",
+    "urlOfficielle": "https://www.michaelpage.fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Robert Walters",
+    "urlOfficielle": "https://www.robertwalters.fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Hays",
+    "urlOfficielle": "https://www.hays.fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Monster",
+    "urlOfficielle": "https://www.monster.fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Glassdoor",
+    "urlOfficielle": "https://www.glassdoor.fr",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Makesense",
+    "urlOfficielle": "https://makesense.org",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  },
+  {
+    "source": "Inconnu",
+    "urlOfficielle": "",
+    "creationEmail": {
+      "activé": true,
+      "emails": []
+    },
+    "creationListeHtml": {
+      "activé": true
+    },
+    "enrichissement": {
+      "activé": true
+    },
+    "analyse": {
+      "activé": true
+    }
+  }
+]

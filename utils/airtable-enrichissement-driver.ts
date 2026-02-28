@@ -17,7 +17,7 @@ const STATUT_A_COMPLETER = 'A compléter';
 const STATUT_A_ANALYSER = 'À analyser';
 const STATUT_A_TRAITER = 'À traiter';
 
-const CHAMP_LIEN_SOURCE = 'email expéditeur';
+const CHAMP_LIEN_SOURCE = 'Adresse';
 const CHAMP_TEXTE_OFFRE = "Texte de l'offre";
 
 /** En cas d'erreur Airtable "valeur n'existe pas" sur le champ Statut, ajoute l'option manquante via l'API Meta puis retourne true. */
@@ -34,8 +34,10 @@ export interface AirtableEnrichissementDriverOptions {
   apiKey: string;
   baseId: string;
   offresId: string;
-  /** Si fourni, seules les offres dont la source liée est active (actif = true) sont retournées. */
+  /** Si fourni, seules les offres dont la source liée est active (actif = true) sont retournées (table Airtable Sources). */
   sourcesId?: string;
+  /** US-7.x : si fourni, filtre par nom de source (champ "source" des offres) depuis sources.json (analyse.activé). Prioritaire sur sourcesId. */
+  sourceNomsActifs?: Set<string> | string[];
 }
 
 function headers(apiKey: string): Record<string, string> {
@@ -45,13 +47,13 @@ function headers(apiKey: string): Record<string, string> {
   };
 }
 
-const PLUGIN_INCONNU = 'Inconnu';
+const SOURCE_INCONNUE = 'Inconnu';
 
 const AIRTABLE_ACTIVER_CREATION = 'Activer la création';
 const AIRTABLE_ACTIVER_ENRICHISSEMENT = "Activer l'enrichissement";
 const AIRTABLE_ACTIVER_ANALYSE_IA = "Activer l'analyse par IA";
 
-/** Sources avec une case à cocher donnée = true et plugin ≠ Inconnu. */
+/** Sources avec une case à cocher donnée = true et source ≠ Inconnu. */
 function fetchSourcesAvecCheckbox(
   apiKey: string,
   baseId: string,
@@ -75,10 +77,13 @@ function fetchSourcesAvecCheckbox(
       const fields = rec.fields ?? {};
       const coché = fields[checkboxFieldName] ?? fields.actif;
       if (coché !== true && coché !== 'true') continue;
-      const plugin = typeof fields.plugin === 'string' ? fields.plugin.trim() : '';
-      if (plugin === PLUGIN_INCONNU || !plugin) continue;
-      const email = typeof fields.emailExpéditeur === 'string' ? fields.emailExpéditeur.trim() : '';
-      if (email) out.push({ id: rec.id, emailExpéditeur: email });
+      const sourceNom = (typeof fields.source === 'string' ? fields.source.trim() : null) ?? '';
+      if (sourceNom === SOURCE_INCONNUE || !sourceNom) continue;
+      const adresse =
+        (typeof fields.Adresse === 'string' ? fields.Adresse.trim() : null) ??
+        (typeof fields['email expéditeur'] === 'string' ? (fields['email expéditeur'] as string).trim() : null) ??
+        '';
+      if (adresse) out.push({ id: rec.id, emailExpéditeur: adresse });
     }
     offset = json.offset;
   };
@@ -90,7 +95,7 @@ function fetchSourcesAvecCheckbox(
   })();
 }
 
-/** Sources avec « Activer la création » = true et plugin ≠ Inconnu (phase relève). */
+/** Sources avec « Activer la création » = true et source ≠ Inconnu (phase relève). */
 export async function fetchSourcesActives(
   apiKey: string,
   baseId: string,
@@ -130,7 +135,7 @@ function recordToOffre(
   };
 }
 
-/** Type étendu du driver Airtable : boucle par source (plugin ≠ Inconnu, actif = true). */
+/** Type étendu du driver Airtable : boucle par source (source ≠ Inconnu, actif = true). */
 export interface AirtableEnrichissementDriverEtendu extends EnrichissementOffresDriver {
   getSourcesActives(): Promise<Array<{ id: string; emailExpéditeur: string }>>;
   /** Offres « Annonce à récupérer » dont la colonne « email expéditeur » vaut cet email. */
@@ -144,13 +149,19 @@ function escapeFormulaString(s: string): string {
 
 /**
  * Crée un driver qui utilise l'API Airtable pour getOffresARecuperer et updateOffre.
- * Si options.sourcesId est fourni, expose getSourcesActives (plugin ≠ Inconnu, actif = true) et getOffresARecupererPourSource.
+ * Si options.sourcesId est fourni, expose getSourcesActives (source ≠ Inconnu, actif = true) et getOffresARecupererPourSource.
  */
 export function createAirtableEnrichissementDriver(
   options: AirtableEnrichissementDriverOptions
 ): AirtableEnrichissementDriverEtendu {
   const baseId = normaliserBaseId(options.baseId.trim());
-  const { apiKey, offresId, sourcesId } = options;
+  const { apiKey, offresId, sourcesId, sourceNomsActifs } = options;
+  const nomsActifsSet =
+    sourceNomsActifs instanceof Set
+      ? sourceNomsActifs
+      : Array.isArray(sourceNomsActifs)
+        ? new Set(sourceNomsActifs.map((s) => String(s).trim()).filter(Boolean))
+        : undefined;
 
   /** Une requête Offres : Statut = "Annonce à récupérer" ET « email expéditeur » dans la liste d'emails. */
   async function getOffresAvecListeEmails(
@@ -248,7 +259,9 @@ export function createAirtableEnrichissementDriver(
 
     async getOffresAAnalyser(): Promise<OffreAAnalyser[]> {
       let sourceIdsActifs: Set<string> | undefined;
-      if (sourcesId?.trim()) {
+      if (nomsActifsSet !== undefined) {
+        if (nomsActifsSet.size === 0) return [];
+      } else if (sourcesId?.trim()) {
         const sourcesAnalyseIA = await fetchSourcesAvecCheckbox(
           apiKey,
           baseId,
@@ -271,11 +284,19 @@ export function createAirtableEnrichissementDriver(
           offset?: string;
         };
         for (const rec of json.records ?? []) {
-          if (sourceIdsActifs) {
-            const sourceId = getLinkedSourceId(rec.fields ?? {});
+          const fields = rec.fields ?? {};
+          if (nomsActifsSet !== undefined) {
+            const sourceRaw =
+              (typeof fields.source === 'string' ? fields.source : null) ??
+              (typeof (fields as Record<string, unknown>).Source === 'string'
+                ? (fields as Record<string, unknown>).Source as string
+                : null);
+            const sourceNom = String(sourceRaw ?? '').trim();
+            if (!sourceNom || !nomsActifsSet.has(sourceNom)) continue;
+          } else if (sourceIdsActifs) {
+            const sourceId = getLinkedSourceId(fields);
             if (!sourceId || !sourceIdsActifs.has(sourceId)) continue;
           }
-          const fields = rec.fields ?? {};
           all.push({
             id: rec.id,
             poste: typeof fields.Poste === 'string' ? fields.Poste.trim() : undefined,
@@ -307,7 +328,7 @@ export function createAirtableEnrichissementDriver(
       if (Object.keys(fieldsToSend).length === 0) return;
       const url = `${API_BASE}/${baseId}/${offresId}/${recordId}`;
       const h = headers(apiKey);
-      // 1) Typecast permet à Airtable de créer l’option single select si elle n’existe pas (comme pour Sources.plugin).
+      // 1) Typecast permet à Airtable de créer l’option single select si elle n’existe pas (comme pour Sources.source).
       let res = await fetch(url, {
         method: 'PATCH',
         headers: h,

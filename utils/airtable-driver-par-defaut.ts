@@ -5,7 +5,7 @@
 import type { AirtableConfigDriver } from './configuration-airtable.js';
 
 export const airtableDriverParDefaut: AirtableConfigDriver = {
-  async creerBaseEtTables(): Promise<{ baseId: string; sourcesId: string; offresId: string }> {
+  async creerBaseEtTables(): Promise<{ baseId: string; offresId: string }> {
     throw new Error(
       'Création base Airtable non configurée. Renseigner l’URL ou l’ID de la base dans parametres.json > airtable.base.'
     );

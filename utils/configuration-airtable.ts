@@ -11,13 +11,12 @@ import { lireAirTable, ecrireAirTable } from './parametres-airtable.js';
 const RETRY_DELAY_MS = 1500;
 
 export type ResultatConfigurationAirtable =
-  | { ok: true; baseId: string; sourcesId: string; offresId: string }
+  | { ok: true; baseId: string; offresId: string }
   | { ok: false; message: string };
 
 export interface AirtableConfigDriver {
   creerBaseEtTables(apiKey: string): Promise<{
     baseId: string;
-    sourcesId: string;
     offresId: string;
   }>;
 }
@@ -37,12 +36,12 @@ export async function executerConfigurationAirtable(
   const key = apiKey.trim();
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const { baseId, sourcesId, offresId } = await driver.creerBaseEtTables(key);
+      const { baseId, offresId } = await driver.creerBaseEtTables(key);
       const existing = lireAirTable(dataDir);
       const baseToStore =
         existing?.base?.trim().startsWith('http') ? existing.base!.trim() : baseId;
-      ecrireAirTable(dataDir, { apiKey: key, base: baseToStore, sources: sourcesId, offres: offresId });
-      return { ok: true, baseId, sourcesId, offresId };
+      ecrireAirTable(dataDir, { apiKey: key, base: baseToStore, offres: offresId });
+      return { ok: true, baseId, offresId };
     } catch (e) {
       const message = messageErreurReseau(e);
       if (message === MESSAGE_ERREUR_RESEAU && attempt === 1) {

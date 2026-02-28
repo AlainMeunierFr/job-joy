@@ -1,5 +1,5 @@
 /**
- * Récupération du texte d'une offre pour le test ClaudeCode (US-2.4).
+ * Récupération du texte d'une offre pour le test API IA (US-8.1).
  * US-2.6 : métadonnées (poste, entreprise, ville...) pour préremplir la zone de test et enrichir le prompt.
  * Port : driver fourni par l'appelant (Airtable réel ou mock BDD).
  */

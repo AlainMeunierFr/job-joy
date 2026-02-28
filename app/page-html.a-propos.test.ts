@@ -10,7 +10,7 @@ describe('getPageAPropos (US-3.16)', () => {
     expect(html).toContain('class="appHeader"');
     expect(html).toContain('href="/a-propos"');
     expect(html).toContain('À propos</h1>');
-    expect(html).toContain('pageParametresTitle');
+    expect(html).toContain('pageTitleBarTitle');
   });
 
   it('contient la section Discuter avec l\'auteur avec lien zcal avant le Changelog', () => {

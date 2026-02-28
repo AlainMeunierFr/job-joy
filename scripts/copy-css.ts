@@ -13,6 +13,8 @@ const distAppDir = join(projectRoot, 'dist', 'app');
 mkdirSync(distAppDir, { recursive: true });
 mkdirSync(join(distAppDir, 'scripts'), { recursive: true });
 copyFileSync(join(appDir, 'scripts', 'parametres.js'), join(distAppDir, 'scripts', 'parametres.js'));
+copyFileSync(join(appDir, 'scripts', 'enregistrement-api-ia.js'), join(distAppDir, 'scripts', 'enregistrement-api-ia.js'));
+copyFileSync(join(appDir, 'scripts', 'offres-page.js'), join(distAppDir, 'scripts', 'offres-page.js'));
 
 const designSystem = readFileSync(join(appDir, 'globals.css'), 'utf-8');
 const contentStyles = readFileSync(join(appDir, 'content-styles.css'), 'utf-8');

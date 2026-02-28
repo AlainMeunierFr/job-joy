@@ -10,13 +10,13 @@
  *
  * Options:
  *   --limit N      Traiter au plus N offres (défaut: 3)
- *   --source PLUGIN  Ne traiter que les offres de cette source (ex: HelloWork, Linkedin, Cadre Emploi, Welcome to the Jungle, Job That Make Sense)
+ *   --source SOURCE  Ne traiter que les offres de cette source (ex: HelloWork, Linkedin, Cadre Emploi, Welcome to the Jungle, Job That Make Sense)
  */
 import '../utils/load-env-local.js';
 import { join } from 'node:path';
 import { lireAirTable } from '../utils/parametres-airtable.js';
 import { createAirtableEnrichissementDriver } from '../utils/airtable-enrichissement-driver.js';
-import { createSourcePluginsRegistry } from '../utils/source-plugins.js';
+import { createSourceRegistry } from '../utils/source-plugins.js';
 import { STATUT_A_ANALYSER, STATUT_EXPIRE } from '../utils/enrichissement-offres.js';
 import type { ChampsOffreAirtable } from '../utils/enrichissement-offres.js';
 
@@ -61,8 +61,8 @@ function parseSourceFilter(): string | null {
   return process.argv[i + 1].trim() || null;
 }
 
-/** Plugins connus (pour afficher la liste si --source invalide). */
-const PLUGINS_CONNUS = [
+/** Sources connues (pour afficher la liste si --source invalide). */
+const SOURCES_CONNUES = [
   'HelloWork',
   'Linkedin',
   'Welcome to the Jungle',
@@ -70,9 +70,9 @@ const PLUGINS_CONNUS = [
   'Cadre Emploi',
 ] as const;
 
-function pluginMatch(pluginPlugin: string, filter: string): boolean {
+function sourceMatch(sourceNom: string, filter: string): boolean {
   const f = filter.trim().toLowerCase();
-  const p = pluginPlugin.trim().toLowerCase();
+  const p = sourceNom.trim().toLowerCase();
   if (p === f) return true;
   if (f === 'linkedin' && p === 'linkedin') return true;
   if (f === 'wttj') return p === 'welcome to the jungle';
@@ -98,10 +98,9 @@ async function main(): Promise<void> {
   const { normaliserBaseId } = await import('../utils/airtable-url.js');
   const { ensureAirtableEnums } = await import('../utils/airtable-ensure-enums.js');
   const baseId = normaliserBaseId(airtable.base);
-  const sourcesId = airtable.sources?.trim() ?? '';
   const offresId = airtable.offres.trim();
-  if (sourcesId) {
-    const enums = await ensureAirtableEnums(airtable.apiKey.trim(), baseId, sourcesId, offresId);
+  {
+    const enums = await ensureAirtableEnums(airtable.apiKey.trim(), baseId, offresId);
     if (!enums.statut) {
       console.error('');
       console.error('ERREUR: La synchro des options du champ Statut (ex. « Expiré ») a échoué.');
@@ -112,31 +111,30 @@ async function main(): Promise<void> {
       console.error('     OU');
       console.error('  2. Ajouter manuellement l’option « Expiré » dans le champ Statut de la table Offres (Airtable).');
       console.error('');
-      console.warn('Avertissement: synchro options Statut au demarrage echouee. Typecast sera utilise a chaque mise a jour (comme Sources.plugin).');
+      console.warn('Avertissement: synchro options Statut au demarrage echouee.');
     }
   }
   const driver = createAirtableEnrichissementDriver({
     apiKey: airtable.apiKey.trim(),
     baseId,
     offresId,
-    sourcesId: sourcesId || undefined,
   });
 
-  const registry = createSourcePluginsRegistry();
+  const registry = createSourceRegistry();
   const candidates = await driver.getOffresARecuperer();
   let eligibles = candidates.filter((o) => {
-    const plugin = registry.getOfferFetchPluginByUrl(o.url);
-    return !!plugin && plugin.stage2Implemented;
+    const sourceFetcher = registry.getOfferFetchSourceByUrl(o.url);
+    return !!sourceFetcher && sourceFetcher.stage2Implemented;
   });
 
   if (sourceFilter) {
     const before = eligibles.length;
     eligibles = eligibles.filter((o) => {
-      const plugin = registry.getOfferFetchPluginByUrl(o.url);
-      return plugin && pluginMatch(plugin.plugin, sourceFilter);
+      const sourceFetcher = registry.getOfferFetchSourceByUrl(o.url);
+      return sourceFetcher && sourceMatch(sourceFetcher.source, sourceFilter);
     });
     if (eligibles.length === 0 && before > 0) {
-      console.error('Aucune offre pour la source "' + sourceFilter + '". Plugins connus:', PLUGINS_CONNUS.join(', '));
+      console.error('Aucune offre pour la source "' + sourceFilter + '". Sources connues:', SOURCES_CONNUES.join(', '));
       process.exitCode = 1;
       return;
     }
@@ -159,11 +157,11 @@ async function main(): Promise<void> {
 
   for (let i = 0; i < toProcess.length; i++) {
     const offre = toProcess[i];
-    const plugin = registry.getOfferFetchPluginByUrl(offre.url)?.plugin ?? '?';
-    console.log('--- Offre', i + 1, '/', toProcess.length, '| id=', offre.id, '| plugin=', plugin);
+    const sourceNom = registry.getOfferFetchSourceByUrl(offre.url)?.source ?? '?';
+    console.log('--- Offre', i + 1, '/', toProcess.length, '| id=', offre.id, '| source=', sourceNom);
     console.log('    URL:', offre.url);
 
-    const result = await registry.getOfferFetchPluginByUrl(offre.url)!.recupererContenuOffre(offre.url);
+    const result = await registry.getOfferFetchSourceByUrl(offre.url)!.recupererContenuOffre(offre.url);
     if (!result.ok) {
       console.log('    fetch: ÉCHEC —', result.message);
       const is410 = /410|expir|gone/i.test(result.message);

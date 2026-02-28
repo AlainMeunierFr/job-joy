@@ -14,3 +14,4 @@ playwright-report/
 playwright/.cache/
 cucumber-report/
 .features-gen/
+rapport-erreurs-tests.txt

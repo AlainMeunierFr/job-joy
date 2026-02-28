@@ -1,12 +1,12 @@
 /**
  * US-3.1 : Valeurs par défaut des 3 checkboxes (Activer la création, enrichissement, analyse IA)
- * à la création d'une source, selon les capacités du plugin.
+ * à la création d'une source, selon les capacités de la source.
  */
-import type { PluginSource } from './gouvernance-sources-emails.js';
+import type { SourceNom } from './gouvernance-sources-emails.js';
 
 export interface RegistryPourActivation {
-  getEmailPlugin(plugin: PluginSource): unknown;
-  getOfferFetchPlugin(plugin: PluginSource | string): { stage2Implemented?: boolean } | undefined;
+  getEmailSource(sourceNom: SourceNom): unknown;
+  getOfferFetchSource(sourceNom: SourceNom | string): { stage2Implemented?: boolean } | undefined;
 }
 
 export interface DefaultActivationSource {
@@ -16,20 +16,20 @@ export interface DefaultActivationSource {
 }
 
 /**
- * Retourne les valeurs par défaut des 3 checkboxes pour une source créée avec ce plugin.
- * - Activer la création = true si le plugin dispose d'un parseur email (phase 1).
- * - Activer l'enrichissement = true si le plugin a l'étape 2 implémentée (stage2Implemented).
+ * Retourne les valeurs par défaut des 3 checkboxes pour une source créée avec ce nom.
+ * - Activer la création = true si la source dispose d'un parseur email (phase 1).
+ * - Activer l'enrichissement = true si la source a l'étape 2 implémentée (stage2Implemented).
  * - Activer l'analyse par IA = true par défaut.
  */
-export function getDefaultActivationForPlugin(
-  plugin: PluginSource,
+export function getDefaultActivationForSource(
+  sourceNom: SourceNom,
   registry: RegistryPourActivation
 ): DefaultActivationSource {
-  const emailPlugin = registry.getEmailPlugin(plugin);
-  const offerPlugin = registry.getOfferFetchPlugin(plugin);
+  const emailSource = registry.getEmailSource(sourceNom);
+  const offerSource = registry.getOfferFetchSource(sourceNom);
   return {
-    activerCreation: !!emailPlugin,
-    activerEnrichissement: !!offerPlugin?.stage2Implemented,
+    activerCreation: !!emailSource,
+    activerEnrichissement: !!offerSource?.stage2Implemented,
     activerAnalyseIA: true,
   };
 }

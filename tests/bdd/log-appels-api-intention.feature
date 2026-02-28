@@ -12,7 +12,7 @@ Fonctionnalité: Log appels API avec intention métier
   # --- CA2 : Log JSON avec intention ---
   Scénario: Un appel enregistré avec une intention produit une entrée de log contenant cette intention
     Étant donné qu'aucun log d'appels API n'existe pour la date "2026-02-24"
-    Quand un appel API "Claude" est enregistré avec succès pour la date "2026-02-24" avec l'intention "Analyse IA lot"
+    Quand un appel API "Mistral" est enregistré avec succès pour la date "2026-02-24" avec l'intention "Analyse IA lot"
     Alors un fichier de log existe dans "data/log-appels-api/" pour la date "2026-02-24"
     Et ce fichier contient au moins un enregistrement avec le champ intention "Analyse IA lot"
 
@@ -35,7 +35,7 @@ Fonctionnalité: Log appels API avec intention métier
   Scénario: Un fichier de log sans champ intention reste lisible et l'agrégation par API fonctionne
     Étant donné qu'un fichier de log existe pour la date "2026-02-23" contenant des enregistrements sans champ intention
     Quand je lis le fichier de log pour la date "2026-02-23"
-    Alors au moins un enregistrement du fichier contient le champ identifiant l'API (ex. "Claude")
+    Alors au moins un enregistrement du fichier contient le champ identifiant l'API (ex. "Mistral")
     Quand j'appelle l'API GET /api/consommation-api
     Alors la réponse contient des données d'agrégation pour la date "2026-02-23"
 

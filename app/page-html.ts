@@ -6,8 +6,8 @@
 import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { lireCompte, lireAirTable } from '../utils/index.js';
-import { getListePluginsPourAvantPropos } from '../utils/source-plugins.js';
+import { lireCompte } from '../utils/index.js';
+import { getListeSourcesPourAvantPropos } from '../utils/source-plugins.js';
 import { maskEmail } from '../utils/mask-email.js';
 import { getLayoutHtml } from './layout-html.js';
 import type { ParametrageIA, Rehibitoire, ScoreOptionnel, ScoresIncontournables, FormuleDuScoreTotal } from '../types/parametres.js';
@@ -100,10 +100,12 @@ export interface OptionsParametresContent {
   flashConfigManque?: string[];
   /** Section Paramétrage IA (US-2.1) pour préremplir les champs. */
   parametrageIA?: ParametrageIA | null;
-  /** Indicateur « Déjà enregistrée » pour la section ClaudeCode (US-2.2). */
-  claudecodeHasApiKey?: boolean;
-  /** Partie modifiable du prompt IA pour affichage (ou défaut si vide). US-2.3 */
+  /** Indicateur « Déjà enregistrée » pour la section API IA / Mistral (US-8.1). */
+  mistralHasApiKey?: boolean;
+  /** Partie modifiable du prompt IA pour affichage (valeur enregistrée ; vide si jamais enregistré). US-2.3 */
   promptIAPartieModifiable?: string;
+  /** Placeholder du textarea : partie modifiable par défaut avec paramétrage actuel injecté. US-2.3 */
+  promptIAPartieModifiablePlaceholder?: string;
   /** Partie fixe du prompt IA (lecture seule). US-2.3 */
   promptIAPartieFixe?: string;
   /** True si au moins une offre Airtable a du texte (afficher bouton "Récupérer le texte d'une offre"). US-2.4 */
@@ -137,45 +139,37 @@ export async function getParametresContent(
   dataDir: string,
   options?: OptionsParametresContent
 ): Promise<string> {
-  const INJECT_CHAMP_URL_BASE = '<!-- INJECT_CHAMP_URL_BASE -->';
-  const INJECT_CHAMP_API_KEY = '<!-- INJECT_CHAMP_API_KEY -->';
-
   const guidesDir = options?.resourcesDir
     ? join(options.resourcesDir, 'guides')
     : join(dataDir, 'ressources');
-  const pathAirtable = join(guidesDir, 'CreationCompteAirtable.html');
-  const pathClaude = join(guidesDir, 'CréationCompteClaudeCode.html');
-  let tutorielAirtableHtml = '';
+  const pathMistral = join(guidesDir, 'CréationCompteMistral.html');
+  let tutorielApiIaHtml = '';
   try {
-    tutorielAirtableHtml = await readFile(pathAirtable, 'utf-8');
-  } catch {
-    // Fichier absent : zone tutoriel vide
-  }
-  let tutorielClaudeCodeHtml = '';
-  try {
-    tutorielClaudeCodeHtml = await readFile(pathClaude, 'utf-8');
-    tutorielClaudeCodeHtml = tutorielClaudeCodeHtml
+    tutorielApiIaHtml = await readFile(pathMistral, 'utf-8');
+    tutorielApiIaHtml = tutorielApiIaHtml
       .replace(/<!-- INJECT_CHAMP_API_KEY -->/g, '')
-      .replace(/<\/script>/gi, '<\\/script>');
+      .replace(/<\/script>/gi, '<\\/script>')
+      .replace(/\$\{/g, '\\${')
+      .replace(/`/g, '\\`');
   } catch {
-    tutorielClaudeCodeHtml = '<p class="tutorielAbsent">Fichier tutoriel absent.</p>';
+    tutorielApiIaHtml = '<p class="tutorielAbsent">Fichier tutoriel absent.</p>';
   }
   let avantProposHtml = '';
   if (options?.docsDir) {
     try {
       const pathTelecharger = join(options.docsDir, 'telecharger.html');
       avantProposHtml = await readFile(pathTelecharger, 'utf-8');
-      const listePlugins = getListePluginsPourAvantPropos();
-      const tablePluginsHtml =
-        '<table class="introParametrageListePlugins" aria-label="Liste des plugins par source">' +
-        '<thead><tr><th scope="col">Email</th><th scope="col">Plugin</th><th scope="col">Création</th><th scope="col">Enrichissement</th></tr></thead><tbody>' +
-        listePlugins
+      const listeSources = getListeSourcesPourAvantPropos();
+      const tableSourcesHtml =
+        '<table class="introParametrageListeSources" aria-label="Liste des sources">' +
+        '<thead><tr><th scope="col">Email</th><th scope="col">Source</th><th scope="col">Création</th><th scope="col">Enrichissement</th></tr></thead><tbody>' +
+        listeSources
           .map(
             (l) =>
               '<tr><td>' +
               escapeHtml(l.email) +
               '</td><td>' +
-              escapeHtml(l.plugin) +
+              escapeHtml(l.source) +
               '</td><td>' +
               (l.creation ? 'Oui' : 'Non') +
               '</td><td>' +
@@ -184,7 +178,7 @@ export async function getParametresContent(
           )
           .join('') +
         '</tbody></table>';
-      avantProposHtml = avantProposHtml.replace(/<!-- INJECT_LISTE_PLUGIN -->/g, tablePluginsHtml);
+      avantProposHtml = avantProposHtml.replace(/<!-- INJECT_LISTE_SOURCES -->/g, tableSourcesHtml);
       avantProposHtml = avantProposHtml.replace(/src="diagramme-de-flux\.png"/g, 'src="/docs/diagramme-de-flux.png"');
     } catch {
       avantProposHtml = '<p class="tutorielAbsent">Avant propos absent (fichier docs/telecharger.html absent).</p>';
@@ -192,11 +186,6 @@ export async function getParametresContent(
   } else {
     avantProposHtml = '<p class="tutorielAbsent">Avant propos absent.</p>';
   }
-  const airtable = lireAirTable(dataDir);
-  const hasApiKey = !!(airtable?.apiKey?.trim());
-  const airtableBase = airtable?.base ?? '';
-  const tablesAirtableCreees = !!(airtable?.sources && airtable?.offres);
-  const statutAirtableInitial = tablesAirtableCreees ? 'AirTable prêt' : '';
   const compte = lireCompte(dataDir);
   const microsoftAvailable = options?.microsoftAvailable ?? false;
   const dossierAAnalyserConfigure = !!(compte?.cheminDossier?.trim());
@@ -240,12 +229,10 @@ export async function getParametresContent(
     ? formatConsentementDateHeure(consentementEnvoyeLe.trim())
     : { date: '', heure: '' };
   /* Ouverture des sections : Avant propos si une config incomplète ; chaque section selon son critère ; Paramétrage IA toujours ouvert. */
-  const airtableIncomplet = !(airtableBase?.trim()) || !hasApiKey;
   const consentementMémorisé = consentementDejaEnvoye || consentementIdentification;
   const connexionIncomplet = !modeConnexionOk || !dossierAAnalyserConfigure || !consentementMémorisé;
-  const claudecodeIncomplet = !options?.claudecodeHasApiKey;
-  const introOuvert = airtableIncomplet || connexionIncomplet || claudecodeIncomplet;
-  const airtableOuvert = airtableIncomplet;
+  const apiIaOuvert = !options?.mistralHasApiKey;
+  const introOuvert = connexionIncomplet;
   const connexionOuvert = connexionIncomplet;
   /* Désactivation des boutons Tester connexion / Enregistrer : gérée en CSS (:has(#consentement-identification:not(:checked))) + JS (attribut disabled pour a11y). */
 
@@ -308,37 +295,24 @@ export async function getParametresContent(
         <button type="button" id="bouton-se-connecter-gmail" class="btnPrimary" disabled title="En construction">Se connecter</button>
       </div>`;
 
-  const champUrlBaseHtml = `<div class="fieldGroup">
-        <label for="airtable-base">URL de la base Airtable</label>
-        <input type="text" id="airtable-base" name="airtableBase" value="${escapeHtml(airtableBase)}" placeholder="https://airtable.com/appXXX/…" e2eid="e2eid-champ-airtable-base" form="form-compte" />
-      </div>`;
-  const champApiKeyHtml = `<div class="fieldGroup">
-        <label for="airtable-api-key">API Key Airtable</label>
-        <input type="password" id="airtable-api-key" name="airtableApiKey" value="" placeholder="${hasApiKey ? 'Déjà enregistrée' : 'patXXX…'}" autocomplete="off" e2eid="e2eid-champ-api-key-airtable" form="form-compte" />
-      </div>`;
-  tutorielAirtableHtml = tutorielAirtableHtml
-    .replace(INJECT_CHAMP_URL_BASE, champUrlBaseHtml)
-    .replace(INJECT_CHAMP_API_KEY, champApiKeyHtml)
-    .replace(/<\/script>/gi, '<\\/script>');
-
   const ia = normalizeParametrageIA(options?.parametrageIA);
   const scoresIncontournablesRemplis =
     [ia.scoresIncontournables.localisation, ia.scoresIncontournables.salaire, ia.scoresIncontournables.culture, ia.scoresIncontournables.qualiteOffre].every(
       (v) => (v ?? '').trim() !== ''
     );
   const parametrageIAConfigured = scoresIncontournablesRemplis;
-  /** Paramétrage prompt de l'IA : toujours ouvert. */
+  /** Prompt de l'IA : toujours ouvert. */
   const parametrageIAOuvert = true;
-  const claudecodeOuvert = claudecodeIncomplet;
+  const ph = (saved: string | undefined, def: string) => ((saved ?? '').trim() !== '' ? saved! : def);
   const zoneRehibitoiresHtml = `
     <div class="zoneParametrageIA zoneRehibitoires" data-zone="rehibitoires" aria-labelledby="titre-zone-rehibitoires">
       <h3 id="titre-zone-rehibitoires" class="zoneParametrageIATitle">Rédhibitoires</h3>
       ${[0, 1, 2, 3].map((i) => `
       <div class="blocCritere blocRehibitoire" data-layout="bloc-critere" data-bloc-index="${i}">
         <label for="parametrage-ia-rehibitoires-${i}-titre" class="blocCritereLabel">Titre</label>
-        <input type="text" id="parametrage-ia-rehibitoires-${i}-titre" name="rehibitoires_${i}_titre" value="${escapeHtml(ia.rehibitoires[i].titre)}" maxlength="200" placeholder="${escapeHtml(PLACEHOLDER_REHIBITOIRE_TITRE)}" e2eid="e2eid-parametrage-ia-rehibitoires-${i}-titre" form="form-parametrage-ia" />
+        <input type="text" id="parametrage-ia-rehibitoires-${i}-titre" name="rehibitoires_${i}_titre" value="${escapeHtml(ia.rehibitoires[i].titre)}" maxlength="200" placeholder="${escapeHtml(ph(ia.rehibitoires[i].titre, PLACEHOLDER_REHIBITOIRE_TITRE))}" e2eid="e2eid-parametrage-ia-rehibitoires-${i}-titre" form="form-parametrage-ia" />
         <label for="parametrage-ia-rehibitoires-${i}-description" class="blocCritereLabel">Description</label>
-        <textarea id="parametrage-ia-rehibitoires-${i}-description" name="rehibitoires_${i}_description" rows="10" placeholder="${escapeHtml(PLACEHOLDER_REHIBITOIRE_DESCRIPTION)}" e2eid="e2eid-parametrage-ia-rehibitoires-${i}-description" form="form-parametrage-ia">${escapeHtml(ia.rehibitoires[i].description)}</textarea>
+        <textarea id="parametrage-ia-rehibitoires-${i}-description" name="rehibitoires_${i}_description" rows="10" placeholder="${escapeHtml(ph(ia.rehibitoires[i].description, PLACEHOLDER_REHIBITOIRE_DESCRIPTION))}" e2eid="e2eid-parametrage-ia-rehibitoires-${i}-description" form="form-parametrage-ia">${escapeHtml(ia.rehibitoires[i].description)}</textarea>
       </div>`).join('')}
     </div>`;
   const scoresIncontournablesKeys = ['localisation', 'salaire', 'culture', 'qualiteOffre'] as const;
@@ -351,7 +325,7 @@ export async function getParametresContent(
         return `
       <div class="blocCritere blocScoreIncontournable" data-layout="bloc-critere" data-bloc-key="${key}">
         <span class="blocCritereTitreFixe" id="parametrage-ia-scores-incontournables-${key}-label">${escapeHtml(titre)}</span>
-        <textarea id="parametrage-ia-scores-incontournables-${key}" name="scores_incontournables_${key}" rows="10" placeholder="${escapeHtml(PLACEHOLDERS_SCORES_INCONTOURNABLES[i])}" e2eid="e2eid-parametrage-ia-scores-${key}" form="form-parametrage-ia">${escapeHtml(value)}</textarea>
+        <textarea id="parametrage-ia-scores-incontournables-${key}" name="scores_incontournables_${key}" rows="10" placeholder="${escapeHtml(ph(value, PLACEHOLDERS_SCORES_INCONTOURNABLES[i]))}" e2eid="e2eid-parametrage-ia-scores-${key}" form="form-parametrage-ia">${escapeHtml(value)}</textarea>
       </div>`;
       }).join('')}
     </div>`;
@@ -361,22 +335,23 @@ export async function getParametresContent(
       ${[0, 1, 2, 3].map((i) => `
       <div class="blocCritere blocScoreOptionnel" data-layout="bloc-critere" data-bloc-index="${i}">
         <label for="parametrage-ia-scores-optionnels-${i}-titre" class="blocCritereLabel">Titre</label>
-        <input type="text" id="parametrage-ia-scores-optionnels-${i}-titre" name="scores_optionnels_${i}_titre" value="${escapeHtml(ia.scoresOptionnels[i].titre)}" maxlength="200" placeholder="${escapeHtml(PLACEHOLDER_OPTIONNEL_TITRE)}" e2eid="e2eid-parametrage-ia-scores-optionnels-${i}-titre" form="form-parametrage-ia" />
+        <input type="text" id="parametrage-ia-scores-optionnels-${i}-titre" name="scores_optionnels_${i}_titre" value="${escapeHtml(ia.scoresOptionnels[i].titre)}" maxlength="200" placeholder="${escapeHtml(ph(ia.scoresOptionnels[i].titre, PLACEHOLDER_OPTIONNEL_TITRE))}" e2eid="e2eid-parametrage-ia-scores-optionnels-${i}-titre" form="form-parametrage-ia" />
         <label for="parametrage-ia-scores-optionnels-${i}-attente" class="blocCritereLabel">Attente</label>
-        <textarea id="parametrage-ia-scores-optionnels-${i}-attente" name="scores_optionnels_${i}_attente" rows="10" placeholder="${escapeHtml(PLACEHOLDER_OPTIONNEL_ATTENTE)}" e2eid="e2eid-parametrage-ia-scores-optionnels-${i}-attente" form="form-parametrage-ia">${escapeHtml(ia.scoresOptionnels[i].attente)}</textarea>
+        <textarea id="parametrage-ia-scores-optionnels-${i}-attente" name="scores_optionnels_${i}_attente" rows="10" placeholder="${escapeHtml(ph(ia.scoresOptionnels[i].attente, PLACEHOLDER_OPTIONNEL_ATTENTE))}" e2eid="e2eid-parametrage-ia-scores-optionnels-${i}-attente" form="form-parametrage-ia">${escapeHtml(ia.scoresOptionnels[i].attente)}</textarea>
       </div>`).join('')}
     </div>`;
-  const placeholderAutresRessources =
+  const placeholderAutresRessourcesDefaut =
     'Confiez CVs, lettres de motivation, portfolio... toutes les ressources à votre disposition à l\'IA de votre choix et demandez-lui de vous rédiger un texte qui résume vos expériences, apprentissages, compétences et appétances dans le cadre d\'une recherche d\'emploi. Collez le résultat ici.';
   const zoneAutresRessourcesHtml = `
     <div class="zoneParametrageIA zoneAutresRessources" data-zone="autres-ressources" aria-labelledby="titre-zone-autres-ressources">
       <h3 id="titre-zone-autres-ressources" class="zoneParametrageIATitle">Autres ressources</h3>
       <div class="blocCritere blocAutresRessources" data-layout="bloc-critere">
-        <textarea id="parametrage-ia-autres-ressources" name="autres_ressources" rows="12" placeholder="${escapeHtml(placeholderAutresRessources)}" e2eid="e2eid-parametrage-ia-autres-ressources" form="form-parametrage-ia">${escapeHtml(ia.autresRessources)}</textarea>
+        <textarea id="parametrage-ia-autres-ressources" name="autres_ressources" rows="12" placeholder="${escapeHtml(ph(ia.autresRessources, placeholderAutresRessourcesDefaut))}" e2eid="e2eid-parametrage-ia-autres-ressources" form="form-parametrage-ia">${escapeHtml(ia.autresRessources)}</textarea>
       </div>
     </div>`;
 
   const promptIAPartieModifiable = options?.promptIAPartieModifiable ?? '';
+  const promptIAPartieModifiablePlaceholder = options?.promptIAPartieModifiablePlaceholder ?? '';
   const promptIAPartieFixe = options?.promptIAPartieFixe ?? '';
   const zonePromptIAHtml = `
     <div class="zoneParametrageIA zonePromptIA" data-zone="prompt-ia" data-layout="zone-prompt-ia" aria-labelledby="titre-zone-prompt-ia">
@@ -391,41 +366,18 @@ export async function getParametresContent(
       </div>
       <div class="blocPromptIA blocPromptIA-partieModifiable" data-layout="bloc-prompt-partie-modifiable">
         <label for="prompt-ia-partie-modifiable" class="blocCritereLabel">Partie modifiable du prompt</label>
-        <textarea id="prompt-ia-partie-modifiable" name="prompt_ia_partie_modifiable" rows="10" class="zonePromptModifiable" e2eid="e2eid-zone-prompt-modifiable" form="form-parametrage-ia" aria-label="Partie modifiable du prompt IA">${escapeHtml(promptIAPartieModifiable)}</textarea>
+        <textarea id="prompt-ia-partie-modifiable" name="prompt_ia_partie_modifiable" rows="10" class="zonePromptModifiable" e2eid="e2eid-zone-prompt-modifiable" form="form-parametrage-ia" aria-label="Partie modifiable du prompt IA" placeholder="${escapeHtml(promptIAPartieModifiablePlaceholder)}">${escapeHtml(promptIAPartieModifiable)}</textarea>
       </div>
       <div class="actions actionsPromptIA">
         <button type="button" id="bouton-proposer-prompt" e2eid="e2eid-bouton-proposer-prompt">Proposer un prompt</button>
-      </div>
-      <hr class="formDivider parametrageIADivider" aria-hidden="true" />
-      <div class="zoneTestClaudecode" data-layout="zone-test-claudecode" aria-labelledby="label-texte-offre-test">
-        <div class="fieldGroup fieldGroup-metadonnees-offre" data-layout="metadonnees-offre-test" aria-label="Métadonnées de l'offre (optionnel, envoyées au LLM avec le texte)">
-          <span class="fieldGroupLabel">Métadonnées (optionnel)</span>
-          <div class="metadonneesOffreTestRow">
-            <div class="metadonneesOffreTestField"><label for="metadata-poste">Poste</label><input type="text" id="metadata-poste" name="metadataPoste" placeholder="Titre du poste" e2eid="e2eid-metadata-poste" aria-label="Poste" /></div>
-            <div class="metadonneesOffreTestField"><label for="metadata-entreprise">Entreprise</label><input type="text" id="metadata-entreprise" name="metadataEntreprise" placeholder="Nom entreprise" e2eid="e2eid-metadata-entreprise" aria-label="Entreprise" /></div>
-            <div class="metadonneesOffreTestField"><label for="metadata-ville">Ville</label><input type="text" id="metadata-ville" name="metadataVille" placeholder="Ville" e2eid="e2eid-metadata-ville" aria-label="Ville" /></div>
-            <div class="metadonneesOffreTestField"><label for="metadata-salaire">Salaire</label><input type="text" id="metadata-salaire" name="metadataSalaire" placeholder="Ex. 45–55 k€" e2eid="e2eid-metadata-salaire" aria-label="Salaire" /></div>
-            <div class="metadonneesOffreTestField"><label for="metadata-date-offre">Date offre</label><input type="text" id="metadata-date-offre" name="metadataDateOffre" placeholder="Ex. 2025-01-15" e2eid="e2eid-metadata-date-offre" aria-label="Date offre" /></div>
-            <div class="metadonneesOffreTestField"><label for="metadata-departement">Département</label><input type="text" id="metadata-departement" name="metadataDepartement" placeholder="Ex. 69" e2eid="e2eid-metadata-departement" aria-label="Département" /></div>
-          </div>
-        </div>
-        <div class="fieldGroup">
-          <label for="texte-offre-test" id="label-texte-offre-test">Texte d'offre à tester</label>
-          <textarea id="texte-offre-test" name="texteOffreTest" rows="6" class="zoneTexteOffreTest" e2eid="e2eid-texte-offre-test" aria-label="Texte d'offre à tester"></textarea>
-        </div>
-        ${options?.offreTestHasOffre === true ? '<div class="actions actions-recuperer-offre"><button type="button" id="bouton-recuperer-texte-offre" e2eid="e2eid-bouton-recuperer-texte-offre">Récupérer le texte d\'une offre</button></div>' : ''}
-        <div class="actions actions-tester-api">
-          <button type="button" id="bouton-tester-api" e2eid="e2eid-bouton-tester-api">Tester API</button>
-        </div>
-        <div id="zone-resultat-test-claudecode" class="zoneResultatTestClaudecode" role="status" aria-live="polite" data-type="" aria-label="Résultat du test API ClaudeCode"></div>
       </div>
     </div>`;
 
   const parametrageIASectionHtml = `
     <details id="section-parametrage-ia" class="blocParametrage blocParametrage-ia parametrageIA" data-layout="parametrage-ia" aria-labelledby="titre-parametrage-ia" ${parametrageIAOuvert ? 'open' : ''}>
-      <summary id="titre-parametrage-ia" class="parametrageIATitle blocParametrageSummary">Paramétrage prompt de l'IA</summary>
+      <summary id="titre-parametrage-ia" class="parametrageIATitle blocParametrageSummary">Prompt de l'IA</summary>
       <div class="blocParametrageContent">
-      <form id="form-parametrage-ia" class="formParametrageIA" aria-label="Formulaire Paramétrage prompt de l'IA">
+      <form id="form-parametrage-ia" class="formParametrageIA" aria-label="Formulaire Prompt de l'IA">
         ${zoneRehibitoiresHtml}
         <hr class="formDivider parametrageIADivider" aria-hidden="true" />
         ${zoneScoresIncontournablesHtml}
@@ -514,20 +466,9 @@ export async function getParametresContent(
     </details>`;
 
   return `<div class="pageParametres parametrageCompteEmail" data-layout="page-parametres">
-    <h1 class="pageParametresTitle">Paramètres</h1>
     ${introParametrageHtml}
-    <details class="blocParametrage blocParametrage-airtable configurationAirtable" data-layout="configuration-airtable" aria-labelledby="titre-airtable" ${airtableOuvert ? 'open' : ''}>
-      <summary id="titre-airtable" class="blocParametrageSummary">Configuration Airtable</summary>
-      <div class="blocParametrageContent">
-        <div id="zone-tutoriel-airtable" class="zoneTutorielAirtable" aria-label="Tutoriel création compte Airtable">${tutorielAirtableHtml}</div>
-        <div class="actions actions-configuration-airtable">
-          <button type="button" id="bouton-lancer-configuration-airtable" e2eid="e2eid-bouton-lancer-configuration-airtable">Lancer la configuration</button>
-        </div>
-        <div id="statut-configuration-airtable" class="statutConfigurationAirtable" role="status" aria-live="polite">${escapeHtml(statutAirtableInitial)}</div>
-      </div>
-    </details>
     <details class="blocParametrage blocParametrage-connexion" aria-labelledby="titre-connexion" ${connexionOuvert ? 'open' : ''}>
-      <summary id="titre-connexion" class="blocParametrageSummary">Paramétrage du compte email</summary>
+      <summary id="titre-connexion" class="blocParametrageSummary">Compte email</summary>
       <div class="blocParametrageContent">
     <div class="formCard">
       <fieldset class="fieldGroup providerChoice providerChoiceRadios" aria-label="Mode de connexion">
@@ -593,17 +534,42 @@ export async function getParametresContent(
     <div id="feedback-enregistrement" class="feedbackEnregistrement${feedbackErreurClass}" aria-live="polite" data-type="${flashTextConfig ? 'erreur' : 'info'}">${escapeHtml(flashText)}</div>
       </div>
     </details>
-    <details class="blocParametrage blocParametrage-claudecode" data-layout="configuration-claudecode" aria-labelledby="titre-claudecode" ${claudecodeOuvert ? 'open' : ''}>
-      <summary id="titre-claudecode" class="blocParametrageSummary">Configuration ClaudeCode</summary>
-      <div class="blocParametrageContent detailsBlocParametrageClaudecode">
-        <div id="zone-tutoriel-claudecode" class="zoneTutorielClaudecode" aria-label="Tutoriel création compte ClaudeCode et obtention API Key">${tutorielClaudeCodeHtml}</div>
-        <div class="fieldGroup">
-          <label for="claudecode-api-key">API Key ClaudeCode</label>
-          <input type="password" id="claudecode-api-key" name="claudecodeApiKey" value="" placeholder="${escapeHtml(options?.claudecodeHasApiKey ? 'Déjà enregistrée' : 'sk-ant-api03-…')}" autocomplete="off" e2eid="e2eid-champ-api-key-claudecode" />
-          ${options?.claudecodeHasApiKey ? '<span class="indicateurCleEnregistree" aria-live="polite">Déjà enregistrée</span>' : ''}
-        </div>
-        <div class="actions actions-configuration-claudecode">
-          <button type="button" id="bouton-enregistrer-claudecode" e2eid="e2eid-bouton-enregistrer-claudecode">Enregistrer</button>
+    <details class="blocParametrage blocParametrage-api-ia" data-layout="configuration-api-ia" aria-labelledby="titre-api-ia" ${apiIaOuvert ? 'open' : ''}>
+      <summary id="titre-api-ia" class="blocParametrageSummary titre-api-ia">API IA</summary>
+      <div class="blocParametrageContent detailsBlocParametrageApiIa">
+        <div id="zone-tutoriel-api-ia" class="zoneTutorielApiIa" aria-label="Tutoriel création compte Mistral et obtention API Key">${tutorielApiIaHtml}</div>
+        <form id="form-api-ia" class="formApiIa" aria-label="Enregistrement de la clé API Mistral" method="post" action="#" novalidate onsubmit="return false;">
+          <div class="fieldGroup">
+            <label for="api-key-ia">API Key</label>
+            <input type="password" id="api-key-ia" name="mistralApiKey" value="" placeholder="${escapeHtml(options?.mistralHasApiKey ? 'API Key correctement enregistrée' : 'sk-…')}" autocomplete="off" e2eid="e2eid-champ-api-key-ia" />
+          </div>
+          <div class="actions actions-configuration-api-ia">
+            <button type="submit" id="bouton-enregistrer-ia" e2eid="e2eid-bouton-enregistrer-ia">Enregistrer</button>
+            <span id="feedback-enregistrement-ia" class="feedbackEnregistrementIa" aria-live="polite" role="status"></span>
+          </div>
+        </form>
+        <script src="/scripts/enregistrement-api-ia.js">` + '</scr' + 'ipt>' + `
+        <div class="zoneTestApiIa" data-layout="zone-test-api-ia" aria-labelledby="label-texte-offre-test">
+          <div class="fieldGroup fieldGroup-metadonnees-offre" data-layout="metadonnees-offre-test" aria-label="Métadonnées de l'offre (optionnel, envoyées au LLM avec le texte)">
+            <span class="fieldGroupLabel">Métadonnées (optionnel)</span>
+            <div class="metadonneesOffreTestRow">
+              <div class="metadonneesOffreTestField"><label for="metadata-poste">Poste</label><input type="text" id="metadata-poste" name="metadataPoste" placeholder="Titre du poste" e2eid="e2eid-metadata-poste" aria-label="Poste" /></div>
+              <div class="metadonneesOffreTestField"><label for="metadata-entreprise">Entreprise</label><input type="text" id="metadata-entreprise" name="metadataEntreprise" placeholder="Nom entreprise" e2eid="e2eid-metadata-entreprise" aria-label="Entreprise" /></div>
+              <div class="metadonneesOffreTestField"><label for="metadata-ville">Ville</label><input type="text" id="metadata-ville" name="metadataVille" placeholder="Ville" e2eid="e2eid-metadata-ville" aria-label="Ville" /></div>
+              <div class="metadonneesOffreTestField"><label for="metadata-salaire">Salaire</label><input type="text" id="metadata-salaire" name="metadataSalaire" placeholder="Ex. 45–55 k€" e2eid="e2eid-metadata-salaire" aria-label="Salaire" /></div>
+              <div class="metadonneesOffreTestField"><label for="metadata-date-offre">Date offre</label><input type="text" id="metadata-date-offre" name="metadataDateOffre" placeholder="Ex. 2025-01-15" e2eid="e2eid-metadata-date-offre" aria-label="Date offre" /></div>
+              <div class="metadonneesOffreTestField"><label for="metadata-departement">Département</label><input type="text" id="metadata-departement" name="metadataDepartement" placeholder="Ex. 69" e2eid="e2eid-metadata-departement" aria-label="Département" /></div>
+            </div>
+          </div>
+          <div class="fieldGroup">
+            <label for="texte-offre-test" id="label-texte-offre-test">Texte d'offre à tester</label>
+            <textarea id="texte-offre-test" name="texteOffreTest" rows="6" class="zoneTexteOffreTest" e2eid="e2eid-texte-offre-test" aria-label="Texte d'offre à tester"></textarea>
+          </div>
+          ${options?.offreTestHasOffre === true ? '<div class="actions actions-recuperer-offre"><button type="button" id="bouton-recuperer-texte-offre" e2eid="e2eid-bouton-recuperer-texte-offre">Récupérer le texte d\'une offre</button></div>' : ''}
+          <div class="actions actions-tester-api">
+            <button type="button" id="bouton-tester-api" e2eid="e2eid-bouton-tester-api">Tester API</button>
+          </div>
+          <div id="zone-resultat-test-ia" class="zoneResultatTestApiIa" role="status" aria-live="polite" data-type="" aria-label="Résultat du test API IA"></div>
         </div>
       </div>
     </details>
@@ -626,10 +592,12 @@ export interface OptionsPageParametres {
   flashConfigManque?: string[];
   /** Section Paramétrage IA (US-2.1) pour préremplir les champs. */
   parametrageIA?: ParametrageIA | null;
-  /** Indicateur « Déjà enregistrée » pour la section ClaudeCode (US-2.2). */
-  claudecodeHasApiKey?: boolean;
+  /** Placeholder « API Key correctement enregistrée » pour la section API IA / Mistral (US-8.1). */
+  mistralHasApiKey?: boolean;
   /** Partie modifiable du prompt IA (affichage). US-2.3 */
   promptIAPartieModifiable?: string;
+  /** Placeholder du textarea Prompt IA : défaut avec paramétrage injecté. US-2.3 */
+  promptIAPartieModifiablePlaceholder?: string;
   /** Partie fixe du prompt IA (lecture seule). US-2.3 */
   promptIAPartieFixe?: string;
   /** True si au moins une offre Airtable a du texte (bouton Récupérer). US-2.4 */
@@ -642,6 +610,8 @@ export interface OptionsPageParametres {
   docsDir?: string;
   /** Si true, affiche le lien "Audit du code" dans le header (mode dev). */
   showAuditLink?: boolean;
+  /** US-7.9 : afficher le lien Offres dans le menu (si au moins une offre en base). */
+  showOffresLink?: boolean;
 }
 
 export async function getPageParametres(
@@ -652,6 +622,7 @@ export async function getPageParametres(
   return getLayoutHtml('parametres', 'Paramètres', content, {
     configComplète: options?.configComplète,
     showAuditLink: options?.showAuditLink,
+    showOffresLink: options?.showOffresLink,
   });
 }
 
@@ -667,6 +638,8 @@ export interface PageAProposOptions {
   resourcesDir?: string;
   /** Si true, affiche le lien "Audit du code" dans le header (mode dev). */
   showAuditLink?: boolean;
+  /** US-7.9 : afficher le lien Offres dans le menu (si au moins une offre en base). */
+  showOffresLink?: boolean;
 }
 
 /** Formate une date ISO en français (ex. "21 février 2025 à 14:30"). */
@@ -684,7 +657,6 @@ function formatBuildTime(iso: string): string {
 /** Contenu À propos en dur (fallback si fichier ressources/guides/APropos.html absent). */
 const PAGE_A_PROPOS_FALLBACK = `
 <div class="pageAPropos">
-  <h1 class="pageParametresTitle">À propos</h1>
   <!-- INJECT_VERSION_LINE -->
   <!-- INJECT_BUILD_TIME_LINE -->
 
@@ -755,7 +727,96 @@ export function getPageAPropos(options?: PageAProposOptions): string {
     .replace(/<!-- INJECT_VERSION_LINE -->/g, versionLine)
     .replace(/<!-- INJECT_BUILD_TIME_LINE -->/g, buildTimeLine);
 
-  return getLayoutHtml('a-propos', 'À propos', content, { configComplète, showAuditLink: options?.showAuditLink });
+  return getLayoutHtml('a-propos', 'À propos', content, {
+    configComplète,
+    showAuditLink: options?.showAuditLink,
+    showOffresLink: options?.showOffresLink === true,
+  });
+}
+
+/** Un article de la documentation (fichier .md). */
+export type ArticleDocumentation = {
+  name: string;
+  title: string;
+};
+
+/** Options pour la page Documentation. */
+export type PageDocumentationOptions = {
+  configComplète?: boolean;
+  showAuditLink?: boolean;
+  /** US-7.9 : afficher le lien Offres dans le menu (si au moins une offre en base). */
+  showOffresLink?: boolean;
+  /** Liste des articles (sommaire). */
+  articles?: ArticleDocumentation[];
+  /** Contenu HTML de l’article sélectionné (déjà converti depuis le MD). */
+  articleHtml?: string;
+  /** Nom du fichier de l’article sélectionné (pour surligner le lien). */
+  selectedArticle?: string;
+};
+
+/** Page Documentation : sommaire des articles MD et affichage du contenu sélectionné. */
+export function getPageDocumentation(options?: PageDocumentationOptions): string {
+  const { configComplète, showAuditLink, showOffresLink, articles = [], articleHtml, selectedArticle } = options ?? {};
+  const hasArticles = articles.length > 0;
+  const sommaire =
+    hasArticles
+      ? `
+    <nav class="pageDocumentationNav" aria-label="Sommaire documentation">
+      <h2 class="pageDocumentationSommaireTitle">Sommaire</h2>
+      <ul class="pageDocumentationList">
+        ${articles
+          .map(
+            (a) =>
+              `<li><a href="/documentation?article=${encodeURIComponent(a.name)}" class="pageDocumentationLink${selectedArticle === a.name ? ' pageDocumentationLinkActive' : ''}">${escapeHtml(a.title)}</a></li>`
+          )
+          .join('\n        ')}
+      </ul>
+    </nav>`
+      : '';
+  const corpsArticle = articleHtml
+    ? `<div class="pageDocumentationArticle" role="main">${articleHtml}</div>`
+    : hasArticles
+      ? '<p class="pageDocumentationHint">Cliquez sur un titre du sommaire pour afficher l’article.</p>'
+      : '<p>Aucun article dans <code>docs/documentation</code>.</p>';
+  const content = `
+  <div class="pageDocumentation">
+    ${sommaire}
+    ${corpsArticle}
+  </div>`;
+  return getLayoutHtml('documentation', 'Documentation', content, {
+    configComplète,
+    showAuditLink,
+    showOffresLink: options?.showOffresLink === true,
+  });
+}
+
+/** Options pour la page Offres (US-7.9). */
+export type PageOffresOptions = {
+  showOffresLink?: boolean;
+};
+
+/** Page Offres : zone latérale (vues) + conteneur RevoGrid. Données et vues chargées côté client. */
+export function getPageOffres(options?: PageOffresOptions): string {
+  const content = `
+  <div class="pageOffres" data-layout="page-offres">
+    <aside class="pageOffresSidebar" aria-label="Vues sauvegardées">
+      <h2 id="page-offres-titre-vues" class="pageOffresSidebarTitle">Vues</h2>
+      <ul class="pageOffresVuesList" id="pageOffresVuesList" e2eid="e2eid-liste-vues-offres" aria-label="Liste des vues"></ul>
+      <button type="button" class="pageOffresBoutonCreerVue btnSecondary" e2eid="e2eid-bouton-creer-vue">Créer une vue</button>
+    </aside>
+    <div class="pageOffresGridWrap">
+      <div id="pageOffresGrid" class="pageOffresGrid" e2eid="e2eid-grid-offres" role="grid" aria-label="Tableau des offres"></div>
+      <p class="pageOffresGridFooter" id="pageOffresGridFooter" aria-live="polite" role="status">—</p>
+    </div>
+  </div>
+  <script type="module">
+  import { defineCustomElements } from 'https://cdn.jsdelivr.net/npm/@revolist/revogrid@4.20.2/dist/esm/loader.js';
+  await defineCustomElements();
+  </script>
+  <script src="/scripts/offres-page.js"></script>`;
+  return getLayoutHtml('offres', 'Offres', content, {
+    showOffresLink: options?.showOffresLink ?? true,
+  });
 }
 
 /** @deprecated Utiliser getPageParametres pour le layout avec menu. Conservé pour compatibilité (ex. BDD). */

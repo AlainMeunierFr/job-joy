@@ -13,19 +13,17 @@ import '../utils/load-env-local.js';
  * Prérequis : parametres.json (compte email + airtable, mot de passe chiffré).
  */
 import { join } from 'node:path';
-import { runTraitement } from './run-traitement.js';
+import { runTraitement, createCompositeReleveDriverSqlite } from './run-traitement.js';
 import { createAutoFixtureHook } from './email-fixtures.js';
 import { lireCompte } from '../utils/compte-io.js';
 import { getMotDePasseImapDecrypt } from '../utils/parametres-io.js';
-import { lireAirTable } from '../utils/parametres-airtable.js';
-import { createAirtableReleveDriver } from '../utils/airtable-releve-driver.js';
 import { createLecteurEmailsImap } from '../utils/lecteur-emails-imap.js';
 import { createLecteurEmailsGraph } from '../utils/lecteur-emails-graph.js';
 import { executerReleveOffresLinkedIn } from '../utils/relève-offres-linkedin.js';
-import { createAirtableEnrichissementDriver } from '../utils/airtable-enrichissement-driver.js';
+import { createEnrichissementOffresSqliteDriver } from '../utils/enrichissement-offres-sqlite.js';
+import { initOffresRepository } from '../utils/repository-offres-sqlite.js';
 import { createFetcherContenuOffre } from '../utils/fetcher-contenu-offre.js';
 import { executerEnrichissementOffres } from '../utils/enrichissement-offres.js';
-import { normaliserBaseId } from '../utils/airtable-url.js';
 import { getValidAccessToken } from '../utils/auth-microsoft.js';
 
 const DATA_DIR = join(process.cwd(), 'data');
@@ -34,11 +32,6 @@ async function runReleve(): Promise<boolean> {
   const compte = lireCompte(DATA_DIR);
   if (!compte) {
     console.error('Aucun compte email configuré. Enregistre les paramètres (formulaire ou data/parametres.json).');
-    return false;
-  }
-  const airtable = lireAirTable(DATA_DIR);
-  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.sources?.trim() || !airtable?.offres?.trim()) {
-    console.error('Configuration Airtable incomplète (apiKey, base, sources, offres).');
     return false;
   }
   const provider = compte.provider ?? 'imap';
@@ -54,13 +47,7 @@ async function runReleve(): Promise<boolean> {
     return false;
   }
 
-  const baseId = normaliserBaseId(airtable.base);
-  const driver = createAirtableReleveDriver({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    sourcesId: airtable.sources,
-    offresId: airtable.offres,
-  });
+  const driver = createCompositeReleveDriverSqlite(DATA_DIR);
 
   const lecteurEmails = useMicrosoft
     ? createLecteurEmailsGraph(() => getValidAccessToken())
@@ -95,17 +82,8 @@ async function runReleve(): Promise<boolean> {
 }
 
 async function runEnrichissement(): Promise<boolean> {
-  const airtable = lireAirTable(DATA_DIR);
-  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.offres?.trim()) {
-    console.error('Configuration Airtable incomplète (apiKey, base, offres).');
-    return false;
-  }
-  const baseId = normaliserBaseId(airtable.base);
-  const driver = createAirtableEnrichissementDriver({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    offresId: airtable.offres,
-  });
+  const repository = initOffresRepository(join(DATA_DIR, 'offres.sqlite'));
+  const driver = createEnrichissementOffresSqliteDriver({ repository });
   const fetcher = createFetcherContenuOffre();
   const result = await executerEnrichissementOffres({ driver, fetcher });
   if (!result.ok) {

@@ -11,7 +11,7 @@ function afficherSynthese(result: Extract<ResultatAuditSources, { ok: true }>, l
   log(`Sources existantes : ${result.nbSourcesExistantes}`);
   log('Synthèse:');
   for (const ligne of result.synthese) {
-    log(`- ${ligne.emailExpéditeur} | ${ligne.plugin} | ${ligne.actif} | ${ligne.nbEmails}`);
+    log(`- ${ligne.emailExpéditeur} | ${ligne.source} | ${ligne.actif} | ${ligne.nbEmails}`);
   }
   log(`Sous-totaux prévisionnels: emailsÀArchiver=${result.sousTotauxPrevisionnels.emailsÀArchiver}, emailsÀAnalyser=${result.sousTotauxPrevisionnels.emailsÀAnalyser}`);
 }

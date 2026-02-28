@@ -9,7 +9,7 @@ import { fetchLinkedinJobPage } from './linkedin-page-fetcher.js';
  */
 export function createLinkedinOfferFetchPlugin(): SourceOfferFetchPlugin {
   return {
-    plugin: 'Linkedin',
+    source: 'Linkedin',
     stage2Implemented: true,
     async recupererContenuOffre(url: string): Promise<ResultatEnrichissementOffre> {
       const u = (url ?? '').trim();

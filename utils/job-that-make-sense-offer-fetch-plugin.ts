@@ -62,7 +62,7 @@ function extractMeta(html: string, property: string): string | undefined {
 
 export function createJobThatMakeSenseOfferFetchPlugin(): SourceOfferFetchPlugin {
   return {
-    plugin: 'Job That Make Sense',
+    source: 'Job That Make Sense',
     stage2Implemented: true,
     async recupererContenuOffre(url: string): Promise<ResultatEnrichissementOffre> {
       const u = (url ?? '').trim();

@@ -28,7 +28,7 @@ describe('page Paramètres - bloc Formule du score total (US-2.7)', () => {
   it('affiche un bloc "Formule du score total" et ce bloc est sous "Paramétrage prompt de l\'IA"', async () => {
     const html = await getParametresContent(dataDir);
     expect(html).toContain('Formule du score total');
-    const idxParametrageIA = html.indexOf("Paramétrage prompt de l'IA");
+    const idxParametrageIA = html.indexOf("Prompt de l'IA");
     const idxFormuleScore = html.indexOf('Formule du score total');
     expect(idxParametrageIA).toBeGreaterThanOrEqual(0);
     expect(idxFormuleScore).toBeGreaterThanOrEqual(0);

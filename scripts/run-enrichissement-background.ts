@@ -1,23 +1,8 @@
 import { join } from 'node:path';
-import { lireAirTable } from '../utils/parametres-airtable.js';
-import { createAirtableEnrichissementDriver } from '../utils/airtable-enrichissement-driver.js';
-import { getBaseSchema } from '../utils/airtable-ensure-enums.js';
+import { createEnrichissementOffresSqliteDriver } from '../utils/enrichissement-offres-sqlite.js';
+import { initOffresRepository } from '../utils/repository-offres-sqlite.js';
 import { executerEnrichissementOffres } from '../utils/enrichissement-offres.js';
-import { normaliserBaseId } from '../utils/airtable-url.js';
-import { createSourcePluginsRegistry } from '../utils/source-plugins.js';
-
-/** Résout l'id de la table Sources depuis la config ou le schéma de la base (pour filtrer par sources actives). */
-async function resolveSourcesId(
-  apiKey: string,
-  baseId: string,
-  configSources: string | undefined
-): Promise<string | undefined> {
-  const trimmed = configSources?.trim();
-  if (trimmed) return trimmed;
-  const schema = await getBaseSchema(baseId, apiKey);
-  const sourcesTable = schema.find((t) => (t.name ?? '').trim().toLowerCase() === 'sources');
-  return sourcesTable?.id;
-}
+import { createSourceRegistry } from '../utils/source-plugins.js';
 
 export type ResultatEnrichissementBackground =
   | { ok: true; nbEnrichies: number; nbEchecs: number; messages: string[]; nbCandidates: number; nbEligibles: number }
@@ -29,25 +14,14 @@ export type EtatEnrichissementBackground =
 
 export async function getEnrichissementBackgroundState(dataDir: string): Promise<EtatEnrichissementBackground> {
   const dir = dataDir || join(process.cwd(), 'data');
-  const airtable = lireAirTable(dir);
-  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.offres?.trim()) {
-    return { ok: false, message: 'Configuration Airtable incomplète (apiKey, base, offres).' };
-  }
+  const repository = initOffresRepository(join(dir, 'offres.sqlite'));
+  const baseDriver = createEnrichissementOffresSqliteDriver({ repository });
 
-  const baseId = normaliserBaseId(airtable.base);
-  const sourcesId = await resolveSourcesId(airtable.apiKey.trim(), baseId, airtable.sources);
-  const baseDriver = createAirtableEnrichissementDriver({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    offresId: airtable.offres,
-    sourcesId,
-  });
-
-  const registry = createSourcePluginsRegistry();
+  const registry = createSourceRegistry();
   const candidates = await baseDriver.getOffresARecuperer();
   const eligibles = candidates.filter((offre) => {
-    const plugin = registry.getOfferFetchPluginByUrl(offre.url);
-    return !!plugin && plugin.stage2Implemented;
+    const handler = registry.getOfferFetchSourceByUrl(offre.url);
+    return !!handler && handler.stage2Implemented;
   });
 
   return {
@@ -58,7 +32,7 @@ export async function getEnrichissementBackgroundState(dataDir: string): Promise
 }
 
 export type OptionsRunEnrichissementBackground = {
-  onProgress?: (offre: { id: string; url: string }, index: number, total: number, plugin?: string) => void;
+  onProgress?: (offre: { id: string; url: string }, index: number, total: number, sourceNom?: string) => void;
   /** Appelé à chaque changement de statut (pour mise à jour chirurgicale du tableau par ligne, identifiée par email). */
   onTransition?: (emailExpéditeur: string, statutAvant: string, statutApres: string) => void;
   /** Si retourne true, la boucle d'enrichissement s'arrête immédiatement (ex. bouton Arrêter le traitement). */
@@ -70,25 +44,14 @@ export async function runEnrichissementBackground(
   options?: OptionsRunEnrichissementBackground
 ): Promise<ResultatEnrichissementBackground> {
   const dir = dataDir || join(process.cwd(), 'data');
-  const airtable = lireAirTable(dir);
-  if (!airtable?.apiKey?.trim() || !airtable?.base?.trim() || !airtable?.offres?.trim()) {
-    return { ok: false, message: 'Configuration Airtable incomplète (apiKey, base, offres).' };
-  }
+  const repository = initOffresRepository(join(dir, 'offres.sqlite'));
+  const baseDriver = createEnrichissementOffresSqliteDriver({ repository });
 
-  const baseId = normaliserBaseId(airtable.base);
-  const sourcesId = await resolveSourcesId(airtable.apiKey.trim(), baseId, airtable.sources);
-  const baseDriver = createAirtableEnrichissementDriver({
-    apiKey: airtable.apiKey.trim(),
-    baseId,
-    offresId: airtable.offres,
-    sourcesId,
-  });
-
-  const registry = createSourcePluginsRegistry();
+  const registry = createSourceRegistry();
   const candidates = await baseDriver.getOffresARecuperer();
   const eligibles = candidates.filter((offre) => {
-    const plugin = registry.getOfferFetchPluginByUrl(offre.url);
-    return !!plugin && plugin.stage2Implemented;
+    const handler = registry.getOfferFetchSourceByUrl(offre.url);
+    return !!handler && handler.stage2Implemented;
   });
 
   const driverFiltre = {
@@ -102,21 +65,21 @@ export async function runEnrichissementBackground(
 
   const fetcher = {
     async recupererContenuOffre(url: string) {
-      const plugin = registry.getOfferFetchPluginByUrl(url);
-      if (!plugin || !plugin.stage2Implemented) {
+      const handler = registry.getOfferFetchSourceByUrl(url);
+      if (!handler || !handler.stage2Implemented) {
         return {
           ok: false as const,
-          message: `Aucun plugin étape 2 implémenté pour l'URL: ${url}`,
+          message: `Aucune source étape 2 implémentée pour l'URL: ${url}`,
         };
       }
-      return plugin.recupererContenuOffre(url);
+      return handler.recupererContenuOffre(url);
     },
   };
 
   const onProgress = options?.onProgress
     ? (offre: { id: string; url: string }, index: number, total: number) => {
-        const plugin = registry.getOfferFetchPluginByUrl(offre.url)?.plugin;
-        options.onProgress!(offre, index, total, plugin);
+        const sourceNom = registry.getOfferFetchSourceByUrl(offre.url)?.source;
+        options.onProgress!(offre, index, total, sourceNom);
       }
     : undefined;
 
